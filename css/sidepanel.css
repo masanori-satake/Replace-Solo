@@ -1,0 +1,160 @@
+:root {
+  --m3-sys-light-primary: #6750A4;
+  --m3-sys-light-on-primary: #FFFFFF;
+  --m3-sys-light-primary-container: #EADDFF;
+  --m3-sys-light-on-primary-container: #21005D;
+  --m3-sys-light-secondary: #625B71;
+  --m3-sys-light-on-secondary: #FFFFFF;
+  --m3-sys-light-outline: #79747E;
+  --m3-sys-light-surface: #FEF7FF;
+  --m3-sys-light-on-surface: #1D1B20;
+  --m3-sys-light-surface-variant: #E7E0EB;
+  --m3-sys-light-on-surface-variant: #49454F;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  background-color: var(--m3-sys-light-surface);
+  color: var(--m3-sys-light-on-surface);
+}
+
+.m3-header {
+  padding: 16px;
+  background-color: var(--m3-sys-light-surface);
+  border-bottom: 1px solid var(--m3-sys-light-outline);
+}
+
+.m3-headline-small {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 400;
+}
+
+.m3-main {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.m3-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Button Styles */
+.m3-button {
+  height: 40px;
+  padding: 0 24px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  transition: background-color 0.2s;
+}
+
+.m3-button-filled {
+  background-color: var(--m3-sys-light-primary);
+  color: var(--m3-sys-light-on-primary);
+}
+
+.m3-button-filled:hover {
+  background-color: #5a4396;
+}
+
+.m3-button-outlined {
+  background-color: transparent;
+  border: 1px solid var(--m3-sys-light-outline);
+  color: var(--m3-sys-light-primary);
+}
+
+.m3-button-outlined:hover {
+  background-color: rgba(103, 80, 164, 0.08);
+}
+
+.m3-button-text {
+  background-color: transparent;
+  color: var(--m3-sys-light-primary);
+  padding: 0 12px;
+}
+
+.m3-button-text:hover {
+  background-color: rgba(103, 80, 164, 0.08);
+}
+
+/* Text Field Styles */
+.m3-text-field {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m3-text-field input {
+  flex: 1;
+  height: 56px;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px 4px 0 0;
+  background-color: var(--m3-sys-light-surface-variant);
+  border-bottom: 1px solid var(--m3-sys-light-on-surface-variant);
+  font-size: 16px;
+  color: var(--m3-sys-light-on-surface);
+}
+
+.m3-text-field input:focus {
+  outline: none;
+  border-bottom: 2px solid var(--m3-sys-light-primary);
+}
+
+/* Table Styles */
+.m3-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.m3-table th {
+  text-align: left;
+  padding: 12px 8px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--m3-sys-light-on-surface-variant);
+  border-bottom: 1px solid var(--m3-sys-light-outline);
+}
+
+.m3-table td {
+  padding: 12px 8px;
+  font-size: 16px;
+  border-bottom: 1px solid var(--m3-sys-light-surface-variant);
+}
+
+/* Footer */
+.m3-footer {
+  padding: 16px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--m3-sys-light-outline);
+  position: sticky;
+  bottom: 0;
+  background-color: var(--m3-sys-light-surface);
+}
+
+/* Row Controls */
+.word-row .m3-text-field input {
+  height: 40px;
+  font-size: 14px;
+}
+
+.m3-checkbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--m3-sys-light-primary);
+}

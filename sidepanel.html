@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Replace-Solo</title>
+  <link rel="stylesheet" href="css/sidepanel.css">
+  <script src="lib/kuromoji/kuromoji.js"></script>
+</head>
+<body class="m3-body">
+  <header class="m3-header">
+    <h1 class="m3-headline-small">Replace-Solo</h1>
+  </header>
+
+  <main class="m3-main">
+    <section id="actions" class="m3-section">
+      <button id="analyze-btn" class="m3-button m3-button-filled">解析実行</button>
+      <button id="replace-all-btn" class="m3-button m3-button-filled">選択項目を一括置換</button>
+      <button id="reset-btn" class="m3-button m3-button-outlined">リセット</button>
+    </section>
+
+    <section id="manual-add" class="m3-section">
+      <div class="m3-text-field">
+        <input type="text" id="manual-word" placeholder="元単語を手動追加">
+        <button id="add-word-btn" class="m3-button m3-button-text">追加</button>
+      </div>
+    </section>
+
+    <section id="results" class="m3-section">
+      <table id="word-table" class="m3-table">
+        <thead>
+          <tr>
+            <th>適用</th>
+            <th>元単語</th>
+            <th>置換候補</th>
+            <th>辞書登録</th>
+            <th>実行</th>
+          </tr>
+        </thead>
+        <tbody id="word-list">
+          <!-- 動的に追加される -->
+        </tbody>
+      </table>
+    </section>
+
+    <section id="settings" class="m3-section">
+      <div class="m3-toggle">
+        <label>
+          <input type="checkbox" id="mode-toggle">
+          入力エミュレーションを使用
+        </label>
+      </div>
+    </section>
+  </main>
+
+  <footer class="m3-footer">
+    <button id="export-json" class="m3-button m3-button-text">エクスポート</button>
+    <button id="import-json" class="m3-button m3-button-text">インポート</button>
+  </footer>
+
+  <script src="js/sidepanel.js"></script>
+</body>
+</html>
