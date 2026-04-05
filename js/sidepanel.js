@@ -74,6 +74,7 @@ document.getElementById('add-word-btn').addEventListener('click', () => {
 
 document.getElementById('replace-all-btn').addEventListener('click', () => {
   const rows = document.querySelectorAll('.word-row');
+  const replacements = [];
   rows.forEach(row => {
     const applyCheck = row.querySelector('.apply-check');
     if (applyCheck.checked) {
@@ -81,13 +82,18 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
       const target = row.querySelector('.replace-input').value;
       const dictCheck = row.querySelector('.dict-check');
 
-      executeReplacement(origin, target);
+      replacements.push({ origin, target });
 
       if (dictCheck.checked && !dictCheck.disabled) {
         saveToDictionary(origin, target);
+        row.querySelector('.dict-check').disabled = true;
       }
     }
   });
+
+  if (replacements.length > 0) {
+    executeMultipleReplacements(replacements);
+  }
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
@@ -272,13 +278,16 @@ function saveToDictionary(origin, target) {
 }
 
 function executeReplacement(origin, target) {
+  executeMultipleReplacements([{ origin, target }]);
+}
+
+function executeMultipleReplacements(replacements) {
   const mode = document.getElementById('mode-toggle').checked ? 'emulation' : 'dom';
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (tabs[0]) {
       chrome.tabs.sendMessage(tabs[0].id, {
-        action: 'REPLACE_WORD',
-        origin,
-        target,
+        action: 'REPLACE_WORDS',
+        replacements,
         mode
       });
     }
