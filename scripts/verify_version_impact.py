@@ -95,8 +95,8 @@ def check_impact():
     current_version = get_version_from_file('projects/app/version.json')
     base_version = get_version_at_commit('projects/app/version.json', base_commit)
 
-    if not base_version:
-        print("Could not determine base version. Skipping impact check.")
+    if not base_version or not current_version:
+        print("Could not determine version. Skipping impact check.")
         return True
 
     print(f"Base version: {base_version}")
