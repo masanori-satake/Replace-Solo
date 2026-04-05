@@ -1,4 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="24" fill="#6750A4"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="white">R</text>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="100" fill="#2563eb"/>
+  <!-- Solo (circle) -->
+  <circle cx="320" cy="256" r="120" fill="none" stroke="white" stroke-width="40"/>
+  <!-- Replace (R-like structure) -->
+  <path d="M160 140V372" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M160 140H300" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <!-- Arrow indicating replacement/correction within the circle -->
+  <path d="M160 256H280" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M240 216L280 256L240 296" fill="none" stroke="white" stroke-width="40" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>
