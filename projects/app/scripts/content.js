@@ -5,6 +5,12 @@
 
 console.log('Replace-Solo: Content script injected');
 
+if (typeof window.replaceSoloLoaded === 'undefined') {
+  window.replaceSoloLoaded = true;
+  setupMessageListener();
+}
+
+function setupMessageListener() {
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'EXTRACT_TEXT') {
     const text = document.body.innerText;
@@ -23,6 +29,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     return true;
   }
 });
+}
 
 /**
  * DOM 直接書き換えによる一括置換

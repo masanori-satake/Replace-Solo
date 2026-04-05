@@ -29,6 +29,20 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({});
   for (const tab of tabs) {
-    setTabSpecificSidePanel(tab.id, tab.url);
+    await setTabSpecificSidePanel(tab.id, tab.url);
+
+    // コンテンツスクリプトを既存のタブに注入
+    if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['scripts/content.js']
+        });
+        console.log(`Content script injected into tab ${tab.id}`);
+      } catch (error) {
+        // すでに注入されている場合や、特殊なページではエラーになる可能性があるため無視
+        console.log(`Could not inject content script into tab ${tab.id}:`, error);
+      }
+    }
   }
 });

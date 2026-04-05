@@ -7,8 +7,19 @@ console.log('Replace-Solo: Side Panel Loaded');
 
 // URLパラメータから tabId を取得
 const urlParams = new URLSearchParams(window.location.search);
-const targetTabId = parseInt(urlParams.get('tabId'), 10);
-console.log('Target Tab ID:', targetTabId);
+let targetTabId = parseInt(urlParams.get('tabId'), 10);
+console.log('Target Tab ID from URL:', targetTabId);
+
+// tabId が不正な場合は現在のタブを取得
+if (!targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0]) {
+      targetTabId = tabs[0].id;
+      console.log('Fallback Target Tab ID:', targetTabId);
+      initializePanel();
+    }
+  });
+}
 
 let tokenizer = null;
 let currentWords = []; // 現在リストされている単語
@@ -75,35 +86,85 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
   });
 }
 
-// 初期化：ターゲットタブのURLに基づいてモードを設定
-if (targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
-  chrome.tabs.get(targetTabId, (tab) => {
-    if (tab && tab.url) {
-      autoSetMode(tab.url);
+// 初期化：ターゲットタブの状態に基づいてパネルを初期設定する
+function initializePanel() {
+  if (targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
+    chrome.tabs.get(targetTabId, (tab) => {
+      if (tab && tab.url) {
+        autoSetMode(tab.url);
+      }
+    });
+  }
+}
+
+if (targetTabId) {
+  initializePanel();
+}
+
+/**
+ * タブに対してメッセージを送信する。
+ * コンテンツスクリプトが未注入の場合は注入を試みる。
+ */
+async function sendMessageToTab(tabId, message) {
+  if (!tabId || typeof chrome === 'undefined' || !chrome.tabs) {
+    throw new Error('有効なタブIDが見つかりません。');
+  }
+
+  const doSend = () => {
+    return new Promise((resolve, reject) => {
+      chrome.tabs.sendMessage(tabId, message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  };
+
+  try {
+    return await doSend();
+  } catch (error) {
+    if (error.message.includes('Could not establish connection') || error.message.includes('Receiving end does not exist')) {
+      console.log('Content script not found. Attempting to inject...');
+      // スクリプトを注入して再試行
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          files: ['scripts/content.js']
+        });
+        return await doSend();
+      } catch (injectError) {
+        console.error('Injection failed:', injectError);
+        throw new Error('このページでは拡張機能を使用できません（Chromeの設定ページや保護されたページなど）。ページを再読み込みしてから再度お試しください。');
+      }
     }
-  });
+    throw error;
+  }
 }
 
 // UI Event Listeners
-document.getElementById('analyze-btn').addEventListener('click', () => {
+document.getElementById('analyze-btn').addEventListener('click', async () => {
   if (!tokenizer) {
     alert('形態素解析エンジンの準備中です。少々お待ちください。');
     return;
   }
 
-  // targetTabId がある場合はそれを使用、なければフォールバック
-  const activeId = targetTabId;
-  if (activeId) {
-    chrome.tabs.get(activeId, (tab) => {
-      if (tab) {
-        autoSetMode(tab.url || "");
-        chrome.tabs.sendMessage(activeId, { action: 'EXTRACT_TEXT' }, (response) => {
-          if (response && response.text) {
-            analyzeAndDisplay(response.text);
-          }
-        });
+  if (targetTabId) {
+    try {
+      const tab = await chrome.tabs.get(targetTabId);
+      autoSetMode(tab.url || "");
+
+      const response = await sendMessageToTab(targetTabId, { action: 'EXTRACT_TEXT' });
+      if (response && response.text) {
+        analyzeAndDisplay(response.text);
       }
-    });
+    } catch (error) {
+      console.error('Analyze failed:', error);
+      alert(error.message);
+    }
+  } else {
+    alert('操作対象のタブが見つかりません。');
   }
 });
 
@@ -373,14 +434,19 @@ function executeReplacement(origin, target) {
   executeMultipleReplacements([{ origin, target }]);
 }
 
-function executeMultipleReplacements(replacements) {
+async function executeMultipleReplacements(replacements) {
   const mode = document.getElementById('mode-toggle').checked ? 'emulation' : 'dom';
   if (targetTabId) {
-    chrome.tabs.sendMessage(targetTabId, {
-      action: 'REPLACE_WORDS',
-      replacements,
-      mode
-    });
+    try {
+      await sendMessageToTab(targetTabId, {
+        action: 'REPLACE_WORDS',
+        replacements,
+        mode
+      });
+    } catch (error) {
+      console.error('Replacement failed:', error);
+      alert(error.message);
+    }
   }
 }
 
