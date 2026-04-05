@@ -4,12 +4,10 @@ import re
 
 def generate_icons(output_dir=None, bg_color=None):
     # Use script file location as base to make it more robust
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    base_dir = os.path.dirname(script_dir)
+    base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     svg_path = os.path.join(base_dir, 'projects/app/assets/icons/icon.svg')
-    if output_dir is None:
-        output_dir = os.path.join(base_dir, 'projects/app/assets/icons')
+    output_dir = output_dir or os.path.join(base_dir, 'projects/app/assets/icons')
 
     if not os.path.exists(svg_path):
         print(f"Error: {svg_path} not found.")
@@ -55,13 +53,12 @@ def generate_icons(output_dir=None, bg_color=None):
         )
         page = context.new_page()
 
-        page.set_content(f"""
+        page.set_content("""
             <style>
-              body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }}
-              svg {{ width: 100%; height: 100%; display: block; }}
+              body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
+              svg { width: 100%; height: 100%; display: block; }
             </style>
-            {svg_content}
-        """)
+        """ + svg_content)
 
         for size in [16, 32, 48, 128]:
             output_path = os.path.join(output_dir, f"icon{size}.png")
