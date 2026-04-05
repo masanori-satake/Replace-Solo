@@ -191,9 +191,23 @@ async function analyzeAndDisplay(text) {
   currentWords = [];
   rowCounter = 0;
 
-  const nounsArray = Array.from(nouns).filter(w => w.length > 1);
-  for (const word of nounsArray) {
-    await addWordToList(word);
+  // 1文字の名詞、または2文字以上の名詞、または辞書にある単語をリストに追加
+  const nounsArray = Array.from(nouns).filter(w => {
+    // 辞書にある単語は1文字でも残す
+    if (dictOrigins.has(w)) return true;
+    // それ以外は2文字以上を対象とする
+    return w.length > 1;
+  });
+
+  // UIフリーズを避けるため、一定数ずつ非同期に処理する
+  const BATCH_SIZE = 50;
+  for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
+    const batch = nounsArray.slice(i, i + BATCH_SIZE);
+    for (const word of batch) {
+      await addWordToList(word);
+    }
+    // メインスレッドを解放するために待機
+    await new Promise(resolve => setTimeout(resolve, 0));
   }
 }
 
