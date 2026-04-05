@@ -5,6 +5,11 @@
 
 console.log('Replace-Solo: Side Panel Loaded');
 
+// URLパラメータから tabId を取得
+const urlParams = new URLSearchParams(window.location.search);
+const targetTabId = parseInt(urlParams.get('tabId'), 10);
+console.log('Target Tab ID:', targetTabId);
+
 let tokenizer = null;
 let currentWords = []; // 現在リストされている単語
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
@@ -20,27 +25,39 @@ kuromoji.builder({ dicPath: 'lib/kuromoji/dict/' }).build((err, _tokenizer) => {
   console.log('kuromoji.js initialized');
 });
 
-// 初期データの読み込み
-chrome.storage.local.get(['dictionary'], (result) => {
-  if (result.dictionary) {
-    localDictionary = result.dictionary;
-    console.log('Replace-Solo: Local dictionary loaded');
-  } else {
-    // デフォルトの初期データ (口癖など)
-    localDictionary = {
-      "": ["えー", "えーっと", "あのー", "そのー"]
-    };
-    chrome.storage.local.set({ dictionary: localDictionary });
+// 初期データの読み込みと辞書更新の購読
+function loadDictionary() {
+  chrome.storage.local.get(['dictionary'], (result) => {
+    if (result.dictionary) {
+      localDictionary = result.dictionary;
+      console.log('Replace-Solo: Local dictionary loaded');
+    } else {
+      localDictionary = {
+        "": ["えー", "えーっと", "あのー", "そのー"]
+      };
+      chrome.storage.local.set({ dictionary: localDictionary });
+    }
+  });
+}
+
+loadDictionary();
+
+// 辞書が他タブのパネル等で更新されたら反映する
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && changes.dictionary) {
+    localDictionary = changes.dictionary.newValue;
+    console.log('Replace-Solo: Local dictionary updated from storage');
   }
 });
 
-// 初期化：現在のタブのURLに基づいてモードを設定
-chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-  const activeTab = tabs[0];
-  if (activeTab && activeTab.url) {
-    autoSetMode(activeTab.url);
-  }
-});
+// 初期化：ターゲットタブのURLに基づいてモードを設定
+if (targetTabId) {
+  chrome.tabs.get(targetTabId, (tab) => {
+    if (tab && tab.url) {
+      autoSetMode(tab.url);
+    }
+  });
+}
 
 // UI Event Listeners
 document.getElementById('analyze-btn').addEventListener('click', () => {
@@ -49,17 +66,20 @@ document.getElementById('analyze-btn').addEventListener('click', () => {
     return;
   }
 
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const activeTab = tabs[0];
-    if (activeTab) {
-      autoSetMode(activeTab.url || "");
-      chrome.tabs.sendMessage(activeTab.id, { action: 'EXTRACT_TEXT' }, (response) => {
-        if (response && response.text) {
-          analyzeAndDisplay(response.text);
-        }
-      });
-    }
-  });
+  // targetTabId がある場合はそれを使用、なければフォールバック
+  const activeId = targetTabId;
+  if (activeId) {
+    chrome.tabs.get(activeId, (tab) => {
+      if (tab) {
+        autoSetMode(tab.url || "");
+        chrome.tabs.sendMessage(activeId, { action: 'EXTRACT_TEXT' }, (response) => {
+          if (response && response.text) {
+            analyzeAndDisplay(response.text);
+          }
+        });
+      }
+    });
+  }
 });
 
 function autoSetMode(url) {
@@ -105,7 +125,6 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
-  // 再解析を実行してリセット
   document.getElementById('analyze-btn').click();
 });
 
@@ -131,12 +150,9 @@ document.getElementById('import-json').addEventListener('click', () => {
     reader.onload = (re) => {
       try {
         const imported = JSON.parse(re.target.result);
-
-        // 厳格なバリデーション
         if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
           throw new Error('JSONのルートはオブジェクトである必要があります。');
         }
-
         for (const [key, value] of Object.entries(imported)) {
           if (!Array.isArray(value)) {
             throw new Error(`キー "${key}" の値が配列ではありません。`);
@@ -146,10 +162,8 @@ document.getElementById('import-json').addEventListener('click', () => {
         if (confirm('辞書を上書きしますか？（キャンセルで追加）')) {
           localDictionary = imported;
         } else {
-          // マージ処理
           for (const [target, origins] of Object.entries(imported)) {
             if (localDictionary[target]) {
-              // 重複を排除してマージ
               localDictionary[target] = [...new Set([...localDictionary[target], ...origins])];
             } else {
               localDictionary[target] = [...origins];
@@ -159,11 +173,9 @@ document.getElementById('import-json').addEventListener('click', () => {
 
         chrome.storage.local.set({ dictionary: localDictionary }, () => {
           alert('インポートが完了しました。');
-          // リストを更新するために再解析
           const analyzeBtn = document.getElementById('analyze-btn');
           if (analyzeBtn) analyzeBtn.click();
         });
-
       } catch (err) {
         console.error('Import error:', err);
         alert('インポートに失敗しました: ' + err.message);
@@ -174,21 +186,15 @@ document.getElementById('import-json').addEventListener('click', () => {
   input.click();
 });
 
-/**
- * テキストを解析してリストに表示する
- */
 async function analyzeAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
   const nouns = new Set();
-
-  // 辞書にある全単語も抽出対象にするための準備
   const dictOrigins = new Set();
   for (const origins of Object.values(localDictionary)) {
     origins.forEach(o => dictOrigins.add(o));
   }
 
   tokens.forEach(token => {
-    // 名詞、または辞書に登録されている単語（口癖など）を抽出
     if (token.pos === '名詞' || dictOrigins.has(token.surface_form)) {
       nouns.add(token.surface_form);
     }
@@ -199,38 +205,28 @@ async function analyzeAndDisplay(text) {
   currentWords = [];
   rowCounter = 0;
 
-  // 1文字の名詞、または2文字以上の名詞、または辞書にある単語をリストに追加
   const nounsArray = Array.from(nouns).filter(w => {
-    // 辞書にある単語は1文字でも残す
     if (dictOrigins.has(w)) return true;
-    // それ以外は2文字以上を対象とする
     return w.length > 1;
   });
 
-  // UIフリーズを避けるため、一定数ずつ非同期に処理する
   const BATCH_SIZE = 50;
   for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
     const batch = nounsArray.slice(i, i + BATCH_SIZE);
     for (const word of batch) {
       await addWordToList(word);
     }
-    // メインスレッドを解放するために待機
     await new Promise(resolve => setTimeout(resolve, 0));
   }
 }
 
-/**
- * 単語をテーブルに追加する
- */
 async function addWordToList(word, isManual = false) {
   const wordList = document.getElementById('word-list');
-
   if (currentWords.includes(word)) return;
   currentWords.push(word);
 
   const row = document.createElement('tr');
   row.className = 'word-row';
-
   const dictMatch = getDictMatch(word);
   const rowId = rowCounter++;
 
@@ -253,7 +249,6 @@ async function addWordToList(word, isManual = false) {
   const applyCheck = row.querySelector('.apply-check');
   const dictCheck = row.querySelector('.dict-check');
 
-  // 既知の単語なら辞書登録チェックボックスを制御
   if (dictMatch && dictMatch.candidates.includes(replaceInput.value)) {
     dictCheck.disabled = true;
   }
@@ -262,7 +257,6 @@ async function addWordToList(word, isManual = false) {
     const val = replaceInput.value;
     if (val.trim() !== '') {
       applyCheck.checked = true;
-      // 既存の候補にあるか
       const currentCandidates = dictMatch ? dictMatch.candidates : [];
       if (currentCandidates.includes(val)) {
         dictCheck.checked = false;
@@ -272,7 +266,6 @@ async function addWordToList(word, isManual = false) {
         dictCheck.disabled = false;
       }
     } else {
-      // 空文字 (削除)
       applyCheck.checked = true;
       dictCheck.checked = false;
       dictCheck.disabled = false;
@@ -298,12 +291,8 @@ function getDictMatch(word) {
       matches.push(target);
     }
   }
-
   if (matches.length > 0) {
-    return {
-      target: matches[0],
-      candidates: matches
-    };
+    return { target: matches[0], candidates: matches };
   }
   return null;
 }
@@ -324,15 +313,13 @@ function executeReplacement(origin, target) {
 
 function executeMultipleReplacements(replacements) {
   const mode = document.getElementById('mode-toggle').checked ? 'emulation' : 'dom';
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      chrome.tabs.sendMessage(tabs[0].id, {
-        action: 'REPLACE_WORDS',
-        replacements,
-        mode
-      });
-    }
-  });
+  if (targetTabId) {
+    chrome.tabs.sendMessage(targetTabId, {
+      action: 'REPLACE_WORDS',
+      replacements,
+      mode
+    });
+  }
 }
 
 function escapeHtml(str) {

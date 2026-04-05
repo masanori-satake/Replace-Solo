@@ -2,28 +2,33 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// 各タブに対して固有のサイドパネルを設定する
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete' && tab.url && !tab.url.startsWith('chrome://')) {
-    chrome.sidePanel.setOptions({
+// タブ個別のサイドパネル設定を行う関数
+async function setTabSpecificSidePanel(tabId, url) {
+  if (!url || url.startsWith('chrome://')) return;
+
+  try {
+    await chrome.sidePanel.setOptions({
       tabId: tabId,
-      path: 'sidepanel.html',
+      path: `sidepanel.html?tabId=${tabId}`,
       enabled: true
-    }).catch((error) => console.error(error));
+    });
+    console.log(`Side panel set for tab ${tabId}`);
+  } catch (error) {
+    console.error(`Error setting side panel for tab ${tabId}:`, error);
+  }
+}
+
+// タブ更新時にサイドパネルを設定
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (changeInfo.status === 'complete') {
+    setTabSpecificSidePanel(tabId, tab.url);
   }
 });
 
-// インストール時に既存の全タブに対して固有のサイドパネルを設定する
-chrome.runtime.onInstalled.addListener(() => {
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach(tab => {
-      if (tab.url && !tab.url.startsWith('chrome://')) {
-        chrome.sidePanel.setOptions({
-          tabId: tab.id,
-          path: 'sidepanel.html',
-          enabled: true
-        }).catch((error) => console.error(error));
-      }
-    });
-  });
+// インストール/アップデート時に既存の全タブに対して設定
+chrome.runtime.onInstalled.addListener(async () => {
+  const tabs = await chrome.tabs.query({});
+  for (const tab of tabs) {
+    setTabSpecificSidePanel(tab.id, tab.url);
+  }
 });
