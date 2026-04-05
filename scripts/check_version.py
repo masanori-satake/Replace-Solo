@@ -4,15 +4,16 @@ import sys
 def check_version():
     try:
         # Load version from version.json
-        with open('projects/app/version.json', 'r') as f:
+        # Load version from version.json
+        with open('projects/app/version.json', 'r', encoding='utf-8') as f:
             version = json.load(f).get('version')
 
         # Load version from package.json
-        with open('package.json', 'r') as f:
+        with open('package.json', 'r', encoding='utf-8') as f:
             package_version = json.load(f).get('version')
 
         # Load version from manifest.json
-        with open('projects/app/manifest.json', 'r') as f:
+        with open('projects/app/manifest.json', 'r', encoding='utf-8') as f:
             manifest_version = json.load(f).get('version')
 
         if not version:
