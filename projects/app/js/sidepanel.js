@@ -317,21 +317,63 @@ async function analyzeAndDisplay(text) {
     origins.forEach(o => dictOrigins.add(o));
   }
 
-  tokens.forEach(token => {
-    if (token.pos === '名詞' || dictOrigins.has(token.surface_form)) {
-      nouns.add(token.surface_form);
+  // 除外する名詞の細分類（代名詞や非自立名詞などは一般的に置換対象外）
+  const EXCLUDED_NOUN_TYPES = ['代名詞', '非自立'];
+
+  let i = 0;
+  while (i < tokens.length) {
+    let token = tokens[i];
+    let isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.includes(token.pos_detail_1);
+    let isDictMatch = dictOrigins.has(token.surface_form);
+
+    if (isNoun || isDictMatch) {
+      let compound = token.surface_form;
+      let hasProperNoun = (token.pos_detail_1 === '固有名詞');
+      let currentDictMatch = isDictMatch;
+      let count = 1;
+
+      let j = i + 1;
+      while (j < tokens.length) {
+        let nextToken = tokens[j];
+        let nextIsNoun = nextToken.pos === '名詞' && !EXCLUDED_NOUN_TYPES.includes(nextToken.pos_detail_1);
+        let nextIsDictMatch = dictOrigins.has(nextToken.surface_form);
+
+        if (nextIsNoun || nextIsDictMatch) {
+          compound += nextToken.surface_form;
+          if (nextToken.pos_detail_1 === '固有名詞') hasProperNoun = true;
+          if (nextIsDictMatch) currentDictMatch = true;
+          count++;
+          j++;
+        } else {
+          break;
+        }
+      }
+
+      // 複合語全体で辞書にマッチするか確認
+      if (dictOrigins.has(compound)) currentDictMatch = true;
+
+      // 採用条件:
+      // 1. 固有名詞が含まれている
+      // 2. 辞書に登録されている（単一語または複合語全体）
+      // 3. 2つ以上の名詞が連続している（「パーソル」のように分割される固有名詞への対策）
+      // かつ、1文字のみの一般名詞などは除外する
+      if (hasProperNoun || currentDictMatch || count > 1) {
+        if (compound.length > 1 || currentDictMatch) {
+          nouns.add(compound);
+        }
+      }
+      i = j;
+    } else {
+      i++;
     }
-  });
+  }
 
   const wordList = document.getElementById('word-list');
   wordList.innerHTML = '';
   currentWords = [];
   rowCounter = 0;
 
-  const nounsArray = Array.from(nouns).filter(w => {
-    if (dictOrigins.has(w)) return true;
-    return w.length > 1;
-  });
+  const nounsArray = Array.from(nouns);
 
   const BATCH_SIZE = 50;
   for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
