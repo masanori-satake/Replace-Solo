@@ -117,29 +117,48 @@ document.getElementById('import-json').addEventListener('click', () => {
   input.accept = '.json';
   input.onchange = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
+
     const reader = new FileReader();
     reader.onload = (re) => {
       try {
         const imported = JSON.parse(re.target.result);
-        // 簡易バリデーション
-        if (typeof imported === 'object' && !Array.isArray(imported)) {
-          if (confirm('辞書を上書きしますか？（キャンセルで追加）')) {
-            localDictionary = imported;
-          } else {
-            // マージ処理
-            for (const [target, origins] of Object.entries(imported)) {
-              if (localDictionary[target]) {
-                localDictionary[target] = [...new Set([...localDictionary[target], ...origins])];
-              } else {
-                localDictionary[target] = origins;
-              }
+
+        // 厳格なバリデーション
+        if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
+          throw new Error('JSONのルートはオブジェクトである必要があります。');
+        }
+
+        for (const [key, value] of Object.entries(imported)) {
+          if (!Array.isArray(value)) {
+            throw new Error(`キー "${key}" の値が配列ではありません。`);
+          }
+        }
+
+        if (confirm('辞書を上書きしますか？（キャンセルで追加）')) {
+          localDictionary = imported;
+        } else {
+          // マージ処理
+          for (const [target, origins] of Object.entries(imported)) {
+            if (localDictionary[target]) {
+              // 重複を排除してマージ
+              localDictionary[target] = [...new Set([...localDictionary[target], ...origins])];
+            } else {
+              localDictionary[target] = [...origins];
             }
           }
-          chrome.storage.local.set({ dictionary: localDictionary });
-          alert('インポート完了');
         }
+
+        chrome.storage.local.set({ dictionary: localDictionary }, () => {
+          alert('インポートが完了しました。');
+          // リストを更新するために再解析
+          const analyzeBtn = document.getElementById('analyze-btn');
+          if (analyzeBtn) analyzeBtn.click();
+        });
+
       } catch (err) {
-        alert('無効なJSONファイルです。');
+        console.error('Import error:', err);
+        alert('インポートに失敗しました: ' + err.message);
       }
     };
     reader.readAsText(file);
