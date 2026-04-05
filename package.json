@@ -1,0 +1,14 @@
+{
+  "name": "replace-solo",
+  "version": "0.1.0",
+  "description": "〜データがブラウザの外に出ない、自分専用の固有名詞・一括置換ツール〜",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "mkdir -p releases && zip -r releases/Replace-Solo-Chrome.zip . -x \".git/*\" \"releases/*\" \"node_modules/*\" \".github/*\" \"*.log\" \"/home/jules/verification/*\""
+  },
+  "author": "Masanori SATAKE",
+  "license": "MIT",
+  "devDependencies": {
+    "playwright": "^1.42.0"
+  }
+}
