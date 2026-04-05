@@ -16,7 +16,7 @@ let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let rowCounter = 0;
 
 // kuromoji.js の初期化
-kuromoji.builder({ dicPath: 'lib/kuromoji/dict/' }).build((err, _tokenizer) => {
+kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
   if (err) {
     console.error('kuromoji initialization error:', err);
     return;

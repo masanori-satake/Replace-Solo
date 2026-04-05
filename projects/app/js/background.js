@@ -9,7 +9,7 @@ async function setTabSpecificSidePanel(tabId, url) {
   try {
     await chrome.sidePanel.setOptions({
       tabId: tabId,
-      path: `sidepanel.html?tabId=${tabId}`,
+      path: `pages/sidepanel.html?tabId=${tabId}`,
       enabled: true
     });
     console.log(`Side panel set for tab ${tabId}`);
