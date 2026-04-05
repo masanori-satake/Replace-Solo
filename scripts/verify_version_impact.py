@@ -54,9 +54,9 @@ def get_commits_since(commit_hash, paths=None):
 
 def get_version_from_file(filepath):
     try:
-        with open(filepath, 'r') as f:
+        with open(filepath, 'r', encoding='utf-8') as f:
             return json.load(f).get('version')
-    except:
+    except Exception:
         return None
 
 def get_version_at_commit(filepath, commit_hash):
