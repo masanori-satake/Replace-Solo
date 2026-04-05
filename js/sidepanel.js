@@ -34,6 +34,14 @@ chrome.storage.local.get(['dictionary'], (result) => {
   }
 });
 
+// 初期化：現在のタブのURLに基づいてモードを設定
+chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+  const activeTab = tabs[0];
+  if (activeTab && activeTab.url) {
+    autoSetMode(activeTab.url);
+  }
+});
+
 // UI Event Listeners
 document.getElementById('analyze-btn').addEventListener('click', () => {
   if (!tokenizer) {
@@ -326,22 +334,6 @@ function executeMultipleReplacements(replacements) {
     }
   });
 }
-
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-  if (request.action === 'TAB_CHANGED') {
-    // タブが切り替わったら一旦リストをクリアする（混乱を防ぐため）
-    const wordList = document.getElementById('word-list');
-    wordList.innerHTML = '';
-    currentWords = [];
-
-    // 切り替え先のURLでモードを自動判定
-    chrome.tabs.get(request.tabId, (tab) => {
-      if (tab && tab.url) {
-        autoSetMode(tab.url);
-      }
-    });
-  }
-});
 
 function escapeHtml(str) {
   return str.replace(/[&<>"']/g, m => ({
