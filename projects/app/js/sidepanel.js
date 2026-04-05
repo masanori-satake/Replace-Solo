@@ -354,10 +354,13 @@ async function analyzeAndDisplay(text) {
       if (dictOrigins.has(compound)) currentDictMatch = true;
 
       // 採用条件:
-      // 1. 固有名詞が含まれている 2. 辞書に登録されている 3. 2つ以上の名詞が連続している
-      // かつ、1文字のみの一般名詞などは除外する
-      const isQualified = hasProperNoun || currentDictMatch || count > 1;
+      // 1. 固有名詞が含まれている 2. 辞書に登録されている
+      // 3. 日本語を含み、かつ2つ以上の名詞が連続している
+      // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
+      const hasJapanese = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/.test(compound);
+      const isQualified = hasProperNoun || currentDictMatch || (count > 1 && hasJapanese);
       const isNotTooShort = compound.length > 1 || currentDictMatch;
+
       if (isQualified && isNotTooShort) {
         nouns.add(compound);
       }
