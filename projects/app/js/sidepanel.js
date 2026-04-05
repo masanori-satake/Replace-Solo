@@ -24,7 +24,13 @@ if (!targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
 let tokenizer = null;
 let currentWords = []; // 現在リストされている単語
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
+let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
+let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
+
+// 定数定義
+const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', 'サ変接続', '数']);
+const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
 
 // kuromoji.js の初期化
 kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
@@ -35,6 +41,24 @@ kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) =
   tokenizer = _tokenizer;
   console.log('kuromoji.js initialized');
 });
+
+// 辞書のキャッシュ（Set/Map形式）を更新する
+function updateDictCache() {
+  dictOrigins.clear();
+  reverseDictionary = {};
+
+  for (const [target, origins] of Object.entries(localDictionary)) {
+    origins.forEach(origin => {
+      dictOrigins.add(origin);
+      if (!reverseDictionary[origin]) {
+        reverseDictionary[origin] = [];
+      }
+      if (!reverseDictionary[origin].includes(target)) {
+        reverseDictionary[origin].push(target);
+      }
+    });
+  }
+}
 
 // 初期データの読み込みと辞書更新の購読
 function loadDictionary() {
@@ -49,9 +73,11 @@ function loadDictionary() {
         };
         chrome.storage.local.set({ dictionary: localDictionary });
       }
+      updateDictCache();
     });
   } else {
     localDictionary = { "": ["えー", "えーっと", "あのー", "そのー"] };
+    updateDictCache();
   }
 }
 
@@ -81,6 +107,7 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
   chrome.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.dictionary) {
       localDictionary = changes.dictionary.newValue;
+      updateDictCache();
       console.log('Replace-Solo: Local dictionary updated from storage');
     }
   });
@@ -312,20 +339,13 @@ document.getElementById('import-json').addEventListener('click', () => {
 async function analyzeAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
   const nouns = new Set();
-  const dictOrigins = new Set();
-  for (const origins of Object.values(localDictionary)) {
-    origins.forEach(o => dictOrigins.add(o));
-  }
-
-  // 除外する名詞の細分類（代名詞や非自立名詞などは一般的に置換対象外）
-  // サ変接続（「会議」等）や数（「123」等）もノイズ軽減のため除外対象に含める
-  const EXCLUDED_NOUN_TYPES = ['代名詞', '非自立', 'サ変接続', '数'];
 
   let i = 0;
-  while (i < tokens.length) {
-    let token = tokens[i];
-    let isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.includes(token.pos_detail_1);
-    let isDictMatch = dictOrigins.has(token.surface_form);
+  const tokenLen = tokens.length;
+  while (i < tokenLen) {
+    const token = tokens[i];
+    const isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(token.pos_detail_1);
+    const isDictMatch = dictOrigins.has(token.surface_form);
 
     if (isNoun || isDictMatch) {
       let compound = token.surface_form;
@@ -334,10 +354,10 @@ async function analyzeAndDisplay(text) {
       let count = 1;
 
       let j = i + 1;
-      while (j < tokens.length) {
-        let nextToken = tokens[j];
-        let nextIsNoun = nextToken.pos === '名詞' && !EXCLUDED_NOUN_TYPES.includes(nextToken.pos_detail_1);
-        let nextIsDictMatch = dictOrigins.has(nextToken.surface_form);
+      while (j < tokenLen) {
+        const nextToken = tokens[j];
+        const nextIsNoun = nextToken.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(nextToken.pos_detail_1);
+        const nextIsDictMatch = dictOrigins.has(nextToken.surface_form);
 
         if (nextIsNoun || nextIsDictMatch) {
           compound += nextToken.surface_form;
@@ -351,13 +371,17 @@ async function analyzeAndDisplay(text) {
       }
 
       // 複合語全体で辞書にマッチするか確認
-      if (dictOrigins.has(compound)) currentDictMatch = true;
+      if (!currentDictMatch && dictOrigins.has(compound)) {
+        currentDictMatch = true;
+      }
 
       // 採用条件:
-      // 1. 固有名詞が含まれている 2. 辞書に登録されている 3. 2つ以上の名詞が連続している
-      // かつ、1文字のみの一般名詞などは除外する
-      const isQualified = hasProperNoun || currentDictMatch || count > 1;
-      const isNotTooShort = compound.length > 1 || currentDictMatch;
+      // 1. 固有名詞が含まれている 2. 辞書に登録されている
+      // 3. 2つ以上の名詞が連続しており、かつ日本語を含んでいる
+      // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
+      const isQualified = currentDictMatch || hasProperNoun || (count > 1 && JAPANESE_CHAR_REGEX.test(compound));
+      const isNotTooShort = currentDictMatch || compound.length > 1;
+
       if (isQualified && isNotTooShort) {
         nouns.add(compound);
       }
@@ -449,13 +473,8 @@ async function addWordToList(word, isManual = false) {
 }
 
 function getDictMatch(word) {
-  const matches = [];
-  for (const [target, origins] of Object.entries(localDictionary)) {
-    if (origins.includes(word)) {
-      matches.push(target);
-    }
-  }
-  if (matches.length > 0) {
+  const matches = reverseDictionary[word];
+  if (matches && matches.length > 0) {
     return { target: matches[0], candidates: matches };
   }
   return null;
@@ -467,6 +486,7 @@ function saveToDictionary(origin, target) {
   }
   if (!localDictionary[target].includes(origin)) {
     localDictionary[target].push(origin);
+    updateDictCache();
     chrome.storage.local.set({ dictionary: localDictionary });
   }
 }
