@@ -19,19 +19,20 @@ body {
   font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   background-color: var(--m3-sys-light-surface);
   color: var(--m3-sys-light-on-surface);
-  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
 }
 
 .m3-header {
+  flex-shrink: 0;
   padding: 12px 16px;
   background-color: var(--m3-sys-light-surface);
   border-bottom: 1px solid var(--m3-sys-light-surface-variant);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
 .m3-headline-small {
@@ -41,16 +42,19 @@ body {
 }
 
 .m3-main {
+  flex: 1;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+  min-height: 0; /* Important for flex children scrolling */
 }
 
 .m3-section {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  flex-shrink: 0;
 }
 
 /* Button Styles */
@@ -161,15 +165,17 @@ body {
 
 /* Table Styles */
 .table-container {
+  flex: 1;
   overflow-y: auto;
-  max-height: calc(100vh - 220px);
+  min-height: 0;
   border: 1px solid var(--m3-sys-light-surface-variant);
   border-radius: 8px;
 }
 
 .m3-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate; /* Required for sticky header border */
+  border-spacing: 0;
 }
 
 .m3-table thead {
@@ -215,7 +221,7 @@ body {
   width: 100%;
   height: 100%;
   background-color: rgba(0, 0, 0, 0.4);
-  display: flex;
+  display: none; /* Initial state set to hidden */
   align-items: center;
   justify-content: center;
   z-index: 100;

@@ -168,7 +168,7 @@ settingsCloseBtn.addEventListener('click', () => {
   settingsModal.style.display = 'none';
 });
 
-window.addEventListener('click', (event) => {
+settingsModal.addEventListener('click', (event) => {
   if (event.target === settingsModal) {
     settingsModal.style.display = 'none';
   }
