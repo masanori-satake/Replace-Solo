@@ -4,7 +4,8 @@
   "description": "〜データがブラウザの外に出ない、自分専用の固有名詞・一括置換ツール〜",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "mkdir -p releases && zip -r releases/Replace-Solo-Chrome.zip . -x \".git/*\" \"releases/*\" \"node_modules/*\" \".github/*\" \"*.log\" \"/home/jules/verification/*\""
+    "build": "mkdir -p releases && python3 scripts/check_version.py && cd projects/app && zip -r ../../releases/Replace-Solo-Chrome.zip . -x \"*.log\"",
+    "version:bump": "python3 scripts/bump_version.py"
   },
   "author": "Masanori SATAKE",
   "license": "MIT",
