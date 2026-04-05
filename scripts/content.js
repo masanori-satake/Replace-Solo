@@ -25,51 +25,69 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 });
 
 /**
- * DOM 直接書き換えによる置換
+ * DOM 直接書き換えによる置換 (標準的な TreeWalker と Node の操作を使用)
  */
 function replaceByDom(origin, target) {
   const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
   let node;
-  const nodesToReplace = [];
+  const nodesToProcess = [];
 
   while (node = walker.nextNode()) {
     if (node.nodeValue.includes(origin)) {
-      nodesToReplace.push(node);
+      nodesToProcess.push(node);
     }
   }
 
-  nodesToReplace.forEach(node => {
+  nodesToProcess.forEach(node => {
+    // 既存ノードを直接書き換え。単純な文字列置換のため構造を壊さない。
     node.nodeValue = node.nodeValue.split(origin).join(target);
   });
 }
 
 /**
  * 入力エミュレーションによる置換 (Microsoft Loop, Google Docs 等に対応)
+ * 標準的な Range / Selection API と insertText を使用。
  */
 function replaceByEmulation(origin, target) {
-  // window.find() を使用してテキストを選択し、execCommand で置換する
-  // ページ内をループして全ての出現箇所を置換
+  // 元の選択範囲を保存
   const originalSelection = window.getSelection();
   const originalRange = originalSelection.rangeCount > 0 ? originalSelection.getRangeAt(0) : null;
 
-  // カーソルを先頭に
-  window.getSelection().removeAllRanges();
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+  let node;
+  const ranges = [];
 
-  let count = 0;
-  // window.find(aString, aCaseSensitive, aBackwards, aWrapAround, aWholeWord, aSearchInFrames, aShowDialog)
-  // 無限ループ防止のため aWrapAround は false に設定
-  while (window.find(origin, false, false, false, false, false, false)) {
+  // 全てのテキストノードを走査し、一致箇所の Range を取得
+  while (node = walker.nextNode()) {
+    let index = 0;
+    while ((index = node.nodeValue.indexOf(origin, index)) !== -1) {
+      const range = document.createRange();
+      range.setStart(node, index);
+      range.setEnd(node, index + origin.length);
+      ranges.push(range);
+      index += origin.length;
+    }
+  }
+
+  // 見つかった箇所を逆順に置換（前方から置換するとノードの位置がズレる可能性があるため）
+  for (let i = ranges.length - 1; i >= 0; i--) {
+    const range = ranges[i];
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // document.execCommand('insertText') は非推奨だが、リッチエディタのUndo履歴を
+    // 維持するためのデファクトスタンダードな手段。
+    // 代替案としての InputEvent は完全にエミュレートできない場合が多いため継続採用。
     document.execCommand('insertText', false, target);
-    count++;
-    // 無限ループ防止 (同じ箇所を何度も見つけてしまう場合がある)
-    if (count > 1000) break;
   }
 
-  // 元の選択範囲を復元 (もし可能なら)
+  // 元の選択範囲を復元
   if (originalRange) {
-    window.getSelection().removeAllRanges();
-    window.getSelection().addRange(originalRange);
+    const finalSelection = window.getSelection();
+    finalSelection.removeAllRanges();
+    finalSelection.addRange(originalRange);
   }
 
-  console.log(`Replace-Solo: Emulated input ${origin} -> ${target} (${count} occurrences)`);
+  console.log(`Replace-Solo: Replaced ${origin} -> ${target} (${ranges.length} occurrences) using standard API search.`);
 }

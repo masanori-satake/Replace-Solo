@@ -8,6 +8,7 @@ console.log('Replace-Solo: Side Panel Loaded');
 let tokenizer = null;
 let currentWords = []; // 現在リストされている単語
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
+let rowCounter = 0;
 
 // kuromoji.js の初期化
 kuromoji.builder({ dicPath: 'lib/kuromoji/dict/' }).build((err, _tokenizer) => {
@@ -147,8 +148,15 @@ async function analyzeAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
   const nouns = new Set();
 
+  // 辞書にある全単語も抽出対象にするための準備
+  const dictOrigins = new Set();
+  for (const origins of Object.values(localDictionary)) {
+    origins.forEach(o => dictOrigins.add(o));
+  }
+
   tokens.forEach(token => {
-    if (token.pos === '名詞') {
+    // 名詞、または辞書に登録されている単語（口癖など）を抽出
+    if (token.pos === '名詞' || dictOrigins.has(token.surface_form)) {
       nouns.add(token.surface_form);
     }
   });
@@ -156,6 +164,7 @@ async function analyzeAndDisplay(text) {
   const wordList = document.getElementById('word-list');
   wordList.innerHTML = '';
   currentWords = [];
+  rowCounter = 0;
 
   const nounsArray = Array.from(nouns).filter(w => w.length > 1);
   for (const word of nounsArray) {
@@ -176,14 +185,15 @@ async function addWordToList(word, isManual = false) {
   row.className = 'word-row';
 
   const dictMatch = getDictMatch(word);
+  const rowId = rowCounter++;
 
   row.innerHTML = `
     <td><input type="checkbox" class="m3-checkbox apply-check" ${dictMatch ? 'checked' : ''}></td>
     <td><span class="body-large word-origin">${escapeHtml(word)}</span></td>
     <td>
       <div class="m3-text-field">
-        <input type="text" class="replace-input" value="${dictMatch ? dictMatch.target : ''}" list="dict-${word}">
-        <datalist id="dict-${word}">
+        <input type="text" class="replace-input" value="${dictMatch ? escapeHtml(dictMatch.target) : ''}" list="dict-${rowId}">
+        <datalist id="dict-${rowId}">
           ${dictMatch ? dictMatch.candidates.map(c => `<option value="${escapeHtml(c)}">`).join('') : ''}
         </datalist>
       </div>
