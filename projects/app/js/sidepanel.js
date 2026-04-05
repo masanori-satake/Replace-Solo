@@ -318,7 +318,8 @@ async function analyzeAndDisplay(text) {
   }
 
   // 除外する名詞の細分類（代名詞や非自立名詞などは一般的に置換対象外）
-  const EXCLUDED_NOUN_TYPES = ['代名詞', '非自立'];
+  // サ変接続（「会議」等）や数（「123」等）もノイズ軽減のため除外対象に含める
+  const EXCLUDED_NOUN_TYPES = ['代名詞', '非自立', 'サ変接続', '数'];
 
   let i = 0;
   while (i < tokens.length) {
