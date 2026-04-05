@@ -10,23 +10,28 @@
 <body class="m3-body">
   <header class="m3-header">
     <h1 class="m3-headline-small">Replace-Solo</h1>
+    <button id="settings-open-btn" class="m3-icon-button" title="設定">
+      <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5t1-13.5l-103-78 110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5t-1 13.5l103 78-110 190-119-50q-11 8-23 15t-24 12L590-80H370Zm70-80h80l12-96q26-7 49-19t43-30l89 37 40-70-77-58q5-12 7-25t2-26q0-13-2-25.5t-7-25.5l77-58-40-70-89 37q-20-18-43-30t-49-19l-12-96h-80l-12 96q-26 7-49 19t-43 30l-89-37-40 70 77 58q-5 12-7 25t-2 26q0 13 2 25.5t7 25.5l-77 58 40 70 89-37q20 18 43 30t49 19l12 96Zm40-240q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm0-80Z"/></svg>
+    </button>
   </header>
 
   <main class="m3-main">
-    <section id="actions" class="m3-section">
-      <button id="analyze-btn" class="m3-button m3-button-filled">解析実行</button>
-      <button id="replace-all-btn" class="m3-button m3-button-filled">選択項目を一括置換</button>
-      <button id="reset-btn" class="m3-button m3-button-outlined">リセット</button>
+    <section id="actions" class="m3-section action-row">
+      <button id="analyze-btn" class="m3-button m3-button-filled primary-action">解析実行</button>
+      <button id="replace-all-btn" class="m3-button m3-button-filled primary-action">選択項目を一括置換</button>
+      <button id="reset-btn" class="m3-icon-button" title="リセット">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-160q-134 0-227-93t-93-227q0-134 93-227t227-93q69 0 132 28.5T720-690v-110h80v280H520v-80h168q-32-56-87.5-88T480-720q-100 0-170 70t-70 170q0 100 70 170t170 70q77 0 139-44t87-116h84q-28 106-114 173t-196 67Z"/></svg>
+      </button>
     </section>
 
     <section id="manual-add" class="m3-section">
-      <div class="m3-text-field">
+      <div class="m3-text-field compact">
         <input type="text" id="manual-word" placeholder="元単語を手動追加">
         <button id="add-word-btn" class="m3-button m3-button-text">追加</button>
       </div>
     </section>
 
-    <section id="results" class="m3-section">
+    <section id="results" class="m3-section table-container">
       <table id="word-table" class="m3-table">
         <thead>
           <tr>
@@ -42,21 +47,62 @@
         </tbody>
       </table>
     </section>
-
-    <section id="settings" class="m3-section">
-      <div class="m3-toggle">
-        <label>
-          <input type="checkbox" id="mode-toggle">
-          入力エミュレーションを使用
-        </label>
-      </div>
-    </section>
   </main>
 
-  <footer class="m3-footer">
-    <button id="export-json" class="m3-button m3-button-text">エクスポート</button>
-    <button id="import-json" class="m3-button m3-button-text">インポート</button>
-  </footer>
+  <div id="settings-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="m3-headline-small">設定</h2>
+        <button id="settings-close-btn" class="m3-icon-button">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg>
+        </button>
+      </div>
+      <div class="modal-tabs">
+        <button class="tab-btn active" data-tab="general" title="一般">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5t1-13.5l-103-78 110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5t-1 13.5l103 78-110 190-119-50q-11 8-23 15t-24 12L590-80H370Zm70-80h80l12-96q26-7 49-19t43-30l89 37 40-70-77-58q5-12 7-25t2-26q0-13-2-25.5t-7-25.5l77-58-40-70-89 37q-20-18-43-30t-49-19l-12-96h-80l-12 96q-26 7-49 19t-43 30l-89-37-40 70 77 58q-5 12-7 25t-2 26q0 13 2 25.5t7 25.5l-77 58 40 70 89-37q20 18 43 30t49 19l12 96Zm40-240q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm0-80Z"/></svg>
+        </button>
+        <button class="tab-btn" data-tab="about" title="About">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
+        </button>
+      </div>
+      <div id="tab-general" class="tab-panel active">
+        <div class="m3-section">
+          <div class="m3-toggle">
+            <label>
+              <input type="checkbox" id="mode-toggle">
+              入力エミュレーションを使用
+            </label>
+          </div>
+          <div class="settings-group">
+            <p class="settings-label">辞書データ</p>
+            <div class="settings-actions">
+              <button id="export-json" class="m3-button m3-button-outlined">エクスポート</button>
+              <button id="import-json" class="m3-button m3-button-outlined">インポート</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="tab-about" class="tab-panel">
+        <div class="about-content">
+          <section>
+            <p class="about-label">バージョン</p>
+            <p id="app-version">v0.0.0</p>
+          </section>
+          <section>
+            <p class="about-label">開発者</p>
+            <p>Masanori SATAKE</p>
+          </section>
+          <section>
+            <p class="about-label">Replace-Solo</p>
+            <p>Replace-Soloは、プライバシー重視のテキスト置換ツールです。形態素解析を利用して、文書内の特定の単語を効率的に見つけ出し、一括で置換することができます。データはすべてブラウザ内に保存され、外部に送信されることはありません。</p>
+          </section>
+          <section>
+            <p class="disclaimer">【免責事項】 本ソフトウェアは個人開発によるオープンソースプロジェクトであり、無保証です。利用により生じたいかなる損害についても、開発者は一切の責任を負いません。自己責任でご利用ください。</p>
+          </section>
+        </div>
+      </div>
+    </div>
+  </div>
 
   <script src="../js/sidepanel.js"></script>
 </body>

@@ -27,31 +27,56 @@ kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) =
 
 // 初期データの読み込みと辞書更新の購読
 function loadDictionary() {
-  chrome.storage.local.get(['dictionary'], (result) => {
-    if (result.dictionary) {
-      localDictionary = result.dictionary;
-      console.log('Replace-Solo: Local dictionary loaded');
-    } else {
-      localDictionary = {
-        "": ["えー", "えーっと", "あのー", "そのー"]
-      };
-      chrome.storage.local.set({ dictionary: localDictionary });
-    }
-  });
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+    chrome.storage.local.get(['dictionary'], (result) => {
+      if (result.dictionary) {
+        localDictionary = result.dictionary;
+        console.log('Replace-Solo: Local dictionary loaded');
+      } else {
+        localDictionary = {
+          "": ["えー", "えーっと", "あのー", "そのー"]
+        };
+        chrome.storage.local.set({ dictionary: localDictionary });
+      }
+    });
+  } else {
+    localDictionary = { "": ["えー", "えーっと", "あのー", "そのー"] };
+  }
 }
 
 loadDictionary();
 
+// バージョン情報の読み込み
+function loadVersion() {
+  fetch('../version.json')
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('app-version').innerText = `v${data.version}`;
+    })
+    .catch(err => {
+      console.error('Failed to load version:', err);
+      // フォールバック: manifestから取得
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+        const manifest = chrome.runtime.getManifest();
+        document.getElementById('app-version').innerText = `v${manifest.version}`;
+      }
+    });
+}
+
+loadVersion();
+
 // 辞書が他タブのパネル等で更新されたら反映する
-chrome.storage.onChanged.addListener((changes, area) => {
-  if (area === 'local' && changes.dictionary) {
-    localDictionary = changes.dictionary.newValue;
-    console.log('Replace-Solo: Local dictionary updated from storage');
-  }
-});
+if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.dictionary) {
+      localDictionary = changes.dictionary.newValue;
+      console.log('Replace-Solo: Local dictionary updated from storage');
+    }
+  });
+}
 
 // 初期化：ターゲットタブのURLに基づいてモードを設定
-if (targetTabId) {
+if (targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
   chrome.tabs.get(targetTabId, (tab) => {
     if (tab && tab.url) {
       autoSetMode(tab.url);
@@ -125,7 +150,44 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
+  document.getElementById('word-list').innerHTML = '';
+  currentWords = [];
   document.getElementById('analyze-btn').click();
+});
+
+// Settings Modal Logic
+const settingsModal = document.getElementById('settings-modal');
+const settingsOpenBtn = document.getElementById('settings-open-btn');
+const settingsCloseBtn = document.getElementById('settings-close-btn');
+
+settingsOpenBtn.addEventListener('click', () => {
+  settingsModal.style.display = 'flex';
+});
+
+settingsCloseBtn.addEventListener('click', () => {
+  settingsModal.style.display = 'none';
+});
+
+window.addEventListener('click', (event) => {
+  if (event.target === settingsModal) {
+    settingsModal.style.display = 'none';
+  }
+});
+
+// Tabs Logic
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabPanels = document.querySelectorAll('.tab-panel');
+
+tabBtns.forEach(btn => {
+  btn.addEventListener('click', () => {
+    const targetTab = btn.getAttribute('data-tab');
+
+    tabBtns.forEach(b => b.classList.remove('active'));
+    tabPanels.forEach(p => p.classList.remove('active'));
+
+    btn.classList.add('active');
+    document.getElementById(`tab-${targetTab}`).classList.add('active');
+  });
 });
 
 document.getElementById('export-json').addEventListener('click', () => {
@@ -234,7 +296,7 @@ async function addWordToList(word, isManual = false) {
     <td><input type="checkbox" class="m3-checkbox apply-check" ${dictMatch ? 'checked' : ''}></td>
     <td><span class="body-large word-origin">${escapeHtml(word)}</span></td>
     <td>
-      <div class="m3-text-field">
+      <div class="m3-text-field compact">
         <input type="text" class="replace-input" value="${dictMatch ? escapeHtml(dictMatch.target) : ''}" list="dict-${rowId}">
         <datalist id="dict-${rowId}">
           ${dictMatch ? dictMatch.candidates.map(c => `<option value="${escapeHtml(c)}">`).join('') : ''}
