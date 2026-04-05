@@ -354,14 +354,12 @@ async function analyzeAndDisplay(text) {
       if (dictOrigins.has(compound)) currentDictMatch = true;
 
       // 採用条件:
-      // 1. 固有名詞が含まれている
-      // 2. 辞書に登録されている（単一語または複合語全体）
-      // 3. 2つ以上の名詞が連続している（「パーソル」のように分割される固有名詞への対策）
+      // 1. 固有名詞が含まれている 2. 辞書に登録されている 3. 2つ以上の名詞が連続している
       // かつ、1文字のみの一般名詞などは除外する
-      if (hasProperNoun || currentDictMatch || count > 1) {
-        if (compound.length > 1 || currentDictMatch) {
-          nouns.add(compound);
-        }
+      const isQualified = hasProperNoun || currentDictMatch || count > 1;
+      const isNotTooShort = compound.length > 1 || currentDictMatch;
+      if (isQualified && isNotTooShort) {
+        nouns.add(compound);
       }
       i = j;
     } else {
