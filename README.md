@@ -1,5 +1,7 @@
 # Replace-Solo (リプレイス・ソロ)
 
+![version](https://img.shields.io/badge/version-0.1.0-blue)
+
 〜データがブラウザの外に出ない、自分専用の固有名詞・一括置換ツール〜
 
 ## プロジェクト概要
