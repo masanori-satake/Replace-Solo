@@ -49,7 +49,7 @@ def get_commits_since(commit_hash, paths=None):
             result = subprocess.run(cmd, capture_output=True, text=True, check=True)
             commits = result.stdout.split('\0')
             return [c.strip() for c in commits if c.strip()]
-        except:
+        except Exception:
             return []
 
 def get_version_from_file(filepath):
