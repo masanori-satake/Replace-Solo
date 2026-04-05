@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Replace-Solo",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "〜データがブラウザの外に出ない、自分専用の固有名詞・一括置換ツール〜",
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -20,6 +20,9 @@
   ],
   "background": {
     "service_worker": "js/background.js"
+  },
+  "side_panel": {
+    "default_path": "pages/sidepanel.html"
   },
   "action": {
     "default_title": "Open Side Panel"
