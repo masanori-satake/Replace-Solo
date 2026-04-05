@@ -3,9 +3,13 @@ import sys
 import re
 
 def generate_icons(output_dir=None, bg_color=None):
-    svg_path = os.path.join(os.getcwd(), 'projects/app/assets/icons/icon.svg')
+    # Use script file location as base to make it more robust
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    base_dir = os.path.dirname(script_dir)
+
+    svg_path = os.path.join(base_dir, 'projects/app/assets/icons/icon.svg')
     if output_dir is None:
-        output_dir = os.path.join(os.getcwd(), 'projects/app/assets/icons')
+        output_dir = os.path.join(base_dir, 'projects/app/assets/icons')
 
     if not os.path.exists(svg_path):
         print(f"Error: {svg_path} not found.")
@@ -27,12 +31,6 @@ def generate_icons(output_dir=None, bg_color=None):
             # Find the first fill attribute in a rect
             svg_content = re.sub(r'(<rect\s+[^>]*fill=")([^"]+)(")', rf'\1{bg_color}\3', svg_content, count=1)
             print(f"Background color changed to {bg_color} (using fallback regex)")
-
-    # If VERCEL environment is detected, skip generation as it's not needed for the landing page
-    # and Playwright might not be installed or configured.
-    if os.environ.get('VERCEL') == '1':
-        print("Vercel environment detected. Skipping PNG icon generation for extension.")
-        return True
 
     try:
         from playwright.sync_api import sync_playwright
