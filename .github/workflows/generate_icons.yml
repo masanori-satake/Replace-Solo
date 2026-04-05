@@ -1,0 +1,37 @@
+name: Generate PNG Icons
+
+on:
+  pull_request:
+    paths:
+      - 'projects/app/assets/icons/icon.svg'
+
+jobs:
+  generate-icons:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
+      - name: Generate PNG icons
+        run: python scripts/generate_png_icons.py
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "chore: auto-generate PNG icons from SVG"
+          file_pattern: 'projects/app/assets/icons/*.png'

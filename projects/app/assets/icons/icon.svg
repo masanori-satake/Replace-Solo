@@ -1,4 +1,21 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128">
-  <rect width="128" height="128" rx="24" fill="#6750A4"/>
-  <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="sans-serif" font-size="80" fill="white">R</text>
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="100" fill="#2563eb"/>
+
+  <!-- Text editor cursor (|) in the center -->
+  <rect x="236" y="160" width="40" height="192" rx="20" fill="white"/>
+
+  <!-- Three circulating arrows (Recycle-like pattern) -->
+  <g fill="none" stroke="white" stroke-width="32" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Arrow 1: Top section -->
+    <path d="M150 180 A 150 150 0 0 1 362 180" />
+    <path d="M316 180 L 362 180 L 362 134" />
+
+    <!-- Arrow 2: Right-Bottom section -->
+    <path d="M400 250 A 150 150 0 0 1 294 374" />
+    <path d="M294 328 L 294 374 L 340 374" />
+
+    <!-- Arrow 3: Left-Bottom section -->
+    <path d="M218 374 A 150 150 0 0 1 112 250" />
+    <path d="M112 296 L 112 250 L 158 250" />
+  </g>
 </svg>
