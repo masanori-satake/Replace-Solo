@@ -21,8 +21,8 @@ def verify_no_production_dependencies():
                 print(f"  - {pkg}: {version}")
             return False
         elif not isinstance(deps, dict):
-             # If it's not a dict, it's unexpected but if it's there it might be an issue
-             print(f"Warning: 'dependencies' key exists but is not a dictionary. Type: {type(deps)}")
+            print(f"Error: 'dependencies' key exists but is not a dictionary. Type: {type(deps)}")
+            return False
 
     print("Verification Success: No production dependencies found in package.json.")
     return True
