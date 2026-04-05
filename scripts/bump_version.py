@@ -133,7 +133,7 @@ def main():
             content = f.read()
 
         new_content = re.sub(
-            r'(img\.shields\.io/badge/version-)[0-9.]+(-blue)',
+            r'(!\[version\]\(https://img\.shields\.io/badge/version-)[0-9.]+(-blue\))',
             r'\g<1>' + new_version + r'\g<2>',
             content
         )
