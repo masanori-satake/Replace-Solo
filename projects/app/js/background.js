@@ -36,14 +36,7 @@ async function configureSidePanel(tabId, url) {
       enabled: true
     });
   } catch (e) {
-    // If the above fails (e.g. invalid tabId), try to set it globally as a fallback
-    try {
-      await chrome.sidePanel.setOptions({
-        enabled: true
-      });
-    } catch (e2) {
-      // Ignore
-    }
+    // Tab might be closed or restricted
   }
 }
 
