@@ -3,9 +3,14 @@
  * Manage side panel behavior and staggered script injection.
  */
 
-chrome.sidePanel
-  .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) => console.error(error));
+function setGlobalPanelBehavior() {
+  chrome.sidePanel
+    .setPanelBehavior({ openPanelOnActionClick: true })
+    .catch((error) => console.error('Replace-Solo: Failed to set panel behavior:', error));
+}
+
+// Set initial behavior
+setGlobalPanelBehavior();
 
 /**
  * Enable/disable the side panel based on the tab's URL.
@@ -31,7 +36,26 @@ async function configureSidePanel(tabId, url) {
       enabled: true
     });
   } catch (e) {
-    // Tab might be closed
+    // If the above fails (e.g. invalid tabId), try to set it globally as a fallback
+    try {
+      await chrome.sidePanel.setOptions({
+        enabled: true
+      });
+    } catch (e2) {
+      // Ignore
+    }
+  }
+}
+
+/**
+ * Check if the content script is already active in the tab.
+ */
+async function isContentScriptActive(tabId) {
+  try {
+    const response = await chrome.tabs.sendMessage(tabId, { action: 'PING' });
+    return response && response.pong === true;
+  } catch (e) {
+    return false;
   }
 }
 
@@ -47,11 +71,16 @@ async function initializeTab(tab) {
   // 2. Staggered content script injection (only for supported URLs)
   if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
     try {
-      await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        files: ['scripts/content.js']
-      });
-      console.log(`Replace-Solo: Content script injected into tab ${tab.id}`);
+      const active = await isContentScriptActive(tab.id);
+      if (!active) {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ['scripts/content.js']
+        });
+        console.log(`Replace-Solo: Content script injected into tab ${tab.id}`);
+      } else {
+        console.log(`Replace-Solo: Content script already active in tab ${tab.id}`);
+      }
     } catch (error) {
       // Ignore errors for already injected or restricted pages
       console.log(`Replace-Solo: Skip injection for tab ${tab.id}:`, error.message);
@@ -90,6 +119,7 @@ async function initializeAllTabs() {
 // Handle extension installation or updates
 chrome.runtime.onInstalled.addListener(async () => {
   console.log('Replace-Solo: Extension installed/updated');
+  setGlobalPanelBehavior();
   await initializeAllTabs();
 });
 

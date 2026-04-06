@@ -11,7 +11,16 @@ if (typeof window.replaceSoloLoaded === 'undefined') {
 }
 
 function setupMessageListener() {
+  // すでに登録済みの場合は何もしない（フェイルセーフ）
+  if (window.replaceSoloListenerRegistered) return;
+  window.replaceSoloListenerRegistered = true;
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'PING') {
+    sendResponse({ pong: true });
+    return true;
+  }
+
   if (request.action === 'EXTRACT_TEXT') {
     const text = document.body.innerText;
     sendResponse({ text: text });
