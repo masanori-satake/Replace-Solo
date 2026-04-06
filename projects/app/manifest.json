@@ -21,9 +21,6 @@
   "background": {
     "service_worker": "js/background.js"
   },
-  "side_panel": {
-    "default_path": "pages/sidepanel.html"
-  },
   "action": {
     "default_title": "Open Side Panel"
   },

@@ -28,7 +28,10 @@ chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
 // インストール/アップデート時に既存の全タブに対して設定
 chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({});
-  for (const tab of tabs) {
+
+  // 各タブの初期化を並列実行し、特定のタブでの停滞が他に影響しないようにする
+  await Promise.allSettled(tabs.map(async (tab) => {
+    // サイドパネルの設定
     await setTabSpecificSidePanel(tab.id, tab.url);
 
     // コンテンツスクリプトを既存のタブに注入
@@ -44,5 +47,5 @@ chrome.runtime.onInstalled.addListener(async () => {
         console.log(`Could not inject content script into tab ${tab.id}:`, error);
       }
     }
-  }
+  }));
 });
