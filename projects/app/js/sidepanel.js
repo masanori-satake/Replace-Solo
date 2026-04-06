@@ -160,6 +160,8 @@ async function sendMessageToTab(tabId, message) {
           target: { tabId: tabId },
           files: ['scripts/content.js']
         });
+        // 注入後、メッセージを受け取れるようになるまで僅かに待機
+        await new Promise(resolve => setTimeout(resolve, 100));
         return await doSend();
       } catch (injectError) {
         console.error('Injection failed:', injectError);
