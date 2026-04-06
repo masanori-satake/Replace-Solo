@@ -2,35 +2,9 @@ chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// タブ個別のサイドパネル設定を行う関数
-async function setTabSpecificSidePanel(tabId, url) {
-  if (!url || url.startsWith('chrome://')) return;
-
-  try {
-    await chrome.sidePanel.setOptions({
-      tabId: tabId,
-      path: `pages/sidepanel.html?tabId=${tabId}`,
-      enabled: true
-    });
-    console.log(`Side panel set for tab ${tabId}`);
-  } catch (error) {
-    console.error(`Error setting side panel for tab ${tabId}:`, error);
-  }
-}
-
-// タブ更新時にサイドパネルを設定
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    setTabSpecificSidePanel(tabId, tab.url);
-  }
-});
-
-// 1つのタブを初期化する関数（サイドパネル設定 ＋ コンテンツスクリプト注入）
+// 1つのタブを初期化する関数（コンテンツスクリプト注入のみ）
 async function initializeTab(tab) {
   if (!tab || !tab.id) return;
-
-  // サイドパネルの設定
-  await setTabSpecificSidePanel(tab.id, tab.url);
 
   // コンテンツスクリプトを注入（特殊なページや読み込み中以外のページを対象）
   if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
@@ -47,7 +21,7 @@ async function initializeTab(tab) {
   }
 }
 
-// インストール/アップデート時に既存の全タブに対して段階的に設定
+// インストール/アップデート時に既存の全タブに対して段階的にコンテンツスクリプトを注入
 chrome.runtime.onInstalled.addListener(async () => {
   const tabs = await chrome.tabs.query({});
 

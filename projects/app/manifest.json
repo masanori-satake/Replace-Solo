@@ -24,6 +24,9 @@
   "action": {
     "default_title": "Open Side Panel"
   },
+  "side_panel": {
+    "default_path": "pages/sidepanel.html"
+  },
   "content_scripts": [
     {
       "matches": [

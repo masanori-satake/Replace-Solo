@@ -5,22 +5,6 @@
 
 console.log('Replace-Solo: Side Panel Loaded');
 
-// URLパラメータから tabId を取得
-const urlParams = new URLSearchParams(window.location.search);
-let targetTabId = parseInt(urlParams.get('tabId'), 10);
-console.log('Target Tab ID from URL:', targetTabId);
-
-// tabId が不正な場合は現在のタブを取得
-if (!targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    if (tabs[0]) {
-      targetTabId = tabs[0].id;
-      console.log('Fallback Target Tab ID:', targetTabId);
-      initializePanel();
-    }
-  });
-}
-
 let tokenizer = null;
 let currentWords = []; // 現在リストされている単語
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
@@ -113,19 +97,13 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
   });
 }
 
-// 初期化：ターゲットタブの状態に基づいてパネルを初期設定する
-function initializePanel() {
-  if (targetTabId && typeof chrome !== 'undefined' && chrome.tabs) {
-    chrome.tabs.get(targetTabId, (tab) => {
-      if (tab && tab.url) {
-        autoSetMode(tab.url);
-      }
-    });
-  }
-}
-
-if (targetTabId) {
-  initializePanel();
+/**
+ * 現在アクティブなタブを取得する
+ */
+async function getActiveTab() {
+  if (typeof chrome === 'undefined' || !chrome.tabs) return null;
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  return tab;
 }
 
 /**
@@ -179,12 +157,12 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     return;
   }
 
-  if (targetTabId) {
+  const tab = await getActiveTab();
+  if (tab && tab.id) {
     try {
-      const tab = await chrome.tabs.get(targetTabId);
       autoSetMode(tab.url || "");
 
-      const response = await sendMessageToTab(targetTabId, { action: 'EXTRACT_TEXT' });
+      const response = await sendMessageToTab(tab.id, { action: 'EXTRACT_TEXT' });
       if (response && response.text) {
         analyzeAndDisplay(response.text);
       }
@@ -508,9 +486,10 @@ function executeReplacement(origin, target) {
 
 async function executeMultipleReplacements(replacements) {
   const mode = document.getElementById('mode-toggle').checked ? 'emulation' : 'dom';
-  if (targetTabId) {
+  const tab = await getActiveTab();
+  if (tab && tab.id) {
     try {
-      await sendMessageToTab(targetTabId, {
+      await sendMessageToTab(tab.id, {
         action: 'REPLACE_WORDS',
         replacements,
         mode
