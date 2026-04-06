@@ -1,51 +1,107 @@
+/**
+ * Replace-Solo Background Script
+ * Manage side panel behavior and staggered script injection.
+ */
+
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
   .catch((error) => console.error(error));
 
-// タブ個別のサイドパネル設定を行う関数
-async function setTabSpecificSidePanel(tabId, url) {
-  if (!url || url.startsWith('chrome://')) return;
+/**
+ * Enable/disable the side panel based on the tab's URL.
+ */
+async function configureSidePanel(tabId, url) {
+  if (!url || url.startsWith('chrome://') || url.startsWith('about:')) {
+    try {
+      await chrome.sidePanel.setOptions({
+        tabId: tabId,
+        enabled: false
+      });
+    } catch (e) {
+      // Tab might be closed
+    }
+    return;
+  }
 
   try {
+    // Note: To share a single side panel instance across all tabs (global state),
+    // we must NOT provide the 'path' property here. It uses 'default_path' from manifest.
     await chrome.sidePanel.setOptions({
       tabId: tabId,
-      path: `pages/sidepanel.html?tabId=${tabId}`,
       enabled: true
     });
-    console.log(`Side panel set for tab ${tabId}`);
-  } catch (error) {
-    console.error(`Error setting side panel for tab ${tabId}:`, error);
+  } catch (e) {
+    // Tab might be closed
   }
 }
 
-// タブ更新時にサイドパネルを設定
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-  if (changeInfo.status === 'complete') {
-    setTabSpecificSidePanel(tabId, tab.url);
-  }
-});
+/**
+ * Initialize a single tab: configure the side panel and inject the content script.
+ */
+async function initializeTab(tab) {
+  if (!tab || !tab.id) return;
 
-// インストール/アップデート時に既存の全タブに対して設定
-chrome.runtime.onInstalled.addListener(async () => {
+  // 1. Configure the side panel for this tab
+  await configureSidePanel(tab.id, tab.url);
+
+  // 2. Staggered content script injection (only for supported URLs)
+  if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId: tab.id },
+        files: ['scripts/content.js']
+      });
+      console.log(`Replace-Solo: Content script injected into tab ${tab.id}`);
+    } catch (error) {
+      // Ignore errors for already injected or restricted pages
+      console.log(`Replace-Solo: Skip injection for tab ${tab.id}:`, error.message);
+    }
+  }
+}
+
+/**
+ * Perform staggered initialization of all existing tabs.
+ * This prevents the browser from overloading during installation or startup.
+ */
+async function initializeAllTabs() {
   const tabs = await chrome.tabs.query({});
 
-  // 各タブの初期化を並列実行し、特定のタブでの停滞が他に影響しないようにする
-  await Promise.allSettled(tabs.map(async (tab) => {
-    // サイドパネルの設定
-    await setTabSpecificSidePanel(tab.id, tab.url);
+  // Prioritize active tabs
+  const activeTabs = tabs.filter(t => t.active);
+  const backgroundTabs = tabs.filter(t => !t.active);
 
-    // コンテンツスクリプトを既存のタブに注入
-    if (tab.url && !tab.url.startsWith('chrome://') && !tab.url.startsWith('about:')) {
-      try {
-        await chrome.scripting.executeScript({
-          target: { tabId: tab.id },
-          files: ['scripts/content.js']
-        });
-        console.log(`Content script injected into tab ${tab.id}`);
-      } catch (error) {
-        // すでに注入されている場合や、特殊なページではエラーになる可能性があるため無視
-        console.log(`Could not inject content script into tab ${tab.id}:`, error);
-      }
+  for (const tab of activeTabs) {
+    await initializeTab(tab);
+  }
+
+  // Batch process background tabs to reduce IPC and CPU load
+  const BATCH_SIZE = 5;
+  const DELAY_MS = 300;
+
+  for (let i = 0; i < backgroundTabs.length; i += BATCH_SIZE) {
+    const batch = backgroundTabs.slice(i, i + BATCH_SIZE);
+    await Promise.allSettled(batch.map(tab => initializeTab(tab)));
+    if (i + BATCH_SIZE < backgroundTabs.length) {
+      await new Promise(resolve => setTimeout(resolve, DELAY_MS));
     }
-  }));
+  }
+}
+
+// Handle extension installation or updates
+chrome.runtime.onInstalled.addListener(async () => {
+  console.log('Replace-Solo: Extension installed/updated');
+  await initializeAllTabs();
+});
+
+// Handle browser startup (ensure tabs are ready)
+chrome.runtime.onStartup.addListener(async () => {
+  console.log('Replace-Solo: Browser started');
+  await initializeAllTabs();
+});
+
+// Update side panel configuration when a tab's URL changes
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
+  if (changeInfo.url) {
+    await configureSidePanel(tabId, changeInfo.url);
+  }
 });
