@@ -10,8 +10,19 @@ if (typeof window.replaceSoloLoaded === 'undefined') {
   setupMessageListener();
 }
 
+/**
+ * Register the message listener once.
+ */
 function setupMessageListener() {
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (window.replaceSoloListenerRegistered) return;
+  window.replaceSoloListenerRegistered = true;
+
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  if (request.action === 'PING') {
+    sendResponse({ pong: true });
+    return true;
+  }
+
   if (request.action === 'EXTRACT_TEXT') {
     const text = document.body.innerText;
     sendResponse({ text: text });
