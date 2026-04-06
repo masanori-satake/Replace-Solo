@@ -347,7 +347,12 @@ async function analyzeAndDisplay(text) {
     const isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(token.pos_detail_1);
     const isDictMatch = dictOrigins.has(token.surface_form);
 
-    if (isNoun || isDictMatch) {
+    // 日本語を含まない単語は、辞書にない限り開始トークンとしない。
+    // ただし、4文字以上の英単語は固有名詞である可能性が高いため、例外的に開始トークンとして許容する。
+    const firstHasJapanese = JAPANESE_CHAR_REGEX.test(token.surface_form);
+    const isLongEnglish = /^[a-zA-Z]{4,}$/.test(token.surface_form);
+
+    if (isDictMatch || (isNoun && (firstHasJapanese || isLongEnglish))) {
       let compound = token.surface_form;
       let hasProperNoun = (token.pos_detail_1 === '固有名詞');
       let currentDictMatch = isDictMatch;
@@ -356,7 +361,8 @@ async function analyzeAndDisplay(text) {
       let j = i + 1;
       while (j < tokenLen) {
         const nextToken = tokens[j];
-        const nextIsNoun = nextToken.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(nextToken.pos_detail_1);
+        // 複合語の構成要素としては、非自立名詞等も許容する
+        const nextIsNoun = nextToken.pos === '名詞';
         const nextIsDictMatch = dictOrigins.has(nextToken.surface_form);
 
         if (nextIsNoun || nextIsDictMatch) {
@@ -376,10 +382,13 @@ async function analyzeAndDisplay(text) {
       }
 
       // 採用条件:
-      // 1. 固有名詞が含まれている 2. 辞書に登録されている
-      // 3. 2つ以上の名詞が連続しており、かつ日本語を含んでいる
+      // 1. 辞書に登録されている
+      // 2. 日本語を含んでいる、かつ (固有名詞である OR 2つ以上の名詞が連続している)
+      // 3. 日本語を含まないが、4文字以上の英単語であり、かつ (固有名詞である OR 2つ以上の名詞が連続している)
       // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
-      const isQualified = currentDictMatch || hasProperNoun || (count > 1 && JAPANESE_CHAR_REGEX.test(compound));
+      const hasJapanese = JAPANESE_CHAR_REGEX.test(compound);
+      const isQualifiedEnglish = /^[a-zA-Z]{4,}$/.test(compound);
+      const isQualified = currentDictMatch || ((hasJapanese || isQualifiedEnglish) && (hasProperNoun || count > 1));
       const isNotTooShort = currentDictMatch || compound.length > 1;
 
       if (isQualified && isNotTooShort) {
