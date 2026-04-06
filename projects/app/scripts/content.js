@@ -10,12 +10,14 @@ if (typeof window.replaceSoloLoaded === 'undefined') {
   setupMessageListener();
 }
 
+/**
+ * Register the message listener once.
+ */
 function setupMessageListener() {
-  // すでに登録済みの場合は何もしない（フェイルセーフ）
   if (window.replaceSoloListenerRegistered) return;
   window.replaceSoloListenerRegistered = true;
 
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
+  chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === 'PING') {
     sendResponse({ pong: true });
     return true;
