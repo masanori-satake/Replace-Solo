@@ -176,14 +176,37 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
 });
 
 function autoSetMode(url) {
+  if (!url) return;
   const emulationDomains = [
     'loop.microsoft.com',
     'docs.google.com',
     'sheets.google.com'
   ];
   const isEmulation = emulationDomains.some(domain => url.includes(domain));
-  document.getElementById('mode-toggle').checked = isEmulation;
+  const modeToggle = document.getElementById('mode-toggle');
+  if (modeToggle) {
+    modeToggle.checked = isEmulation;
+  }
 }
+
+// タブの切り替えや更新を検知してモードを同期
+if (typeof chrome !== 'undefined' && chrome.tabs) {
+  chrome.tabs.onActivated.addListener(async (activeInfo) => {
+    const tab = await chrome.tabs.get(activeInfo.tabId);
+    if (tab && tab.url) autoSetMode(tab.url);
+  });
+
+  chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+    if (changeInfo.url && tab.active) {
+      autoSetMode(changeInfo.url);
+    }
+  });
+}
+
+// 初回起動時のモード設定
+getActiveTab().then(tab => {
+  if (tab && tab.url) autoSetMode(tab.url);
+});
 
 document.getElementById('add-word-btn').addEventListener('click', () => {
   const manualWord = document.getElementById('manual-word').value.trim();
