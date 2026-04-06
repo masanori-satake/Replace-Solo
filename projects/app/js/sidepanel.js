@@ -102,8 +102,12 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
  */
 async function getActiveTab() {
   if (typeof chrome === 'undefined' || !chrome.tabs) return null;
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  return tab;
+  try {
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    return tab;
+  } catch (e) {
+    return null;
+  }
 }
 
 /**
@@ -192,13 +196,21 @@ function autoSetMode(url) {
 // タブの切り替えや更新を検知してモードを同期
 if (typeof chrome !== 'undefined' && chrome.tabs) {
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
-    const tab = await chrome.tabs.get(activeInfo.tabId);
-    if (tab && tab.url) autoSetMode(tab.url);
+    try {
+      const tab = await chrome.tabs.get(activeInfo.tabId);
+      if (tab && tab.url) autoSetMode(tab.url);
+    } catch (e) {
+      // タブがすぐに閉じられた場合などは無視
+    }
   });
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (changeInfo.url && tab.active) {
-      autoSetMode(changeInfo.url);
+    try {
+      if (changeInfo.url && tab.active) {
+        autoSetMode(changeInfo.url);
+      }
+    } catch (e) {
+      // 無視
     }
   });
 }
