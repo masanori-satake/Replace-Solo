@@ -471,22 +471,29 @@ async function renderWordList() {
   currentWords = [];
   rowCounter = 0;
 
+  const toggle = document.getElementById('japanese-only-toggle');
+  const isJapaneseOnly = toggle ? toggle.checked : false;
+
   const BATCH_SIZE = 50;
   for (let i = 0; i < allExtractedWords.length; i += BATCH_SIZE) {
     const batch = allExtractedWords.slice(i, i + BATCH_SIZE);
     for (const word of batch) {
-      await addWordToList(word);
+      await addWordToList(word, false, isJapaneseOnly);
     }
     // UIをブロックしないように少し待機
     await new Promise(resolve => setTimeout(resolve, 0));
   }
 }
 
-async function addWordToList(word, isManual = false) {
+async function addWordToList(word, isManual = false, isJapaneseOnly = null) {
   const wordList = document.getElementById('word-list');
   if (currentWords.includes(word)) return;
 
-  const isJapaneseOnly = document.getElementById('japanese-only-toggle').checked;
+  if (isJapaneseOnly === null) {
+    const toggle = document.getElementById('japanese-only-toggle');
+    isJapaneseOnly = toggle ? toggle.checked : false;
+  }
+
   const hasJapanese = JAPANESE_CHAR_REGEX.test(word);
   const isDictMatch = dictOrigins.has(word);
   const isManualInternal = isManual || manualWords.has(word);
