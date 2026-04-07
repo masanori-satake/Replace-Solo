@@ -31,7 +31,7 @@ body {
   background-color: var(--m3-sys-light-surface);
   border-bottom: 1px solid var(--m3-sys-light-surface-variant);
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
 }
 

@@ -252,6 +252,11 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
   }
 });
 
+document.getElementById('clear-btn').addEventListener('click', () => {
+  document.getElementById('word-list').innerHTML = '';
+  currentWords = [];
+});
+
 document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('word-list').innerHTML = '';
   currentWords = [];
@@ -420,7 +425,15 @@ async function analyzeAndDisplay(text) {
   currentWords = [];
   rowCounter = 0;
 
-  const nounsArray = Array.from(nouns);
+  const nounsArray = Array.from(nouns).sort((a, b) => {
+    const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
+    const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
+
+    if (aHasJapanese && !bHasJapanese) return -1;
+    if (!aHasJapanese && bHasJapanese) return 1;
+
+    return a.localeCompare(b);
+  });
 
   const BATCH_SIZE = 50;
   for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
@@ -454,7 +467,11 @@ async function addWordToList(word, isManual = false) {
       </div>
     </td>
     <td><input type="checkbox" class="m3-checkbox dict-check" ${isManual ? 'checked' : ''}></td>
-    <td><button class="m3-button m3-button-text single-exec">実行</button></td>
+    <td>
+      <button class="m3-icon-button single-exec" title="実行">
+        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
+      </button>
+    </td>
   `;
 
   const replaceInput = row.querySelector('.replace-input');
