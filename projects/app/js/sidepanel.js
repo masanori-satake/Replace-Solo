@@ -8,7 +8,7 @@ console.log('Replace-Solo: Side Panel Loaded');
 let tokenizer = null;
 let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
 let manualWords = new Set(); // 手動で追加された単語
-let currentWords = []; // 現在リストされている単語
+let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
@@ -269,7 +269,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   document.getElementById('word-list').innerHTML = '';
   allExtractedWords = [];
   manualWords.clear();
-  currentWords = [];
+  currentWords.clear();
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
@@ -278,7 +278,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   document.getElementById('word-list').innerHTML = '';
   allExtractedWords = [];
   manualWords.clear();
-  currentWords = [];
+  currentWords.clear();
   document.getElementById('analyze-btn').click();
 });
 
@@ -468,7 +468,7 @@ async function analyzeAndDisplay(text) {
 async function renderWordList() {
   const wordList = document.getElementById('word-list');
   wordList.innerHTML = '';
-  currentWords = [];
+  currentWords.clear();
   rowCounter = 0;
 
   const toggle = document.getElementById('japanese-only-toggle');
@@ -477,17 +477,37 @@ async function renderWordList() {
   const BATCH_SIZE = 50;
   for (let i = 0; i < allExtractedWords.length; i += BATCH_SIZE) {
     const batch = allExtractedWords.slice(i, i + BATCH_SIZE);
+    const fragment = document.createDocumentFragment();
+
     for (const word of batch) {
-      await addWordToList(word, false, isJapaneseOnly);
+      const row = createWordRow(word, false, isJapaneseOnly);
+      if (row) {
+        fragment.appendChild(row);
+      }
     }
-    // UIをブロックしないように少し待機
-    await new Promise(resolve => setTimeout(resolve, 0));
+    wordList.appendChild(fragment);
+
+    // 描画サイクルを明け渡してUIのフリーズを防ぐ
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
   }
 }
 
-async function addWordToList(word, isManual = false, isJapaneseOnly = null) {
+/**
+ * 個別の単語をリストに追加する（手動追加用）
+ */
+function addWordToList(word, isManual = false) {
   const wordList = document.getElementById('word-list');
-  if (currentWords.includes(word)) return;
+  const row = createWordRow(word, isManual);
+  if (row) {
+    wordList.appendChild(row);
+  }
+}
+
+/**
+ * 単語行の要素を作成する
+ */
+function createWordRow(word, isManual = false, isJapaneseOnly = null) {
+  if (currentWords.has(word)) return null;
 
   if (isJapaneseOnly === null) {
     const toggle = document.getElementById('japanese-only-toggle');
@@ -500,10 +520,10 @@ async function addWordToList(word, isManual = false, isJapaneseOnly = null) {
 
   if (isJapaneseOnly && !hasJapanese && !isDictMatch && !isManualInternal) {
     // 辞書外の英単語等はスキップ。ただし手動追加は常に表示
-    return;
+    return null;
   }
 
-  currentWords.push(word);
+  currentWords.add(word);
 
   const row = document.createElement('tr');
   row.className = 'word-row';
@@ -565,7 +585,7 @@ async function addWordToList(word, isManual = false, isJapaneseOnly = null) {
     }
   });
 
-  wordList.appendChild(row);
+  return row;
 }
 
 function getDictMatch(word) {
