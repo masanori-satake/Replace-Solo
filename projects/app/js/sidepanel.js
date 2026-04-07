@@ -425,6 +425,7 @@ async function analyzeAndDisplay(text) {
   currentWords = [];
   rowCounter = 0;
 
+  const collator = new Intl.Collator('ja');
   const nounsArray = Array.from(nouns).sort((a, b) => {
     const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
     const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
@@ -432,7 +433,7 @@ async function analyzeAndDisplay(text) {
     if (aHasJapanese && !bHasJapanese) return -1;
     if (!aHasJapanese && bHasJapanese) return 1;
 
-    return a.localeCompare(b);
+    return collator.compare(a, b);
   });
 
   const BATCH_SIZE = 50;
