@@ -6,7 +6,9 @@
 console.log('Replace-Solo: Side Panel Loaded');
 
 let tokenizer = null;
-let currentWords = []; // 現在リストされている単語
+let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
+let manualWords = new Set(); // 手動で追加された単語
+let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
@@ -163,6 +165,9 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     return;
   }
 
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
+
   const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
@@ -225,6 +230,10 @@ getActiveTab().then(tab => {
 document.getElementById('add-word-btn').addEventListener('click', () => {
   const manualWord = document.getElementById('manual-word').value.trim();
   if (manualWord) {
+    if (!allExtractedWords.includes(manualWord)) {
+      allExtractedWords.push(manualWord);
+    }
+    manualWords.add(manualWord);
     addWordToList(manualWord, true);
     document.getElementById('manual-word').value = '';
   }
@@ -255,14 +264,28 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
   document.getElementById('word-list').innerHTML = '';
-  currentWords = [];
+  allExtractedWords = [];
+  manualWords.clear();
+  currentWords.clear();
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
   document.getElementById('word-list').innerHTML = '';
-  currentWords = [];
+  allExtractedWords = [];
+  manualWords.clear();
+  currentWords.clear();
   document.getElementById('analyze-btn').click();
+});
+
+// Japanese Only Toggle logic
+const japaneseOnlyToggle = document.getElementById('japanese-only-toggle');
+japaneseOnlyToggle.addEventListener('change', () => {
+  renderWordList();
 });
 
 // Settings Modal Logic
@@ -425,13 +448,8 @@ async function analyzeAndDisplay(text) {
     }
   }
 
-  const wordList = document.getElementById('word-list');
-  wordList.innerHTML = '';
-  currentWords = [];
-  rowCounter = 0;
-
   const collator = new Intl.Collator('ja');
-  const nounsArray = Array.from(nouns).sort((a, b) => {
+  allExtractedWords = Array.from(nouns).sort((a, b) => {
     const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
     const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
 
@@ -441,20 +459,71 @@ async function analyzeAndDisplay(text) {
     return collator.compare(a, b);
   });
 
+  await renderWordList();
+}
+
+/**
+ * リストを再描画する
+ */
+async function renderWordList() {
+  const wordList = document.getElementById('word-list');
+  wordList.innerHTML = '';
+  currentWords.clear();
+  rowCounter = 0;
+
+  const toggle = document.getElementById('japanese-only-toggle');
+  const isJapaneseOnly = toggle ? toggle.checked : false;
+
   const BATCH_SIZE = 50;
-  for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
-    const batch = nounsArray.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < allExtractedWords.length; i += BATCH_SIZE) {
+    const batch = allExtractedWords.slice(i, i + BATCH_SIZE);
+    const fragment = document.createDocumentFragment();
+
     for (const word of batch) {
-      await addWordToList(word);
+      const row = createWordRow(word, false, isJapaneseOnly);
+      if (row) {
+        fragment.appendChild(row);
+      }
     }
-    await new Promise(resolve => setTimeout(resolve, 0));
+    wordList.appendChild(fragment);
+
+    // 描画サイクルを明け渡してUIのフリーズを防ぐ
+    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
   }
 }
 
-async function addWordToList(word, isManual = false) {
+/**
+ * 個別の単語をリストに追加する（手動追加用）
+ */
+function addWordToList(word, isManual = false) {
   const wordList = document.getElementById('word-list');
-  if (currentWords.includes(word)) return;
-  currentWords.push(word);
+  const row = createWordRow(word, isManual);
+  if (row) {
+    wordList.appendChild(row);
+  }
+}
+
+/**
+ * 単語行の要素を作成する
+ */
+function createWordRow(word, isManual = false, isJapaneseOnly = null) {
+  if (currentWords.has(word)) return null;
+
+  if (isJapaneseOnly === null) {
+    const toggle = document.getElementById('japanese-only-toggle');
+    isJapaneseOnly = toggle ? toggle.checked : false;
+  }
+
+  const hasJapanese = JAPANESE_CHAR_REGEX.test(word);
+  const isDictMatch = dictOrigins.has(word);
+  const isManualInternal = isManual || manualWords.has(word);
+
+  if (isJapaneseOnly && !hasJapanese && !isDictMatch && !isManualInternal) {
+    // 辞書外の英単語等はスキップ。ただし手動追加は常に表示
+    return null;
+  }
+
+  currentWords.add(word);
 
   const row = document.createElement('tr');
   row.className = 'word-row';
@@ -472,7 +541,7 @@ async function addWordToList(word, isManual = false) {
         </datalist>
       </div>
     </td>
-    <td><input type="checkbox" class="m3-checkbox dict-check" ${isManual ? 'checked' : ''}></td>
+    <td><input type="checkbox" class="m3-checkbox dict-check" ${isManualInternal ? 'checked' : ''}></td>
     <td>
       <button class="m3-icon-button single-exec" title="実行">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
@@ -516,7 +585,7 @@ async function addWordToList(word, isManual = false) {
     }
   });
 
-  wordList.appendChild(row);
+  return row;
 }
 
 function getDictMatch(word) {

@@ -1,6 +1,6 @@
 {
   "name": "replace-solo",
-  "version": "0.5.3",
+  "version": "0.6.0",
   "description": "〜データがブラウザの外に出ない、自分専用の固有名詞・一括置換ツール〜",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
