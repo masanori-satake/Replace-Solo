@@ -6,6 +6,8 @@
 console.log('Replace-Solo: Side Panel Loaded');
 
 let tokenizer = null;
+let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
+let manualWords = new Set(); // 手動で追加された単語
 let currentWords = []; // 現在リストされている単語
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
@@ -163,6 +165,9 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     return;
   }
 
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
+
   const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
@@ -225,6 +230,10 @@ getActiveTab().then(tab => {
 document.getElementById('add-word-btn').addEventListener('click', () => {
   const manualWord = document.getElementById('manual-word').value.trim();
   if (manualWord) {
+    if (!allExtractedWords.includes(manualWord)) {
+      allExtractedWords.push(manualWord);
+    }
+    manualWords.add(manualWord);
     addWordToList(manualWord, true);
     document.getElementById('manual-word').value = '';
   }
@@ -255,14 +264,28 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
 });
 
 document.getElementById('clear-btn').addEventListener('click', () => {
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
   document.getElementById('word-list').innerHTML = '';
+  allExtractedWords = [];
+  manualWords.clear();
   currentWords = [];
 });
 
 document.getElementById('reset-btn').addEventListener('click', () => {
+  const toggle = document.getElementById('japanese-only-toggle');
+  if (toggle) toggle.checked = true;
   document.getElementById('word-list').innerHTML = '';
+  allExtractedWords = [];
+  manualWords.clear();
   currentWords = [];
   document.getElementById('analyze-btn').click();
+});
+
+// Japanese Only Toggle logic
+const japaneseOnlyToggle = document.getElementById('japanese-only-toggle');
+japaneseOnlyToggle.addEventListener('change', () => {
+  renderWordList();
 });
 
 // Settings Modal Logic
@@ -425,13 +448,8 @@ async function analyzeAndDisplay(text) {
     }
   }
 
-  const wordList = document.getElementById('word-list');
-  wordList.innerHTML = '';
-  currentWords = [];
-  rowCounter = 0;
-
   const collator = new Intl.Collator('ja');
-  const nounsArray = Array.from(nouns).sort((a, b) => {
+  allExtractedWords = Array.from(nouns).sort((a, b) => {
     const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
     const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
 
@@ -441,12 +459,25 @@ async function analyzeAndDisplay(text) {
     return collator.compare(a, b);
   });
 
+  await renderWordList();
+}
+
+/**
+ * リストを再描画する
+ */
+async function renderWordList() {
+  const wordList = document.getElementById('word-list');
+  wordList.innerHTML = '';
+  currentWords = [];
+  rowCounter = 0;
+
   const BATCH_SIZE = 50;
-  for (let i = 0; i < nounsArray.length; i += BATCH_SIZE) {
-    const batch = nounsArray.slice(i, i + BATCH_SIZE);
+  for (let i = 0; i < allExtractedWords.length; i += BATCH_SIZE) {
+    const batch = allExtractedWords.slice(i, i + BATCH_SIZE);
     for (const word of batch) {
       await addWordToList(word);
     }
+    // UIをブロックしないように少し待機
     await new Promise(resolve => setTimeout(resolve, 0));
   }
 }
@@ -454,6 +485,17 @@ async function analyzeAndDisplay(text) {
 async function addWordToList(word, isManual = false) {
   const wordList = document.getElementById('word-list');
   if (currentWords.includes(word)) return;
+
+  const isJapaneseOnly = document.getElementById('japanese-only-toggle').checked;
+  const hasJapanese = JAPANESE_CHAR_REGEX.test(word);
+  const isDictMatch = dictOrigins.has(word);
+  const isManualInternal = isManual || manualWords.has(word);
+
+  if (isJapaneseOnly && !hasJapanese && !isDictMatch && !isManualInternal) {
+    // 辞書外の英単語等はスキップ。ただし手動追加は常に表示
+    return;
+  }
+
   currentWords.push(word);
 
   const row = document.createElement('tr');
@@ -472,7 +514,7 @@ async function addWordToList(word, isManual = false) {
         </datalist>
       </div>
     </td>
-    <td><input type="checkbox" class="m3-checkbox dict-check" ${isManual ? 'checked' : ''}></td>
+    <td><input type="checkbox" class="m3-checkbox dict-check" ${isManualInternal ? 'checked' : ''}></td>
     <td>
       <button class="m3-icon-button single-exec" title="実行">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
