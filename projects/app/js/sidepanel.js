@@ -15,7 +15,8 @@ let rowCounter = 0;
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', 'サ変接続', '数']);
 const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
-const TRIM_SYMBOLS_REGEX = /^[ \s()\[\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛'"`'“”‘’。、！？!?:;：；・,.，．･+*\/\\|~〜=#$%\^&@_…-]+|[ \s()\[\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛'"`'“”‘’。、！？!?:;：；・,.，．･+*\/\\|~〜=#$%\^&@_…-]+$/g;
+const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
+const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
 
 // kuromoji.js の初期化
 kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
