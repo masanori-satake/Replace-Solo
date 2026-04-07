@@ -15,6 +15,8 @@ let rowCounter = 0;
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', 'サ変接続', '数']);
 const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
+const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
+const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
 
 // kuromoji.js の初期化
 kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
@@ -401,18 +403,21 @@ async function analyzeAndDisplay(text) {
         currentDictMatch = true;
       }
 
+      // 前後の記号を除去
+      const trimmedCompound = compound.replace(TRIM_SYMBOLS_REGEX, '');
+
       // 採用条件:
       // 1. 辞書に登録されている
       // 2. 日本語を含んでいる、かつ (固有名詞である OR 2つ以上の名詞が連続している)
       // 3. 日本語を含まないが、4文字以上の英単語であり、かつ (固有名詞である OR 2つ以上の名詞が連続している)
       // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
-      const hasJapanese = JAPANESE_CHAR_REGEX.test(compound);
-      const isQualifiedEnglish = /^[a-zA-Z]{4,}$/.test(compound);
+      const hasJapanese = JAPANESE_CHAR_REGEX.test(trimmedCompound);
+      const isQualifiedEnglish = /^[a-zA-Z]{4,}$/.test(trimmedCompound);
       const isQualified = currentDictMatch || ((hasJapanese || isQualifiedEnglish) && (hasProperNoun || count > 1));
-      const isNotTooShort = currentDictMatch || compound.length > 1;
+      const isNotTooShort = currentDictMatch || trimmedCompound.length > 1;
 
-      if (isQualified && isNotTooShort) {
-        nouns.add(compound);
+      if (trimmedCompound && isQualified && isNotTooShort) {
+        nouns.add(trimmedCompound);
       }
       i = j;
     } else {
