@@ -21,6 +21,7 @@ let rowCounter = 0;
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
+const DEFAULT_DICTIONARY = { "": ["えー", "えーっと", "あのー", "そのー"] };
 const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
 const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{3,}$/;
 const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
@@ -62,15 +63,13 @@ function loadDictionary() {
         localDictionary = result.dictionary;
         console.log('Replace-Solo: Local dictionary loaded');
       } else {
-        localDictionary = {
-          "": ["えー", "えーっと", "あのー", "そのー"]
-        };
+        localDictionary = DEFAULT_DICTIONARY;
         chrome.storage.local.set({ dictionary: localDictionary });
       }
       updateDictCache();
     });
   } else {
-    localDictionary = { "": ["えー", "えーっと", "あのー", "そのー"] };
+    localDictionary = DEFAULT_DICTIONARY;
     updateDictCache();
   }
 }
@@ -391,6 +390,18 @@ document.getElementById('download-debug-info').addEventListener('click', () => {
   a.download = `replace-solo-debug-${new Date().getTime()}.json`;
   a.click();
   URL.revokeObjectURL(url);
+});
+
+document.getElementById('clear-dictionary').addEventListener('click', () => {
+  if (confirm('辞書をクリアして初期状態に戻しますか？')) {
+    localDictionary = DEFAULT_DICTIONARY;
+    chrome.storage.local.set({ dictionary: localDictionary }, () => {
+      alert('辞書をクリアしました。');
+      updateDictCache();
+      const analyzeBtn = document.getElementById('analyze-btn');
+      if (analyzeBtn) analyzeBtn.click();
+    });
+  }
 });
 
 document.getElementById('import-json').addEventListener('click', () => {
