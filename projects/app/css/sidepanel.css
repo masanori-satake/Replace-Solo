@@ -312,6 +312,10 @@ body {
   gap: 8px;
 }
 
+.settings-actions + .settings-actions {
+  margin-top: 8px;
+}
+
 .settings-actions .m3-button {
   flex: 1;
 }
