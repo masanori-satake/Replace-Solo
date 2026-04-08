@@ -225,6 +225,7 @@ function autoSetMode(url) {
   if (!url) return;
   const emulationDomains = [
     'loop.microsoft.com',
+    'loop.cloud.microsoft',
     'docs.google.com',
     'sheets.google.com'
   ];
