@@ -98,13 +98,21 @@ function loadVersion() {
 }
 
 /**
- * バージョン番号のクリックでデバッグタブを表示する
+ * バージョン番号の連打（500ms以内に3回クリック）でデバッグタブを表示する
  */
 function setupDebugTrigger(element) {
   let clickCount = 0;
-  element.style.cursor = 'pointer';
+  let lastClickTime = 0;
+
   element.addEventListener('click', () => {
-    clickCount++;
+    const currentTime = new Date().getTime();
+    if (currentTime - lastClickTime < 500) {
+      clickCount++;
+    } else {
+      clickCount = 1;
+    }
+    lastClickTime = currentTime;
+
     if (clickCount >= 3) {
       const debugTabBtn = document.getElementById('debug-tab-btn');
       if (debugTabBtn) {
