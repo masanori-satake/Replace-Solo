@@ -148,9 +148,22 @@ function replaceByEmulationBatch(replacements) {
 
   // 収集した Range を後ろから順に置換（ドキュメント構造の変化による影響を最小化）
   // 注意: 同一ノード内の複数置換も後ろから行えば位置ズレを防げる
+  const affectedContainers = new Set();
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
     const selection = window.getSelection();
+
+    // 置換対象を含む contenteditable 要素を探してフォーカスを当てる
+    const startNode = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentNode;
+
+    const container = startNode.closest('[contenteditable="true"], [role="textbox"]');
+
+    if (container) {
+      container.focus({ preventScroll: true });
+      affectedContainers.add(container);
+    }
 
     try {
       selection.removeAllRanges();
@@ -161,6 +174,12 @@ function replaceByEmulationBatch(replacements) {
       console.warn('Replace-Solo: Failed to replace a range', e);
     }
   }
+
+  // 変更を通知して保存を促す
+  affectedContainers.forEach(container => {
+    container.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
+    container.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 
   // 元の選択範囲を復元
   if (originalRange) {
