@@ -24,7 +24,8 @@ function setupMessageListener() {
   }
 
   if (request.action === 'EXTRACT_TEXT') {
-    const text = document.body.innerText;
+    const root = getTargetRoot();
+    const text = root.innerText;
     sendResponse({ text: text });
     return true;
   }
@@ -43,10 +44,24 @@ function setupMessageListener() {
 }
 
 /**
+ * 置換・抽出対象のルート要素を取得する
+ */
+function getTargetRoot() {
+  if (window.location.hostname === 'loop.microsoft.com') {
+    const anchor = document.getElementById('livepill-portal-anchor');
+    if (anchor && anchor.nextElementSibling) {
+      return anchor.nextElementSibling;
+    }
+  }
+  return document.body;
+}
+
+/**
  * DOM 直接書き換えによる一括置換
  */
 function replaceByDomBatch(replacements) {
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+  const root = getTargetRoot();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
   let node;
   const nodesToProcess = [];
 
@@ -77,11 +92,15 @@ function replaceByDomBatch(replacements) {
  * 全テキストノードを1回走査し、すべての置換箇所の Range を収集してから一括実行する。
  */
 function replaceByEmulationBatch(replacements) {
+  // ページにフォーカスを当てる（execCommand の成功率を上げるため）
+  window.focus();
+
   // 元の選択範囲を保存
   const originalSelection = window.getSelection();
   const originalRange = originalSelection.rangeCount > 0 ? originalSelection.getRangeAt(0) : null;
 
-  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, null, false);
+  const root = getTargetRoot();
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
   let node;
   const allReplacementRanges = []; // { range: Range, target: string }
 
