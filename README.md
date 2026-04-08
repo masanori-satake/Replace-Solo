@@ -1,6 +1,6 @@
 # Replace-Solo
 
-![version](https://img.shields.io/badge/version-0.8.1-blue)
+![version](https://img.shields.io/badge/version-0.8.2-blue)
 
 〜ブラウザ内で完結する名詞置換ツール〜
 
