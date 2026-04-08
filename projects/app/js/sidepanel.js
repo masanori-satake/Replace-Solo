@@ -20,9 +20,9 @@ let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2"
 let rowCounter = 0;
 
 // 定数定義
-const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', '数']);
+const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
 const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
-const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{4,}$/;
+const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{3,}$/;
 const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
 const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
 
@@ -453,9 +453,8 @@ async function analyzeAndDisplay(text) {
 
     // 日本語を含まない単語（識別子など）の判定
     const firstHasJapanese = JAPANESE_CHAR_REGEX.test(token.surface_form);
-    const isIdentifier = IDENTIFIER_REGEX.test(token.surface_form);
 
-    if (isDictMatch || (isNoun && (firstHasJapanese || isIdentifier)) || isPrefix) {
+    if (isDictMatch || isNoun || isPrefix) {
       let compound = token.surface_form;
       let hasProperNoun = (token.pos_detail_1 === '固有名詞');
       let currentDictMatch = isDictMatch;
@@ -487,6 +486,11 @@ async function analyzeAndDisplay(text) {
       // 前後の記号を除去
       const trimmedCompound = compound.replace(TRIM_SYMBOLS_REGEX, '');
 
+      // トリム後の文字列でも辞書マッチを確認
+      if (!currentDictMatch && dictOrigins.has(trimmedCompound)) {
+        currentDictMatch = true;
+      }
+
       // 採用条件:
       // 1. 辞書に登録されている
       // 2. 日本語を含んでいる、かつ (固有名詞である OR 2つ以上の名詞が連続している)
@@ -494,7 +498,7 @@ async function analyzeAndDisplay(text) {
       // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
       const hasJapanese = JAPANESE_CHAR_REGEX.test(trimmedCompound);
       const isQualifiedIdentifier = IDENTIFIER_REGEX.test(trimmedCompound);
-      const isQualified = currentDictMatch || ((hasJapanese || isQualifiedIdentifier) && (hasProperNoun || count > 1));
+      const isQualified = currentDictMatch || (trimmedCompound.length > 0 && (hasJapanese || isQualifiedIdentifier) && (hasProperNoun || count > 1));
       const isNotTooShort = currentDictMatch || trimmedCompound.length > 1;
 
       if (trimmedCompound && isQualified && isNotTooShort) {
