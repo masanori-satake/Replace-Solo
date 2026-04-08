@@ -7,6 +7,11 @@ console.log('Replace-Solo: Side Panel Loaded');
 
 let tokenizer = null;
 let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
+let lastAnalyzedData = {
+  text: "",
+  tokens: [],
+  extractedWords: []
+};
 let manualWords = new Set(); // 手動で追加された単語
 let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
@@ -76,16 +81,45 @@ function loadVersion() {
   fetch('../version.json')
     .then(response => response.json())
     .then(data => {
-      document.getElementById('app-version').innerText = `v${data.version}`;
+      const versionElem = document.getElementById('app-version');
+      versionElem.innerText = `v${data.version}`;
+      setupDebugTrigger(versionElem);
     })
     .catch(err => {
       console.error('Failed to load version:', err);
       // フォールバック: manifestから取得
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
         const manifest = chrome.runtime.getManifest();
-        document.getElementById('app-version').innerText = `v${manifest.version}`;
+        const versionElem = document.getElementById('app-version');
+        versionElem.innerText = `v${manifest.version}`;
+        setupDebugTrigger(versionElem);
       }
     });
+}
+
+/**
+ * バージョン番号の連打（500ms以内に3回クリック）でデバッグタブを表示する
+ */
+function setupDebugTrigger(element) {
+  let clickCount = 0;
+  let lastClickTime = 0;
+
+  element.addEventListener('click', () => {
+    const currentTime = new Date().getTime();
+    if (currentTime - lastClickTime < 500) {
+      clickCount++;
+    } else {
+      clickCount = 1;
+    }
+    lastClickTime = currentTime;
+
+    if (clickCount >= 3) {
+      const debugTabBtn = document.getElementById('debug-tab-btn');
+      if (debugTabBtn) {
+        debugTabBtn.style.display = 'flex';
+      }
+    }
+  });
 }
 
 loadVersion();
@@ -333,6 +367,22 @@ document.getElementById('export-json').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+document.getElementById('download-debug-info').addEventListener('click', () => {
+  const data = {
+    version: document.getElementById('app-version').innerText,
+    timestamp: new Date().toISOString(),
+    ...lastAnalyzedData
+  };
+
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `replace-solo-debug-${new Date().getTime()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+});
+
 document.getElementById('import-json').addEventListener('click', () => {
   const input = document.createElement('input');
   input.type = 'file';
@@ -383,6 +433,11 @@ document.getElementById('import-json').addEventListener('click', () => {
 
 async function analyzeAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
+
+  // デバッグ用データの保存
+  lastAnalyzedData.text = text;
+  lastAnalyzedData.tokens = tokens;
+
   const nouns = new Set();
 
   let i = 0;
@@ -458,6 +513,8 @@ async function analyzeAndDisplay(text) {
 
     return collator.compare(a, b);
   });
+
+  lastAnalyzedData.extractedWords = [...allExtractedWords];
 
   await renderWordList();
 }
