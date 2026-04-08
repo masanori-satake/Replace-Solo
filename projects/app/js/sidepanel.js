@@ -20,8 +20,9 @@ let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2"
 let rowCounter = 0;
 
 // 定数定義
-const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', 'サ変接続', '数']);
+const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立', '数']);
 const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
+const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{4,}$/;
 const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
 const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
 
@@ -444,15 +445,17 @@ async function analyzeAndDisplay(text) {
   const tokenLen = tokens.length;
   while (i < tokenLen) {
     const token = tokens[i];
+
+    // 開始トークンの判定条件
     const isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(token.pos_detail_1);
+    const isPrefix = token.pos === '接頭詞';
     const isDictMatch = dictOrigins.has(token.surface_form);
 
-    // 日本語を含まない単語は、辞書にない限り開始トークンとしない。
-    // ただし、4文字以上の英単語は固有名詞である可能性が高いため、例外的に開始トークンとして許容する。
+    // 日本語を含まない単語（識別子など）の判定
     const firstHasJapanese = JAPANESE_CHAR_REGEX.test(token.surface_form);
-    const isLongEnglish = /^[a-zA-Z]{4,}$/.test(token.surface_form);
+    const isIdentifier = IDENTIFIER_REGEX.test(token.surface_form);
 
-    if (isDictMatch || (isNoun && (firstHasJapanese || isLongEnglish))) {
+    if (isDictMatch || (isNoun && (firstHasJapanese || isIdentifier)) || isPrefix) {
       let compound = token.surface_form;
       let hasProperNoun = (token.pos_detail_1 === '固有名詞');
       let currentDictMatch = isDictMatch;
@@ -487,11 +490,11 @@ async function analyzeAndDisplay(text) {
       // 採用条件:
       // 1. 辞書に登録されている
       // 2. 日本語を含んでいる、かつ (固有名詞である OR 2つ以上の名詞が連続している)
-      // 3. 日本語を含まないが、4文字以上の英単語であり、かつ (固有名詞である OR 2つ以上の名詞が連続している)
+      // 3. 日本語を含まないが、識別子（英数字記号）として妥当であり、かつ (固有名詞である OR 2つ以上の名詞が連続している)
       // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
       const hasJapanese = JAPANESE_CHAR_REGEX.test(trimmedCompound);
-      const isQualifiedEnglish = /^[a-zA-Z]{4,}$/.test(trimmedCompound);
-      const isQualified = currentDictMatch || ((hasJapanese || isQualifiedEnglish) && (hasProperNoun || count > 1));
+      const isQualifiedIdentifier = IDENTIFIER_REGEX.test(trimmedCompound);
+      const isQualified = currentDictMatch || ((hasJapanese || isQualifiedIdentifier) && (hasProperNoun || count > 1));
       const isNotTooShort = currentDictMatch || trimmedCompound.length > 1;
 
       if (trimmedCompound && isQualified && isNotTooShort) {
