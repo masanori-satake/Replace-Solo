@@ -48,7 +48,10 @@ function setupMessageListener() {
  */
 function getTargetRoot() {
   const hostname = window.location.hostname;
-  if (hostname === 'loop.microsoft.com' || hostname === 'loop.cloud.microsoft') {
+  // サブドメインの変動に備え endsWith で判定
+  const isLoop = hostname.endsWith('loop.microsoft.com') || hostname.endsWith('loop.cloud.microsoft');
+
+  if (isLoop) {
     // Loopのメインコンテンツ（タイトルと本文）を包む要素を優先的に探す
     // .scriptor-canvas-grid-layout は通常、タイトルエリアと本文エリアの両方を包含する
     const mainCanvas = document.querySelector('.scriptor-canvas.scriptor-canvas-grid-layout');

@@ -229,7 +229,15 @@ function autoSetMode(url) {
     'docs.google.com',
     'sheets.google.com'
   ];
-  const isEmulation = emulationDomains.some(domain => url.includes(domain));
+  // サブドメインの変動に備え、より堅牢なチェックを行う
+  const isEmulation = emulationDomains.some(domain => {
+    try {
+      const hostname = new URL(url).hostname;
+      return hostname === domain || hostname.endsWith('.' + domain);
+    } catch (e) {
+      return url.includes(domain);
+    }
+  });
   const modeToggle = document.getElementById('mode-toggle');
   if (modeToggle) {
     modeToggle.checked = isEmulation;
