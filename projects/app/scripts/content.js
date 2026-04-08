@@ -169,7 +169,8 @@ function replaceByEmulationBatch(replacements) {
 
     if (container) {
       // 明示的にコンテナにフォーカスを当て、かつブラウザウィンドウ自体にもフォーカスを要求する
-      container.focus();
+      // UXを考慮し、不要なスクロールを防ぐため preventScroll: true を指定する
+      container.focus({ preventScroll: true });
       affectedContainers.add(container);
     }
 
