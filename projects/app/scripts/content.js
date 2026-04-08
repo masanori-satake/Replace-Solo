@@ -151,6 +151,12 @@ function replaceByEmulationBatch(replacements) {
   const affectedContainers = new Set();
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
+
+    // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
+    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
+      continue;
+    }
+
     const selection = window.getSelection();
 
     // 置換対象を含む contenteditable 要素を探してフォーカスを当てる
@@ -158,26 +164,73 @@ function replaceByEmulationBatch(replacements) {
       ? range.startContainer
       : range.startContainer.parentNode;
 
+    if (!startNode) continue;
     const container = startNode.closest('[contenteditable="true"], [role="textbox"]');
 
     if (container) {
-      container.focus({ preventScroll: true });
+      // 明示的にコンテナにフォーカスを当て、かつブラウザウィンドウ自体にもフォーカスを要求する
+      container.focus();
       affectedContainers.add(container);
     }
 
     try {
       selection.removeAllRanges();
       selection.addRange(range);
+
+      // 選択が正しく行われたか確認するためのログ（デバッグ用）
+      if (selection.rangeCount === 0) {
+        console.warn('Replace-Solo: Failed to add range to selection at index', i);
+      }
+
+      // beforeinput イベントを発行 (Frameworkへの通知)
+      // composed: true, isComposing: false を明示
+      const beforeInputParams = {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'insertText',
+        data: target,
+        composed: true,
+        isComposing: false
+      };
+      const beforeInputEvent = new InputEvent('beforeinput', beforeInputParams);
+      container?.dispatchEvent(beforeInputEvent);
+
       // リッチエディタのUndoスタックを維持するため execCommand を使用
-      document.execCommand('insertText', false, target);
+      // 成功した場合はブラウザが自動的に input イベントを発行する場合があるが、
+      // 明示的に発行することで確実に内部状態を更新させる。
+      const success = document.execCommand('insertText', false, target);
+
+      if (!success) {
+        console.warn('Replace-Solo: execCommand failed for range', i, '. Falling back to manual DOM update.');
+        // フォールバック: nodeValueを直接書き換え
+        if (range.startContainer.nodeType === Node.TEXT_NODE) {
+          const node = range.startContainer;
+          const text = node.nodeValue;
+          const start = range.startOffset;
+          const end = range.endOffset;
+          node.nodeValue = text.substring(0, start) + target + text.substring(end);
+        }
+      }
+
+      // input イベントを即座に発行 (各置換ごとに行うことで確実性を高める)
+      const inputParams = {
+        bubbles: true,
+        cancelable: true,
+        inputType: 'insertText',
+        data: target,
+        composed: true,
+        isComposing: false
+      };
+      const inputEvent = new InputEvent('input', inputParams);
+      container?.dispatchEvent(inputEvent);
+
     } catch (e) {
-      console.warn('Replace-Solo: Failed to replace a range', e);
+      console.warn('Replace-Solo: Exception during replacement for range', i, e);
     }
   }
 
-  // 変更を通知して保存を促す
+  // 全体の変更完了を通知
   affectedContainers.forEach(container => {
-    container.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
     container.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
