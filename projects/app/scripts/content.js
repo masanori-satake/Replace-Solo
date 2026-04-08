@@ -154,16 +154,14 @@ function replaceByEmulationBatch(replacements) {
     const selection = window.getSelection();
 
     // 置換対象を含む contenteditable 要素を探してフォーカスを当てる
-    let container = range.startContainer;
-    while (container && container !== document.body) {
-      if (container.nodeType === Node.ELEMENT_NODE && (container.hasAttribute('contenteditable') || container.getAttribute('role') === 'textbox')) {
-        break;
-      }
-      container = container.parentNode;
-    }
+    const startNode = range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentNode;
 
-    if (container && container.nodeType === Node.ELEMENT_NODE) {
-      container.focus();
+    const container = startNode.closest('[contenteditable="true"], [role="textbox"]');
+
+    if (container) {
+      container.focus({ preventScroll: true });
       affectedContainers.add(container);
     }
 
@@ -179,7 +177,7 @@ function replaceByEmulationBatch(replacements) {
 
   // 変更を通知して保存を促す
   affectedContainers.forEach(container => {
-    container.dispatchEvent(new Event('input', { bubbles: true }));
+    container.dispatchEvent(new InputEvent('input', { bubbles: true, inputType: 'insertText' }));
     container.dispatchEvent(new Event('change', { bubbles: true }));
   });
 
