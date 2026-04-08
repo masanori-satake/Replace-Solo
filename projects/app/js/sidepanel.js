@@ -393,6 +393,21 @@ document.getElementById('download-debug-info').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+document.getElementById('clear-dictionary').addEventListener('click', () => {
+  if (confirm('辞書をクリアして初期状態に戻しますか？')) {
+    const initialDictionary = {
+      "": ["えー", "えーっと", "あのー", "そのー"]
+    };
+    localDictionary = initialDictionary;
+    chrome.storage.local.set({ dictionary: localDictionary }, () => {
+      alert('辞書をクリアしました。');
+      updateDictCache();
+      const analyzeBtn = document.getElementById('analyze-btn');
+      if (analyzeBtn) analyzeBtn.click();
+    });
+  }
+});
+
 document.getElementById('import-json').addEventListener('click', () => {
   const input = document.createElement('input');
   input.type = 'file';
