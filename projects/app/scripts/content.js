@@ -47,7 +47,22 @@ function setupMessageListener() {
  * 置換・抽出対象のルート要素を取得する
  */
 function getTargetRoot() {
-  if (window.location.hostname === 'loop.microsoft.com') {
+  const hostname = window.location.hostname;
+  // サブドメインの変動に備え endsWith で判定
+  const isLoop = hostname.endsWith('loop.microsoft.com') || hostname.endsWith('loop.cloud.microsoft');
+
+  if (isLoop) {
+    // Loopのメインコンテンツ（タイトルと本文）を包む要素を優先的に探す
+    // .scriptor-canvas-grid-layout は通常、タイトルエリアと本文エリアの両方を包含する
+    const mainCanvas = document.querySelector('.scriptor-canvas.scriptor-canvas-grid-layout');
+    if (mainCanvas) return mainCanvas;
+
+    // 個別の .scriptor-canvas がある場合（古い構成や特殊なページなど）
+    // 最初の canvas がメインエリアである可能性が高い
+    const firstCanvas = document.querySelector('.scriptor-canvas');
+    if (firstCanvas) return firstCanvas;
+
+    // 従来のセレクタ（ライブピルポータルアンカーの次）
     const anchor = document.getElementById('livepill-portal-anchor');
     if (anchor && anchor.nextElementSibling) {
       return anchor.nextElementSibling;
