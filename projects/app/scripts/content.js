@@ -72,34 +72,135 @@ function getTargetRoot() {
 }
 
 /**
+ * 複数のテキストノードに跨る可能性がある文字列を検索し、Rangeのリストを返す
+ */
+function findRangesAcrossNodes(root, replacements) {
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (node) => {
+      // スクリプトやスタイル、非表示要素などは除外したいが、
+      // 基本的にはリッチエディタの可視テキストを対象にする。
+      const parent = node.parentElement;
+      if (parent) {
+        const tag = parent.tagName.toUpperCase();
+        if (tag === 'SCRIPT' || tag === 'STYLE') return NodeFilter.FILTER_REJECT;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    }
+  }, false);
+
+  let combinedText = '';
+  const nodeInfo = []; // { start: number, end: number, node: TextNode }
+
+  let node;
+  while (node = walker.nextNode()) {
+    const text = node.nodeValue;
+    if (text.length === 0) continue;
+
+    // 特定の非表示・不要な要素（LoopのUIパーツなど）を除外
+    const parent = node.parentElement;
+    if (parent) {
+      const isLoopUI = parent.closest('.scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition');
+      if (isLoopUI) continue;
+    }
+
+    // テキストノード内の不要な空白（特にノード分割時に発生しがちなもの）を完全に無視するのではなく、
+    // 検索時には「存在しうるもの」として扱うため、ここではそのまま保持する。
+    // ただし、完全に改行と空白のみのノードがノード間に挟まるケースを考慮し、
+    // それらが検索を妨げないようにする。
+
+    nodeInfo.push({
+      start: combinedText.length,
+      end: combinedText.length + text.length,
+      node: node
+    });
+    combinedText += text;
+  }
+
+
+  const allReplacementRanges = [];
+
+  replacements.forEach(({ origin, target }) => {
+    if (!origin) return;
+
+    // スペースや改行、タブなどの空白文字の連続を考慮した正規表現を作成
+    // origin の構成文字を1文字ずつ分割し、その間に空白許容パターンを入れる。
+    // origin が "手順１" の場合、"手\s*順\s*１" となる。
+    // \s は [ \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff] を含むため、これを使用する。
+    const chars = Array.from(origin);
+    const regexSource = chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');
+    const regex = new RegExp(regexSource, 'g');
+
+    let match;
+    while ((match = regex.exec(combinedText)) !== null) {
+      const range = document.createRange();
+      const startPos = match.index;
+      const endPos = match.index + match[0].length;
+
+      // 開始位置と終了位置に対応するノードを特定
+      let startNodeData = null;
+      let endNodeData = null;
+
+      for (const info of nodeInfo) {
+        if (startPos >= info.start && startPos < info.end) {
+          startNodeData = info;
+        }
+        if (endPos > info.start && endPos <= info.end) {
+          endNodeData = info;
+        }
+        if (startNodeData && endNodeData) break;
+      }
+
+      if (startNodeData && endNodeData) {
+        try {
+          range.setStart(startNodeData.node, startPos - startNodeData.start);
+          range.setEnd(endNodeData.node, endPos - endNodeData.start);
+          allReplacementRanges.push({ range, target, origin });
+        } catch (e) {
+          console.error('Replace-Solo: Failed to set range for', origin, e);
+        }
+      }
+
+    }
+  });
+
+  // Rangeが重複しないようにフィルタリング（簡易的。前から順に見て、既に選ばれたRangeと重なる場合はスキップ）
+  // 実際には同一箇所が複数回マッチする場合（"AAA" に対して "AA" を置換など）への対応。
+  allReplacementRanges.sort((a, b) => {
+    const aStart = nodeInfo.find(info => info.node === a.range.startContainer).start + a.range.startOffset;
+    const bStart = nodeInfo.find(info => info.node === b.range.startContainer).start + b.range.startOffset;
+    return aStart - bStart;
+  });
+
+  const finalRanges = [];
+  let lastEnd = -1;
+  allReplacementRanges.forEach(item => {
+    const start = nodeInfo.find(info => info.node === item.range.startContainer).start + item.range.startOffset;
+    const end = nodeInfo.find(info => info.node === item.range.endContainer).start + item.range.endOffset;
+    if (start >= lastEnd) {
+      finalRanges.push(item);
+      lastEnd = end;
+    }
+  });
+
+  return finalRanges;
+}
+
+/**
  * DOM 直接書き換えによる一括置換
  */
 function replaceByDomBatch(replacements) {
   const root = getTargetRoot();
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-  let node;
-  const nodesToProcess = [];
+  const allReplacementRanges = findRangesAcrossNodes(root, replacements);
 
-  while (node = walker.nextNode()) {
-    nodesToProcess.push(node);
+  // 後ろから置換することで位置ズレを防止
+  for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
+    const { range, target } = allReplacementRanges[i];
+    if (!range.startContainer.isConnected || !range.endContainer.isConnected) continue;
+
+    range.deleteContents();
+    const newTextNode = document.createTextNode(target);
+    range.insertNode(newTextNode);
   }
-
-  nodesToProcess.forEach(node => {
-    let text = node.nodeValue;
-    let changed = false;
-
-    // 単一のテキストノードに対して全置換ルールを順次適用
-    replacements.forEach(({ origin, target }) => {
-      if (origin && text.includes(origin)) {
-        text = text.split(origin).join(target);
-        changed = true;
-      }
-    });
-
-    if (changed) {
-      node.nodeValue = text;
-    }
-  });
 }
 
 /**
@@ -115,40 +216,14 @@ function replaceByEmulationBatch(replacements) {
   const originalRange = originalSelection.rangeCount > 0 ? originalSelection.getRangeAt(0) : null;
 
   const root = getTargetRoot();
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
-  let node;
-  const allReplacementRanges = []; // { range: Range, target: string }
-
-  // 全テキストノードを1回だけ走査
-  while (node = walker.nextNode()) {
-    const text = node.nodeValue;
-
-    // 各ノードについて、すべての置換ルールの一致箇所を特定
-    const matchesInNode = [];
-    replacements.forEach(({ origin, target }) => {
-      if (!origin) return;
-      let index = 0;
-      while ((index = text.indexOf(origin, index)) !== -1) {
-        matchesInNode.push({ index, length: origin.length, target });
-        index += origin.length;
-      }
-    });
-
-    // 同じノード内で位置が重ならないようにソート
-    // (簡易化のため、重なりは考慮せず出現順に Range を作成)
-    matchesInNode.sort((a, b) => a.index - b.index);
-
-    matchesInNode.forEach(match => {
-      const range = document.createRange();
-      range.setStart(node, match.index);
-      range.setEnd(node, match.index + match.length);
-      allReplacementRanges.push({ range, target: match.target });
-    });
-  }
+  const allReplacementRanges = findRangesAcrossNodes(root, replacements);
 
   // 収集した Range を後ろから順に置換（ドキュメント構造の変化による影響を最小化）
   // 注意: 同一ノード内の複数置換も後ろから行えば位置ズレを防げる
   const affectedContainers = new Set();
+
+  // execCommand を使用する場合、連続した置換において前の置換が後の Range に影響を与えないよう、
+  // 原則として後ろから実行する。
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
 
