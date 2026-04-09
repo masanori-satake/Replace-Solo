@@ -127,7 +127,7 @@ function findRangesAcrossNodes(root, replacements) {
     // origin が "手順１" の場合、"手\s*順\s*１" となる。
     // \s は [ \f\n\r\t\v\u00a0\u1680\u2000-\u200a\u2028\u2029\u202f\u205f\u3000\ufeff] を含むため、これを使用する。
     const chars = Array.from(origin);
-    const regexSource = chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*');
+    const regexSource = chars.map(c => c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('[\\s\\n\\r\\t]*');
     const regex = new RegExp(regexSource, 'g');
 
     let match;
@@ -136,49 +136,50 @@ function findRangesAcrossNodes(root, replacements) {
       const startPos = match.index;
       const endPos = match.index + match[0].length;
 
-      // 開始位置と終了位置に対応するノードを特定
-      let startNodeData = null;
-      let endNodeData = null;
+      // 開始位置と終了位置に対応するノードをバイナリサーチで特定
+      const findNodeData = (pos, isEnd) => {
+        let low = 0, high = nodeInfo.length - 1;
+        while (low <= high) {
+          const mid = (low + high) >> 1;
+          const info = nodeInfo[mid];
+          // 境界条件の修正
+          if (pos >= info.start && pos < info.end) {
+            return info;
+          }
+          // ちょうど終端の場合（例: テキスト全体の末尾）
+          if (isEnd && pos === info.end) {
+            return info;
+          }
+          if (pos < info.start) high = mid - 1;
+          else low = mid + 1;
+        }
+        return null;
+      };
 
-      for (const info of nodeInfo) {
-        if (startPos >= info.start && startPos < info.end) {
-          startNodeData = info;
-        }
-        if (endPos > info.start && endPos <= info.end) {
-          endNodeData = info;
-        }
-        if (startNodeData && endNodeData) break;
-      }
+      const startNodeData = findNodeData(startPos, false);
+      const endNodeData = findNodeData(endPos, true);
 
       if (startNodeData && endNodeData) {
         try {
           range.setStart(startNodeData.node, startPos - startNodeData.start);
           range.setEnd(endNodeData.node, endPos - endNodeData.start);
-          allReplacementRanges.push({ range, target, origin });
+          allReplacementRanges.push({ range, target, origin, startAbs: startPos, endAbs: endPos });
         } catch (e) {
           console.error('Replace-Solo: Failed to set range for', origin, e);
         }
       }
-
     }
   });
 
-  // Rangeが重複しないようにフィルタリング（簡易的。前から順に見て、既に選ばれたRangeと重なる場合はスキップ）
-  // 実際には同一箇所が複数回マッチする場合（"AAA" に対して "AA" を置換など）への対応。
-  allReplacementRanges.sort((a, b) => {
-    const aStart = nodeInfo.find(info => info.node === a.range.startContainer).start + a.range.startOffset;
-    const bStart = nodeInfo.find(info => info.node === b.range.startContainer).start + b.range.startOffset;
-    return aStart - bStart;
-  });
+  // Rangeが重複しないようにフィルタリング
+  allReplacementRanges.sort((a, b) => a.startAbs - b.startAbs);
 
   const finalRanges = [];
   let lastEnd = -1;
   allReplacementRanges.forEach(item => {
-    const start = nodeInfo.find(info => info.node === item.range.startContainer).start + item.range.startOffset;
-    const end = nodeInfo.find(info => info.node === item.range.endContainer).start + item.range.endOffset;
-    if (start >= lastEnd) {
+    if (item.startAbs >= lastEnd) {
       finalRanges.push(item);
-      lastEnd = end;
+      lastEnd = item.endAbs;
     }
   });
 
