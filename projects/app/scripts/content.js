@@ -155,9 +155,10 @@ function findRangesAcrossNodes(root, replacements) {
   }, false);
 
   let combinedText = '';
-  const nodeInfo = []; // { start: number, end: number, node: TextNode }
+  const nodeInfo = []; // { start: number, end: number, node: TextNode, container: Element }
 
   let node;
+  let lastParent = null;
   let lastContainer = null;
 
   while (node = walker.nextNode()) {
@@ -166,17 +167,23 @@ function findRangesAcrossNodes(root, replacements) {
 
     // 編集可能なコンテナが変わった場合（例: 別のリストアイテムや段落に移動した場合）、
     // インデックスの整合性を保ち、意図しない跨ぎ一致を防ぐためにセパレータを入れる。
-    // getEditableInnerText (innerText) の挙動に合わせる。
-    const currentContainer = node.parentElement?.closest('[contenteditable="true"], [role="textbox"]');
-    if (lastContainer && currentContainer !== lastContainer) {
-      combinedText += '\n';
+    // 親要素が変わったときだけ closest を呼び出すことで、ドキュメント走査時のパフォーマンスを改善する。
+    const parent = node.parentElement;
+    let currentContainer = lastContainer;
+    if (parent !== lastParent) {
+      currentContainer = parent?.closest('[contenteditable="true"], [role="textbox"]');
+      if (lastContainer && currentContainer && currentContainer !== lastContainer) {
+        combinedText += '\n';
+      }
+      lastParent = parent;
+      lastContainer = currentContainer;
     }
-    lastContainer = currentContainer;
 
     nodeInfo.push({
       start: combinedText.length,
       end: combinedText.length + text.length,
-      node: node
+      node: node,
+      container: currentContainer
     });
     combinedText += text;
   }
@@ -230,7 +237,8 @@ function findRangesAcrossNodes(root, replacements) {
       const startNodeData = findNodeData(startPos, false);
       const endNodeData = findNodeData(endPos, true);
 
-      if (startNodeData && endNodeData) {
+      // コンテナ（リストアイテム等）を跨いだ置換は、エディタの構造を破壊（アイテムの結合など）する恐れがあるため制限する
+      if (startNodeData && endNodeData && startNodeData.container === endNodeData.container) {
         try {
           range.setStart(startNodeData.node, startPos - startNodeData.start);
           range.setEnd(endNodeData.node, endPos - endNodeData.start);
