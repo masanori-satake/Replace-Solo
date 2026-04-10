@@ -19,6 +19,7 @@ let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
 let toastTimeout = null;
+let isCurrentPageSupported = true; // 現在のページのサポート状態を保持
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
@@ -179,6 +180,7 @@ function showToast(message) {
  */
 function updateUIStatus(url) {
   const isSupported = isSupportedLoopPage(url);
+  isCurrentPageSupported = isSupported; // グローバル変数を更新
 
   const idsToToggle = [
     'analyze-btn',
@@ -633,9 +635,7 @@ async function analyzeAndDisplay(text) {
  * リストを再描画する
  */
 async function renderWordList() {
-  const tab = await getActiveTab();
-  const url = (tab && tab.url) ? tab.url : "";
-  const isSupported = isSupportedLoopPage(url);
+  const isSupported = isCurrentPageSupported;
 
   const wordList = document.getElementById('word-list');
   wordList.innerHTML = '';
@@ -666,10 +666,8 @@ async function renderWordList() {
 /**
  * 個別の単語をリストに追加する（手動追加用）
  */
-async function addWordToList(word, isManual = false) {
-  const tab = await getActiveTab();
-  const url = (tab && tab.url) ? tab.url : "";
-  const isSupported = isSupportedLoopPage(url);
+function addWordToList(word, isManual = false) {
+  const isSupported = isCurrentPageSupported;
 
   const wordList = document.getElementById('word-list');
   const row = createWordRow(word, isManual, null, isSupported);
