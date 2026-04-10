@@ -158,14 +158,20 @@ function findRangesAcrossNodes(root, replacements) {
   const nodeInfo = []; // { start: number, end: number, node: TextNode }
 
   let node;
+  let lastContainer = null;
+
   while (node = walker.nextNode()) {
     const text = node.nodeValue;
     if (text.length === 0) continue;
 
-    // テキストノード内の不要な空白（特にノード分割時に発生しがちなもの）を完全に無視するのではなく、
-    // 検索時には「存在しうるもの」として扱うため、ここではそのまま保持する。
-    // ただし、完全に改行と空白のみのノードがノード間に挟まるケースを考慮し、
-    // それらが検索を妨げないようにする。
+    // 編集可能なコンテナが変わった場合（例: 別のリストアイテムや段落に移動した場合）、
+    // インデックスの整合性を保ち、意図しない跨ぎ一致を防ぐためにセパレータを入れる。
+    // getEditableInnerText (innerText) の挙動に合わせる。
+    const currentContainer = node.parentElement?.closest('[contenteditable="true"], [role="textbox"]');
+    if (lastContainer && currentContainer !== lastContainer) {
+      combinedText += '\n';
+    }
+    lastContainer = currentContainer;
 
     nodeInfo.push({
       start: combinedText.length,
@@ -201,15 +207,21 @@ function findRangesAcrossNodes(root, replacements) {
         while (low <= high) {
           const mid = (low + high) >> 1;
           const info = nodeInfo[mid];
-          // 境界条件の修正
-          if (pos >= info.start && pos < info.end) {
-            return info;
+          // 境界条件の厳密化
+          // 開始位置(isEnd=false)の場合、そのノードの範囲内に pos が含まれる必要がある [start, end)
+          // 終了位置(isEnd=true)の場合、そのノードの範囲内に pos が含まれる必要がある (start, end]
+          // これにより、ノード境界（あるノードの末尾かつ次のノードの先頭）で正しいノードが選択される。
+          if (isEnd) {
+            if (pos > info.start && pos <= info.end) {
+              return info;
+            }
+          } else {
+            if (pos >= info.start && pos < info.end) {
+              return info;
+            }
           }
-          // ちょうど終端の場合（例: テキスト全体の末尾）
-          if (isEnd && pos === info.end) {
-            return info;
-          }
-          if (pos < info.start) high = mid - 1;
+
+          if (pos <= info.start) high = mid - 1;
           else low = mid + 1;
         }
         return null;
