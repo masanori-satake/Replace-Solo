@@ -141,7 +141,7 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
  * Microsoft Loopのページが置換をサポートしているか判定する
  */
 function isSupportedLoopPage(urlStr) {
-  if (!urlStr) return true;
+  if (!urlStr) return false;
   try {
     const url = new URL(urlStr);
     const hostname = url.hostname;
@@ -149,12 +149,12 @@ function isSupportedLoopPage(urlStr) {
     const isLoop = hostname === 'loop.microsoft.com' || hostname.endsWith('.loop.microsoft.com') ||
                    hostname === 'loop.cloud.microsoft' || hostname.endsWith('.loop.cloud.microsoft');
 
-    if (!isLoop) return true;
+    if (!isLoop) return false;
 
     // Loopの場合、/p/（ページ）から始まるURLのみサポート
     return url.pathname.startsWith('/p/');
   } catch (e) {
-    return true;
+    return false;
   }
 }
 
@@ -182,6 +182,11 @@ function updateUIStatus(url) {
   const isSupported = isSupportedLoopPage(url);
   isCurrentPageSupported = isSupported; // グローバル変数を更新
 
+  const banner = document.getElementById('unsupported-banner');
+  if (banner) {
+    banner.style.display = isSupported ? 'none' : 'block';
+  }
+
   const idsToToggle = [
     'analyze-btn',
     'replace-all-btn',
@@ -195,8 +200,6 @@ function updateUIStatus(url) {
     const element = document.getElementById(id);
     if (element) {
       element.disabled = !isSupported;
-      // ボタンの場合、視覚的な無効化のためにクラスを操作する場合もあるが、
-      // 標準の disabled 属性で十分。
     }
   });
 
@@ -285,7 +288,7 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
 
   if (tab && tab.id) {
     try {
-      autoSetMode(url);
+      syncUIWithTab(url);
 
       const response = await sendMessageToTab(tab.id, { action: 'EXTRACT_TEXT' });
       if (response && response.text) {
@@ -300,36 +303,16 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
   }
 });
 
-function autoSetMode(url) {
+function syncUIWithTab(url) {
   updateUIStatus(url);
-  if (!url) return;
-  const emulationDomains = [
-    'loop.microsoft.com',
-    'loop.cloud.microsoft',
-    'docs.google.com',
-    'sheets.google.com'
-  ];
-  // サブドメインの変動に備え、より堅牢なチェックを行う
-  const isEmulation = emulationDomains.some(domain => {
-    try {
-      const hostname = new URL(url).hostname;
-      return hostname === domain || hostname.endsWith('.' + domain);
-    } catch (e) {
-      return url.includes(domain);
-    }
-  });
-  const modeToggle = document.getElementById('mode-toggle');
-  if (modeToggle) {
-    modeToggle.checked = isEmulation;
-  }
 }
 
-// タブの切り替えや更新を検知してモードを同期
+// タブの切り替えや更新を検知してUIを同期
 if (typeof chrome !== 'undefined' && chrome.tabs) {
   chrome.tabs.onActivated.addListener(async (activeInfo) => {
     try {
       const tab = await chrome.tabs.get(activeInfo.tabId);
-      if (tab && tab.url) autoSetMode(tab.url);
+      if (tab && tab.url) syncUIWithTab(tab.url);
     } catch (e) {
       // タブがすぐに閉じられた場合などは無視
     }
@@ -338,7 +321,7 @@ if (typeof chrome !== 'undefined' && chrome.tabs) {
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     try {
       if (tab.active && tab.url) {
-        autoSetMode(tab.url);
+        syncUIWithTab(tab.url);
       }
     } catch (e) {
       // 無視
@@ -346,10 +329,10 @@ if (typeof chrome !== 'undefined' && chrome.tabs) {
   });
 }
 
-// 初回起動時のモード設定
+// 初回起動時のUI同期
 getActiveTab().then(tab => {
   if (tab && tab.url) {
-    autoSetMode(tab.url);
+    syncUIWithTab(tab.url);
   } else {
     updateUIStatus("");
   }
@@ -739,7 +722,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null, isSupporte
         dictCheck.checked = false;
         dictCheck.disabled = true;
       } else {
-        dictCheck.checked = true;
+        // 置換候補が入力されても、自動的に辞書登録をONにしない（ユーザーの明示的な操作を優先）
         dictCheck.disabled = false;
       }
     } else {
@@ -785,7 +768,7 @@ function executeReplacement(origin, target) {
 }
 
 async function executeMultipleReplacements(replacements) {
-  const mode = document.getElementById('mode-toggle').checked ? 'emulation' : 'dom';
+  const mode = 'emulation';
   const tab = await getActiveTab();
   if (tab && tab.id) {
     try {

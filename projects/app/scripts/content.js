@@ -32,12 +32,9 @@ function setupMessageListener() {
   }
 
   if (request.action === 'REPLACE_WORDS') {
-    const { replacements, mode } = request;
-    if (mode === 'emulation') {
-      replaceByEmulationBatch(replacements);
-    } else {
-      replaceByDomBatch(replacements);
-    }
+    const { replacements } = request;
+    // Microsoft Loopに特化し、入力エミュレーションのみをサポート
+    replaceByEmulationBatch(replacements);
     sendResponse({ success: true });
     return true;
   }
@@ -263,24 +260,6 @@ function findRangesAcrossNodes(root, replacements) {
   });
 
   return finalRanges;
-}
-
-/**
- * DOM 直接書き換えによる一括置換
- */
-function replaceByDomBatch(replacements) {
-  const root = getTargetRoot();
-  const allReplacementRanges = findRangesAcrossNodes(root, replacements);
-
-  // 後ろから置換することで位置ズレを防止
-  for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
-    const { range, target } = allReplacementRanges[i];
-    if (!range.startContainer.isConnected || !range.endContainer.isConnected) continue;
-
-    range.deleteContents();
-    const newTextNode = document.createTextNode(target);
-    range.insertNode(newTextNode);
-  }
 }
 
 /**
