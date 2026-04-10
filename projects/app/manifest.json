@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Replace-Solo",
-  "version": "0.9.2",
+  "version": "0.10.0",
   "description": "〜ブラウザ内で処理が完結する置換ツール〜",
   "icons": {
     "16": "assets/icons/icon16.png",
