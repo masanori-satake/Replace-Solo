@@ -722,8 +722,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null, isSupporte
         dictCheck.checked = false;
         dictCheck.disabled = true;
       } else {
-        // 現在「置換候補」に文字を入力すると自動的に「辞書登録」がONになっていましたが、
-        // 操作者が明示的にONにさせ自動でONにすることをやめてください。
+        // 置換候補が入力されても、自動的に辞書登録をONにしない（ユーザーの明示的な操作を優先）
         dictCheck.disabled = false;
       }
     } else {
