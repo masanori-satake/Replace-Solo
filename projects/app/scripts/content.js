@@ -15,6 +15,7 @@ if (typeof window.replaceSoloLoaded === 'undefined') {
  */
 function setupMessageListener() {
   if (window.replaceSoloListenerRegistered) return;
+  if (typeof chrome === 'undefined' || !chrome.runtime || !chrome.runtime.onMessage) return;
   window.replaceSoloListenerRegistered = true;
 
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -25,7 +26,7 @@ function setupMessageListener() {
 
   if (request.action === 'EXTRACT_TEXT') {
     const root = getTargetRoot();
-    const text = root.innerText;
+    const text = getEditableInnerText(root);
     sendResponse({ text: text });
     return true;
   }
@@ -72,19 +73,78 @@ function getTargetRoot() {
 }
 
 /**
+ * ノードが編集可能（ユーザーが入力を想定している箇所）かどうかを判定する
+ */
+function isNodeEditable(node) {
+  const element = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (!element) return false;
+
+  const tag = element.tagName.toUpperCase();
+  if (tag === 'SCRIPT' || tag === 'STYLE') return false;
+
+  // 特定の非表示・不要な要素（LoopのUIパーツなど）を除外
+  if (isLoopUIElement(element)) return false;
+
+  // contenteditable または role="textbox" を持っている要素内か判定
+  return element.isContentEditable || !!element.closest('[role="textbox"]');
+}
+
+/**
+ * 編集可能な要素からのみテキストを抽出する
+ */
+function getEditableInnerText(root) {
+  // root自身が編集可能な場合
+  if (root.isContentEditable || (root.closest && root.closest('[role="textbox"]'))) {
+    if (!isLoopUIElement(root)) {
+      return root.innerText;
+    }
+  }
+
+  const editables = Array.from(root.querySelectorAll('[contenteditable], [role="textbox"]'));
+  if (editables.length === 0) {
+    // 編集可能なエリアが一つも見つからない場合は、指示に基づき制限をかけるため空を返す。
+    return "";
+  }
+
+  const result = [];
+  editables.forEach(el => {
+    // 入れ子になっている場合は、親だけを対象にする（innerTextに含まれるため）
+    let isNested = false;
+    let p = el.parentElement;
+    while (p && p !== root) {
+      if (p.isContentEditable || p.getAttribute('role') === 'textbox') {
+        isNested = true;
+        break;
+      }
+      p = p.parentElement;
+    }
+
+    if (!isNested && !isLoopUIElement(el)) {
+      result.push(el.innerText);
+    }
+  });
+
+  return result.join('\n');
+}
+
+/**
+ * LoopのUI要素かどうか判定する
+ */
+function isLoopUIElement(el) {
+  if (!el || !el.closest) return false;
+  return !!el.closest('.scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition');
+}
+
+/**
  * 複数のテキストノードに跨る可能性がある文字列を検索し、Rangeのリストを返す
  */
 function findRangesAcrossNodes(root, replacements) {
   const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
     acceptNode: (node) => {
-      // スクリプトやスタイル、非表示要素などは除外したいが、
-      // 基本的にはリッチエディタの可視テキストを対象にする。
-      const parent = node.parentElement;
-      if (parent) {
-        const tag = parent.tagName.toUpperCase();
-        if (tag === 'SCRIPT' || tag === 'STYLE') return NodeFilter.FILTER_REJECT;
+      if (isNodeEditable(node)) {
+        return NodeFilter.FILTER_ACCEPT;
       }
-      return NodeFilter.FILTER_ACCEPT;
+      return NodeFilter.FILTER_REJECT;
     }
   }, false);
 
@@ -95,13 +155,6 @@ function findRangesAcrossNodes(root, replacements) {
   while (node = walker.nextNode()) {
     const text = node.nodeValue;
     if (text.length === 0) continue;
-
-    // 特定の非表示・不要な要素（LoopのUIパーツなど）を除外
-    const parent = node.parentElement;
-    if (parent) {
-      const isLoopUI = parent.closest('.scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition');
-      if (isLoopUI) continue;
-    }
 
     // テキストノード内の不要な空白（特にノード分割時に発生しがちなもの）を完全に無視するのではなく、
     // 検索時には「存在しうるもの」として扱うため、ここではそのまま保持する。
