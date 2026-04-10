@@ -94,12 +94,14 @@ function isNodeEditable(node) {
  */
 function getEditableInnerText(root) {
   // root自身が編集可能な場合
-  if (root.isContentEditable || (root.closest && root.closest('[role="textbox"]'))) {
+  const rootIsEditable = root.isContentEditable || (root.closest && root.closest('[role="textbox"]'));
+  if (rootIsEditable) {
     if (!isLoopUIElement(root)) {
       return root.innerText;
     }
   }
 
+  // 編集可能な属性を持つ要素を探す
   const editables = Array.from(root.querySelectorAll('[contenteditable], [role="textbox"]'));
   if (editables.length === 0) {
     // 編集可能なエリアが一つも見つからない場合は、指示に基づき制限をかけるため空を返す。
@@ -108,6 +110,10 @@ function getEditableInnerText(root) {
 
   const result = [];
   editables.forEach(el => {
+    // 実際に編集可能かチェック（contenteditable="false"などを除外）
+    const isActuallyEditable = el.isContentEditable || el.getAttribute('role') === 'textbox';
+    if (!isActuallyEditable || isLoopUIElement(el)) return;
+
     // 入れ子になっている場合は、親だけを対象にする（innerTextに含まれるため）
     let isNested = false;
     let p = el.parentElement;
@@ -119,7 +125,7 @@ function getEditableInnerText(root) {
       p = p.parentElement;
     }
 
-    if (!isNested && !isLoopUIElement(el)) {
+    if (!isNested) {
       result.push(el.innerText);
     }
   });
