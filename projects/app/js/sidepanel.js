@@ -18,6 +18,8 @@ let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
+let toastTimeout = null;
+let isCurrentPageSupported = true; // 現在のページのサポート状態を保持
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
@@ -136,6 +138,76 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
 }
 
 /**
+ * Microsoft Loopのページが置換をサポートしているか判定する
+ */
+function isSupportedLoopPage(urlStr) {
+  if (!urlStr) return true;
+  try {
+    const url = new URL(urlStr);
+    const hostname = url.hostname;
+    // Loopのドメイン判定
+    const isLoop = hostname === 'loop.microsoft.com' || hostname.endsWith('.loop.microsoft.com') ||
+                   hostname === 'loop.cloud.microsoft' || hostname.endsWith('.loop.cloud.microsoft');
+
+    if (!isLoop) return true;
+
+    // Loopの場合、/p/（ページ）から始まるURLのみサポート
+    return url.pathname.startsWith('/p/');
+  } catch (e) {
+    return true;
+  }
+}
+
+/**
+ * Material 3 デザインのトーストを表示する
+ */
+function showToast(message) {
+  const container = document.getElementById('toast-container');
+  if (!container) return;
+
+  container.innerText = message;
+  container.classList.add('show');
+
+  if (toastTimeout) clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => {
+    container.classList.remove('show');
+    toastTimeout = null;
+  }, 4000);
+}
+
+/**
+ * URLに応じてUIの有効/無効状態を更新する
+ */
+function updateUIStatus(url) {
+  const isSupported = isSupportedLoopPage(url);
+  isCurrentPageSupported = isSupported; // グローバル変数を更新
+
+  const idsToToggle = [
+    'analyze-btn',
+    'replace-all-btn',
+    'clear-btn',
+    'reset-btn',
+    'add-word-btn',
+    'manual-word'
+  ];
+
+  idsToToggle.forEach(id => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.disabled = !isSupported;
+      // ボタンの場合、視覚的な無効化のためにクラスを操作する場合もあるが、
+      // 標準の disabled 属性で十分。
+    }
+  });
+
+  // リスト内の個別の実行ボタンも制御
+  const singleExecButtons = document.querySelectorAll('.single-exec');
+  singleExecButtons.forEach(btn => {
+    btn.disabled = !isSupported;
+  });
+}
+
+/**
  * 現在アクティブなタブを取得する
  */
 async function getActiveTab() {
@@ -194,6 +266,15 @@ async function sendMessageToTab(tabId, message) {
 
 // UI Event Listeners
 document.getElementById('analyze-btn').addEventListener('click', async () => {
+  const tab = await getActiveTab();
+  const url = (tab && tab.url) ? tab.url : "";
+
+  if (!isSupportedLoopPage(url)) {
+    updateUIStatus(url);
+    showToast('Microsoft Loopの現在のページ（ワークスペース/表示専用）では置換できません。ページ内に入ってから再度お試しください。');
+    return;
+  }
+
   if (!tokenizer) {
     alert('形態素解析エンジンの準備中です。少々お待ちください。');
     return;
@@ -202,10 +283,9 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
   const toggle = document.getElementById('japanese-only-toggle');
   if (toggle) toggle.checked = true;
 
-  const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
-      autoSetMode(tab.url || "");
+      autoSetMode(url);
 
       const response = await sendMessageToTab(tab.id, { action: 'EXTRACT_TEXT' });
       if (response && response.text) {
@@ -221,6 +301,7 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
 });
 
 function autoSetMode(url) {
+  updateUIStatus(url);
   if (!url) return;
   const emulationDomains = [
     'loop.microsoft.com',
@@ -256,8 +337,8 @@ if (typeof chrome !== 'undefined' && chrome.tabs) {
 
   chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
     try {
-      if (changeInfo.url && tab.active) {
-        autoSetMode(changeInfo.url);
+      if (tab.active && tab.url) {
+        autoSetMode(tab.url);
       }
     } catch (e) {
       // 無視
@@ -267,7 +348,11 @@ if (typeof chrome !== 'undefined' && chrome.tabs) {
 
 // 初回起動時のモード設定
 getActiveTab().then(tab => {
-  if (tab && tab.url) autoSetMode(tab.url);
+  if (tab && tab.url) {
+    autoSetMode(tab.url);
+  } else {
+    updateUIStatus("");
+  }
 });
 
 document.getElementById('add-word-btn').addEventListener('click', () => {
@@ -550,6 +635,8 @@ async function analyzeAndDisplay(text) {
  * リストを再描画する
  */
 async function renderWordList() {
+  const isSupported = isCurrentPageSupported;
+
   const wordList = document.getElementById('word-list');
   wordList.innerHTML = '';
   currentWords.clear();
@@ -564,7 +651,7 @@ async function renderWordList() {
     const fragment = document.createDocumentFragment();
 
     for (const word of batch) {
-      const row = createWordRow(word, false, isJapaneseOnly);
+      const row = createWordRow(word, false, isJapaneseOnly, isSupported);
       if (row) {
         fragment.appendChild(row);
       }
@@ -580,8 +667,10 @@ async function renderWordList() {
  * 個別の単語をリストに追加する（手動追加用）
  */
 function addWordToList(word, isManual = false) {
+  const isSupported = isCurrentPageSupported;
+
   const wordList = document.getElementById('word-list');
-  const row = createWordRow(word, isManual);
+  const row = createWordRow(word, isManual, null, isSupported);
   if (row) {
     wordList.appendChild(row);
   }
@@ -590,7 +679,7 @@ function addWordToList(word, isManual = false) {
 /**
  * 単語行の要素を作成する
  */
-function createWordRow(word, isManual = false, isJapaneseOnly = null) {
+function createWordRow(word, isManual = false, isJapaneseOnly = null, isSupported = true) {
   if (currentWords.has(word)) return null;
 
   if (isJapaneseOnly === null) {
@@ -627,7 +716,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
     </td>
     <td><input type="checkbox" class="m3-checkbox dict-check" ${isManualInternal ? 'checked' : ''}></td>
     <td>
-      <button class="m3-icon-button single-exec" title="実行">
+      <button class="m3-icon-button single-exec" title="実行" ${isSupported ? '' : 'disabled'}>
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
       </button>
     </td>
