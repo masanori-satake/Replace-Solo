@@ -48,9 +48,10 @@ async function updateTabState(tabId, url) {
     await chrome.sidePanel.setOptions(options);
 
     // アクションボタンの有効/無効を設定（グレーアウト制御）
-    // アイコンも明示的に切り替える
+    // アイコンとツールチップ（タイトル）も明示的に切り替える
     if (isSupported) {
       await chrome.action.enable(tabId);
+      await chrome.action.setTitle({ tabId: tabId, title: 'サイドパネルを開く' });
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
@@ -62,6 +63,7 @@ async function updateTabState(tabId, url) {
       });
     } else {
       await chrome.action.disable(tabId);
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
