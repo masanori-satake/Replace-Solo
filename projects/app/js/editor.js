@@ -17,14 +17,19 @@ function loadDictionary() {
     chrome.storage.local.get(['dictionary'], (result) => {
       if (result.dictionary) {
         localDictionary = result.dictionary;
+        // Ensure system deletion entry exists
+        if (!localDictionary.hasOwnProperty('')) {
+          localDictionary[''] = [];
+          saveToStorage();
+        }
       } else {
-        localDictionary = DEFAULT_DICTIONARY;
+        localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
         saveToStorage();
       }
       renderDictionary();
     });
   } else {
-    localDictionary = DEFAULT_DICTIONARY;
+    localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
     renderDictionary();
   }
 }
@@ -56,6 +61,8 @@ function addRow(targetText = '', origins = []) {
   const row = document.createElement('tr');
   row.className = 'dictionary-row';
 
+  const isDeletionEntry = (targetText === '');
+
   // Target Word Column
   const tdTarget = document.createElement('td');
   const divField = document.createElement('div');
@@ -63,7 +70,14 @@ function addRow(targetText = '', origins = []) {
   const targetInput = document.createElement('input');
   targetInput.type = 'text';
   targetInput.value = targetText;
-  targetInput.placeholder = '置換後の文字列';
+  if (isDeletionEntry) {
+    targetInput.placeholder = '（削除）';
+    targetInput.readOnly = true;
+    targetInput.style.backgroundColor = 'var(--m3-sys-light-surface-variant)';
+    targetInput.style.cursor = 'not-allowed';
+  } else {
+    targetInput.placeholder = '置換後の文字列';
+  }
   divField.appendChild(targetInput);
   tdTarget.appendChild(divField);
 
@@ -79,31 +93,32 @@ function addRow(targetText = '', origins = []) {
 
   // Actions Column
   const tdActions = document.createElement('td');
-  const deleteBtn = document.createElement('button');
-  deleteBtn.className = 'm3-icon-button error-text';
-  deleteBtn.title = '行を削除';
+  if (!isDeletionEntry) {
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'm3-icon-button error-text';
+    deleteBtn.title = '行を削除';
 
-  const svgNS = "http://www.w3.org/2000/svg";
-  const svg = document.createElementNS(svgNS, "svg");
-  svg.setAttribute("height", "24px");
-  svg.setAttribute("viewBox", "0 -960 960 960");
-  svg.setAttribute("width", "24px");
-  svg.setAttribute("fill", "currentColor");
-  const path = document.createElementNS(svgNS, "path");
-  path.setAttribute("d", "M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T720-120H280Zm440-600H240v520q0 17 11.5 28.5T280-200h440q17 0 28.5-11.5T760-200v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM240-720v520-520Z");
-  svg.appendChild(path);
-  deleteBtn.appendChild(svg);
+    const svgNS = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(svgNS, "svg");
+    svg.setAttribute("height", "24px");
+    svg.setAttribute("viewBox", "0 -960 960 960");
+    svg.setAttribute("width", "24px");
+    svg.setAttribute("fill", "currentColor");
+    const path = document.createElementNS(svgNS, "path");
+    path.setAttribute("d", "M280-120q-33 0-56.5-23.5T200-200v-520h-40v-80h200v-40h240v40h200v80h-40v520q0 33-23.5 56.5T720-120H280Zm440-600H240v520q0 17 11.5 28.5T280-200h440q17 0 28.5-11.5T760-200v-520ZM360-280h80v-360h-80v360Zm160 0h80v-360h-80v360ZM240-720v520-520Z");
+    svg.appendChild(path);
+    deleteBtn.appendChild(svg);
 
-  deleteBtn.addEventListener('click', () => {
-    showConfirm('この行を削除しますか？', () => {
-      const currentTarget = targetInput.value;
-      delete localDictionary[targetInput.oldValue || currentTarget];
-      row.remove();
-      saveToStorage();
+    deleteBtn.addEventListener('click', () => {
+      showConfirm('この行を削除しますか？', () => {
+        const currentTarget = targetInput.value;
+        delete localDictionary[targetInput.oldValue || currentTarget];
+        row.remove();
+        saveToStorage();
+      });
     });
-  });
-  tdActions.appendChild(deleteBtn);
-
+    tdActions.appendChild(deleteBtn);
+  }
   row.appendChild(tdTarget);
   row.appendChild(tdOrigins);
   row.appendChild(tdActions);
@@ -273,14 +288,77 @@ function showAlert(message) {
   okBtn.addEventListener('click', okHandler);
 }
 
+function showPrompt(title, message, onOk) {
+  const dialog = document.getElementById('prompt-dialog');
+  const titleEl = document.getElementById('prompt-title');
+  const messageEl = document.getElementById('prompt-message');
+  const inputEl = document.getElementById('prompt-input');
+  const okBtn = document.getElementById('prompt-ok');
+  const cancelBtn = document.getElementById('prompt-cancel');
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+  inputEl.value = '';
+  dialog.style.display = 'flex';
+  inputEl.focus();
+
+  const close = () => {
+    dialog.style.display = 'none';
+    okBtn.removeEventListener('click', okHandler);
+    cancelBtn.removeEventListener('click', cancelHandler);
+    inputEl.removeEventListener('keydown', keyHandler);
+  };
+
+  const okHandler = () => {
+    const value = inputEl.value.trim();
+    if (value === '') {
+      showAlert('置換後の文字列を入力してください。');
+      return;
+    }
+    if (localDictionary.hasOwnProperty(value)) {
+      showAlert('同じ置換文字列が既に存在します。');
+      return;
+    }
+    onOk(value);
+    close();
+  };
+  const cancelHandler = () => {
+    close();
+  };
+  const keyHandler = (e) => {
+    if (e.key === 'Enter') {
+      okHandler();
+    }
+  };
+
+  okBtn.addEventListener('click', okHandler);
+  cancelBtn.addEventListener('click', cancelHandler);
+  inputEl.addEventListener('keydown', keyHandler);
+
+}
+
 // Event Listeners for global actions
 function setupEventListeners() {
   document.getElementById('add-row-btn').addEventListener('click', () => {
-    if (localDictionary.hasOwnProperty('')) {
-      showAlert('未入力の置換文字列があります。');
-      return;
-    }
-    localDictionary[''] = [];
-    addRow('', []);
+    showPrompt('新規行を追加', '追加する置換後の文字列を入力してください。', (newTarget) => {
+      localDictionary[newTarget] = [];
+      addRow(newTarget, []);
+      saveToStorage();
+    });
   });
+
+  // Listen for storage changes to sync across tabs if needed
+  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area === 'local' && changes.dictionary) {
+        const newDict = changes.dictionary.newValue || {};
+        // Enforce system deletion entry existence even when updated from other tabs
+        if (!newDict.hasOwnProperty('')) {
+          newDict[''] = [];
+        }
+        localDictionary = newDict;
+        renderDictionary();
+      }
+    });
+  }
 }

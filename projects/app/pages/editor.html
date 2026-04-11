@@ -50,7 +50,7 @@
   </div>
 
   <!-- アラートダイアログ -->
-  <div id="alert-dialog" class="modal-overlay" style="z-index: 120;">
+  <div id="alert-dialog" class="modal-overlay" style="z-index: 140;">
     <div class="modal-content confirm-modal">
       <div class="modal-header">
         <h2 class="m3-headline-small">注意</h2>
@@ -60,6 +60,25 @@
       </div>
       <div class="modal-footer" style="padding: 8px 16px 16px; display: flex; justify-content: flex-end;">
         <button id="alert-ok" class="m3-button m3-button-text">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 入力ダイアログ -->
+  <div id="prompt-dialog" class="modal-overlay" style="z-index: 130;">
+    <div class="modal-content confirm-modal">
+      <div class="modal-header">
+        <h2 class="m3-headline-small" id="prompt-title">新規置換文字列</h2>
+      </div>
+      <div class="modal-body" style="padding: 0 24px 16px;">
+        <p id="prompt-message" class="m3-body-medium" style="margin-bottom: 12px;">追加する置換後の文字列を入力してください。</p>
+        <div class="m3-text-field">
+          <input type="text" id="prompt-input" placeholder="置換後の文字列">
+        </div>
+      </div>
+      <div class="modal-footer" style="padding: 8px 16px 16px; display: flex; justify-content: flex-end; gap: 8px;">
+        <button id="prompt-cancel" class="m3-button m3-button-text">キャンセル</button>
+        <button id="prompt-ok" class="m3-button m3-button-text">作成</button>
       </div>
     </div>
   </div>

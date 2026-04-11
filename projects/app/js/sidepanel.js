@@ -369,7 +369,16 @@ confirmOkBtn.addEventListener('click', () => {
 });
 
 document.getElementById('open-editor').addEventListener('click', () => {
-  chrome.tabs.create({ url: chrome.runtime.getURL('pages/editor.html') });
+  const editorUrl = chrome.runtime.getURL('pages/editor.html');
+  chrome.tabs.query({ url: editorUrl }, (tabs) => {
+    if (tabs.length > 0) {
+      const tab = tabs[0];
+      chrome.tabs.update(tab.id, { active: true });
+      chrome.windows.update(tab.windowId, { focused: true });
+    } else {
+      chrome.tabs.create({ url: editorUrl });
+    }
+  });
 });
 
 document.getElementById('import-json').addEventListener('click', () => {
