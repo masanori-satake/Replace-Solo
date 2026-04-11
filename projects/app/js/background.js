@@ -42,7 +42,7 @@ async function updateTabState(tabId, url) {
     };
 
     if (isSupported) {
-      options.path = 'pages/sidepanel.html';
+      options.path = '/pages/sidepanel.html';
     }
 
     await chrome.sidePanel.setOptions(options);
@@ -50,29 +50,30 @@ async function updateTabState(tabId, url) {
     // アクションボタンの有効/無効を設定（グレーアウト制御）
     // アイコンとツールチップ（タイトル）も明示的に切り替える
     if (isSupported) {
-      await chrome.action.enable(tabId);
+      // アイコンの設定を先に行い、その後に有効化する
+      await chrome.action.setIcon({
+        tabId: tabId,
+        path: {
+          "16": "/assets/icons/icon16.png",
+          "32": "/assets/icons/icon32.png",
+          "48": "/assets/icons/icon48.png",
+          "128": "/assets/icons/icon128.png"
+        }
+      });
       await chrome.action.setTitle({ tabId: tabId, title: 'サイドパネルを開く' });
-      await chrome.action.setIcon({
-        tabId: tabId,
-        path: {
-          "16": "assets/icons/icon16.png",
-          "32": "assets/icons/icon32.png",
-          "48": "assets/icons/icon48.png",
-          "128": "assets/icons/icon128.png"
-        }
-      });
+      await chrome.action.enable(tabId);
     } else {
-      await chrome.action.disable(tabId);
-      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
-          "16": "assets/icons/icon16_gray.png",
-          "32": "assets/icons/icon32_gray.png",
-          "48": "assets/icons/icon48_gray.png",
-          "128": "assets/icons/icon128_gray.png"
+          "16": "/assets/icons/icon16_gray.png",
+          "32": "/assets/icons/icon32_gray.png",
+          "48": "/assets/icons/icon48_gray.png",
+          "128": "/assets/icons/icon128_gray.png"
         }
       });
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
+      await chrome.action.disable(tabId);
     }
   } catch (error) {
     // 特殊なタブ（chrome:// や設定ページなど）ではAPIが制限される場合があるため
