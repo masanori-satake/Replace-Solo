@@ -42,9 +42,9 @@ async function updateTabState(tabId, url) {
 
     // アクションボタンの有効/無効を設定（グレーアウト制御）
     if (isSupported) {
-      await chrome.action.enable({ tabId });
+      await chrome.action.enable(tabId);
     } else {
-      await chrome.action.disable({ tabId });
+      await chrome.action.disable(tabId);
     }
   } catch (error) {
     // 特殊なタブ（chrome:// や設定ページなど）ではAPIが制限される場合があるため
@@ -66,7 +66,7 @@ function initializeSidePanel() {
   chrome.sidePanel.setOptions({ enabled: false })
     .catch((error) => console.error('Replace-Solo: Failed to set default side panel options:', error));
 
-  chrome.action.disable({})
+  chrome.action.disable()
     .catch((error) => console.error('Replace-Solo: Failed to disable default action:', error));
 
   // 初回起動時やリロード時に全タブの状態を更新する
