@@ -1,6 +1,6 @@
 {
   "name": "replace-solo",
-  "version": "0.11.6",
+  "version": "0.12.0",
   "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",

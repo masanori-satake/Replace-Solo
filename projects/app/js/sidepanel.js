@@ -346,16 +346,30 @@ document.getElementById('download-debug-info').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
+const confirmDialog = document.getElementById('confirm-dialog');
+const confirmOkBtn = document.getElementById('confirm-ok');
+const confirmCancelBtn = document.getElementById('confirm-cancel');
+
 document.getElementById('clear-dictionary').addEventListener('click', () => {
-  if (confirm('辞書をクリアして初期状態に戻しますか？')) {
-    localDictionary = DEFAULT_DICTIONARY;
-    chrome.storage.local.set({ dictionary: localDictionary }, () => {
-      alert('辞書をクリアしました。');
-      updateDictCache();
-      const extractBtn = document.getElementById('extract-btn');
-      if (extractBtn) extractBtn.click();
-    });
-  }
+  confirmDialog.style.display = 'flex';
+});
+
+confirmCancelBtn.addEventListener('click', () => {
+  confirmDialog.style.display = 'none';
+});
+
+confirmOkBtn.addEventListener('click', () => {
+  localDictionary = DEFAULT_DICTIONARY;
+  chrome.storage.local.set({ dictionary: localDictionary }, () => {
+    updateDictCache();
+    const extractBtn = document.getElementById('extract-btn');
+    if (extractBtn) extractBtn.click();
+    confirmDialog.style.display = 'none';
+  });
+});
+
+document.getElementById('open-editor').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('pages/editor.html') });
 });
 
 document.getElementById('import-json').addEventListener('click', () => {
