@@ -1,6 +1,6 @@
 # Replace-Solo
 
-![version](https://img.shields.io/badge/version-0.11.5-blue)
+![version](https://img.shields.io/badge/version-0.11.6-blue)
 
 〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜
 

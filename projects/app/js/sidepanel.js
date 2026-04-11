@@ -18,7 +18,6 @@ let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
-let toastTimeout = null;
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
@@ -83,7 +82,7 @@ function loadVersion() {
     .then(response => response.json())
     .then(data => {
       const versionElem = document.getElementById('app-version');
-      versionElem.innerText = `v${data.version}`;
+      versionElem.textContent = `v${data.version}`;
       setupDebugTrigger(versionElem);
     })
     .catch(err => {
@@ -92,7 +91,7 @@ function loadVersion() {
       if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
         const manifest = chrome.runtime.getManifest();
         const versionElem = document.getElementById('app-version');
-        versionElem.innerText = `v${manifest.version}`;
+        versionElem.textContent = `v${manifest.version}`;
         setupDebugTrigger(versionElem);
       }
     });
@@ -134,23 +133,6 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
       console.log('Replace-Solo: Local dictionary updated from storage');
     }
   });
-}
-
-/**
- * Material 3 デザインのトーストを表示する
- */
-function showToast(message) {
-  const container = document.getElementById('toast-container');
-  if (!container) return;
-
-  container.innerText = message;
-  container.classList.add('show');
-
-  if (toastTimeout) clearTimeout(toastTimeout);
-  toastTimeout = setTimeout(() => {
-    container.classList.remove('show');
-    toastTimeout = null;
-  }, 4000);
 }
 
 /**
@@ -255,7 +237,7 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
   rows.forEach(row => {
     const applyCheck = row.querySelector('.apply-check');
     if (applyCheck.checked) {
-      const origin = row.querySelector('.word-origin').innerText;
+      const origin = row.querySelector('.word-origin').textContent;
       const target = row.querySelector('.replace-input').value;
       const dictCheck = row.querySelector('.dict-check');
 
@@ -276,7 +258,8 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
 document.getElementById('clear-btn').addEventListener('click', () => {
   const toggle = document.getElementById('japanese-only-toggle');
   if (toggle) toggle.checked = true;
-  document.getElementById('word-list').innerHTML = '';
+  const wordList = document.getElementById('word-list');
+  wordList.textContent = '';
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
@@ -285,7 +268,8 @@ document.getElementById('clear-btn').addEventListener('click', () => {
 document.getElementById('reset-btn').addEventListener('click', () => {
   const toggle = document.getElementById('japanese-only-toggle');
   if (toggle) toggle.checked = true;
-  document.getElementById('word-list').innerHTML = '';
+  const wordList = document.getElementById('word-list');
+  wordList.textContent = '';
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
@@ -348,7 +332,7 @@ document.getElementById('export-json').addEventListener('click', () => {
 
 document.getElementById('download-debug-info').addEventListener('click', () => {
   const data = {
-    version: document.getElementById('app-version').innerText,
+    version: document.getElementById('app-version').textContent,
     timestamp: new Date().toISOString(),
     ...lastExtractedData
   };
@@ -521,7 +505,7 @@ async function extractAndDisplay(text) {
  */
 async function renderWordList() {
   const wordList = document.getElementById('word-list');
-  wordList.innerHTML = '';
+  wordList.textContent = '';
   currentWords.clear();
   rowCounter = 0;
 
@@ -584,28 +568,75 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const dictMatch = getDictMatch(word);
   const rowId = rowCounter++;
 
-  row.innerHTML = `
-    <td><input type="checkbox" class="m3-checkbox apply-check" ${dictMatch ? 'checked' : ''}></td>
-    <td><span class="body-large word-origin">${escapeHtml(word)}</span></td>
-    <td>
-      <div class="m3-text-field compact">
-        <input type="text" class="replace-input" value="${dictMatch ? escapeHtml(dictMatch.target) : ''}" list="dict-${rowId}">
-        <datalist id="dict-${rowId}">
-          ${dictMatch ? dictMatch.candidates.map(c => `<option value="${escapeHtml(c)}">`).join('') : ''}
-        </datalist>
-      </div>
-    </td>
-    <td><input type="checkbox" class="m3-checkbox dict-check" ${isManualInternal ? 'checked' : ''}></td>
-    <td>
-      <button class="m3-icon-button single-exec" title="置換">
-        <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
-      </button>
-    </td>
-  `;
+  // 選択チェックボックス
+  const tdCheck = document.createElement('td');
+  const applyCheck = document.createElement('input');
+  applyCheck.type = 'checkbox';
+  applyCheck.className = 'm3-checkbox apply-check';
+  if (dictMatch) applyCheck.checked = true;
+  tdCheck.appendChild(applyCheck);
+  row.appendChild(tdCheck);
 
-  const replaceInput = row.querySelector('.replace-input');
-  const applyCheck = row.querySelector('.apply-check');
-  const dictCheck = row.querySelector('.dict-check');
+  // 対象単語
+  const tdOrigin = document.createElement('td');
+  const spanOrigin = document.createElement('span');
+  spanOrigin.className = 'body-large word-origin';
+  spanOrigin.textContent = word;
+  tdOrigin.appendChild(spanOrigin);
+  row.appendChild(tdOrigin);
+
+  // 置換文字列入力
+  const tdReplace = document.createElement('td');
+  const divField = document.createElement('div');
+  divField.className = 'm3-text-field compact';
+  const replaceInput = document.createElement('input');
+  replaceInput.type = 'text';
+  replaceInput.className = 'replace-input';
+  replaceInput.value = dictMatch ? dictMatch.target : '';
+  replaceInput.setAttribute('list', `dict-${rowId}`);
+
+  const datalist = document.createElement('datalist');
+  datalist.id = `dict-${rowId}`;
+  if (dictMatch) {
+    dictMatch.candidates.forEach(c => {
+      const option = document.createElement('option');
+      option.value = c;
+      datalist.appendChild(option);
+    });
+  }
+
+  divField.appendChild(replaceInput);
+  divField.appendChild(datalist);
+  tdReplace.appendChild(divField);
+  row.appendChild(tdReplace);
+
+  // 辞書登録チェックボックス
+  const tdDict = document.createElement('td');
+  const dictCheck = document.createElement('input');
+  dictCheck.type = 'checkbox';
+  dictCheck.className = 'm3-checkbox dict-check';
+  if (isManualInternal) dictCheck.checked = true;
+  tdDict.appendChild(dictCheck);
+  row.appendChild(tdDict);
+
+  // 置換実行ボタン
+  const tdExec = document.createElement('td');
+  const btnExec = document.createElement('button');
+  btnExec.className = 'm3-icon-button single-exec';
+  btnExec.title = '置換';
+
+  const svgExec = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svgExec.setAttribute('height', '24px');
+  svgExec.setAttribute('viewBox', '0 -960 960 960');
+  svgExec.setAttribute('width', '24px');
+  svgExec.setAttribute('fill', 'currentColor');
+  const pathExec = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathExec.setAttribute('d', 'M320-200v-560l440 280-440 280Z');
+  svgExec.appendChild(pathExec);
+
+  btnExec.appendChild(svgExec);
+  tdExec.appendChild(btnExec);
+  row.appendChild(tdExec);
 
   if (dictMatch && dictMatch.candidates.includes(replaceInput.value)) {
     dictCheck.disabled = true;
@@ -682,8 +713,3 @@ async function executeMultipleReplacements(replacements) {
   }
 }
 
-function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, m => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
-  }[m]));
-}
