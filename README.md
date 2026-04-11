@@ -1,6 +1,6 @@
 # Replace-Solo
 
-![version](https://img.shields.io/badge/version-0.11.2-blue)
+![version](https://img.shields.io/badge/version-0.11.3-blue)
 
 〜ブラウザ内で処理が完結する置換ツール〜
 

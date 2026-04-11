@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Replace-Solo",
-  "version": "0.11.2",
+  "version": "0.11.3",
   "description": "〜ブラウザ内で処理が完結する置換ツール〜",
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -17,13 +17,20 @@
     "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://loop.microsoft.com/*",
+    "https://loop.cloud.microsoft/*"
   ],
   "background": {
     "service_worker": "js/background.js"
   },
   "action": {
-    "default_title": "Open Side Panel"
+    "default_title": "Replace-Solo (サポートされていないページ)",
+    "default_icon": {
+      "16": "assets/icons/icon16_gray.png",
+      "32": "assets/icons/icon32_gray.png",
+      "48": "assets/icons/icon48_gray.png",
+      "128": "assets/icons/icon128_gray.png"
+    }
   },
   "side_panel": {
     "default_path": "pages/sidepanel.html"
@@ -34,7 +41,8 @@
         "lib/kuromoji/*"
       ],
       "matches": [
-        "<all_urls>"
+        "https://loop.microsoft.com/*",
+        "https://loop.cloud.microsoft/*"
       ]
     }
   ]
