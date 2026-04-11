@@ -56,20 +56,6 @@ body {
   min-height: 0; /* Important for flex children scrolling */
 }
 
-.unsupported-banner {
-  background-color: var(--m3-sys-light-surface-container-high);
-  border: 1px solid var(--m3-sys-light-outline);
-  border-radius: 8px;
-  padding: 12px;
-  color: var(--m3-sys-light-on-surface);
-}
-
-.unsupported-banner p {
-  margin: 0;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
 .m3-section {
   display: flex;
   flex-direction: column;
