@@ -329,7 +329,10 @@ tabBtns.forEach(btn => {
     tabPanels.forEach(p => p.classList.remove('active'));
 
     btn.classList.add('active');
-    document.getElementById(`tab-${targetTab}`).classList.add('active');
+    const tabPanel = document.getElementById(`tab-${targetTab}`);
+    if (tabPanel) {
+      tabPanel.classList.add('active');
+    }
   });
 });
 
