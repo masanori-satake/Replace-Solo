@@ -1,0 +1,220 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
+
+:root {
+  --m3-sys-light-primary: #2563eb; /* Replace-Solo brand blue */
+  --m3-sys-light-on-primary: #FFFFFF;
+  --m3-sys-light-primary-container: #DBEAFE;
+  --m3-sys-light-on-primary-container: #1E3A8A;
+  --m3-sys-light-secondary: #625B71;
+  --m3-sys-light-on-secondary: #FFFFFF;
+  --m3-sys-light-outline: #79747E;
+  --m3-sys-light-surface: #FEF7FF;
+  --m3-sys-light-on-surface: #1D1B20;
+  --m3-sys-light-surface-variant: #E7E0EB;
+  --m3-sys-light-on-surface-variant: #49454F;
+  --m3-sys-light-surface-container-high: #ECE6F0;
+  --m3-sys-light-inverse-surface: #313033;
+  --m3-sys-light-inverse-on-surface: #F4EFF4;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
+  background-color: var(--m3-sys-light-surface);
+  color: var(--m3-sys-light-on-surface);
+  line-height: 1.6;
+}
+
+header {
+  background-color: var(--m3-sys-light-surface);
+  border-bottom: 1px solid var(--m3-sys-light-surface-variant);
+  padding: 1rem 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1000px;
+  margin: 0 auto;
+}
+
+.logo {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--m3-sys-light-primary);
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.nav-links {
+  display: flex;
+  gap: 1.5rem;
+}
+
+.nav-links a {
+  text-decoration: none;
+  color: var(--m3-sys-light-on-surface-variant);
+  font-weight: 500;
+  transition: color 0.2s;
+}
+
+.nav-links a:hover {
+  color: var(--m3-sys-light-primary);
+}
+
+main {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 0 2rem;
+}
+
+section {
+  margin-bottom: 3rem;
+}
+
+h1 {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+  color: var(--m3-sys-light-on-surface);
+}
+
+h2 {
+  font-size: 1.75rem;
+  margin-top: 2rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--m3-sys-light-primary-container);
+  padding-bottom: 0.5rem;
+}
+
+h3 {
+  font-size: 1.25rem;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+}
+
+p {
+  margin-bottom: 1rem;
+}
+
+.hero {
+  text-align: center;
+  padding: 4rem 0;
+  background-color: var(--m3-sys-light-primary-container);
+  color: var(--m3-sys-light-on-primary-container);
+  border-radius: 2rem;
+  margin-bottom: 4rem;
+}
+
+.hero h1 {
+  color: var(--m3-sys-light-on-primary-container);
+  margin-bottom: 0.5rem;
+}
+
+.subtitle {
+  font-size: 1.25rem;
+  opacity: 0.9;
+}
+
+.m3-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.75rem 1.5rem;
+  border-radius: 2rem;
+  text-decoration: none;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.m3-button-filled {
+  background-color: var(--m3-sys-light-primary);
+  color: var(--m3-sys-light-on-primary);
+}
+
+.m3-button-filled:hover {
+  background-color: #1d4ed8;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.m3-button-outlined {
+  border: 1px solid var(--m3-sys-light-outline);
+  color: var(--m3-sys-light-primary);
+}
+
+.m3-button-outlined:hover {
+  background-color: rgba(37, 99, 235, 0.08);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 2rem;
+}
+
+.feature-card {
+  background-color: var(--m3-sys-light-surface-container-high);
+  padding: 1.5rem;
+  border-radius: 1.5rem;
+}
+
+.feature-card h3 {
+  margin-top: 0;
+  color: var(--m3-sys-light-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+footer {
+  text-align: center;
+  padding: 2rem;
+  border-top: 1px solid var(--m3-sys-light-surface-variant);
+  color: var(--m3-sys-light-on-surface-variant);
+  font-size: 0.875rem;
+}
+
+.m3-icon {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+/* Material Symbols like appearance for simple glyphs */
+.glyph {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+@media (max-width: 600px) {
+  nav {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .nav-links {
+    font-size: 0.9rem;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+}

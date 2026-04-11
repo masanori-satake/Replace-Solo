@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プライバシーポリシー - Replace-Solo</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="index.html" class="logo">
+        <img src="assets/icons/icon.svg" alt="Replace-Solo Logo" width="32" height="32">
+        Replace-Solo
+      </a>
+      <div class="nav-links">
+        <a href="usage.html">使い方</a>
+        <a href="privacy.html">プライバシーポリシー</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <h1>プライバシーポリシー</h1>
+
+    <section>
+      <h2>基本方針</h2>
+      <p>
+        Replace-Solo（以下「本拡張機能」）は、ユーザーのプライバシーを最優先に考えて設計されています。
+        本拡張機能のすべての機能は、ユーザーのブラウザ内で完結するように設計されており、外部サーバーへのデータの送信は一切行いません。
+      </p>
+    </section>
+
+    <section>
+      <h2>データの収集と利用</h2>
+      <h3>1. コンテンツデータ</h3>
+      <p>
+        本拡張機能が処理するMicrosoft Loop上のテキストデータは、置換処理および形態素解析のために一時的にメモリ上で利用されます。
+        これらのデータが外部に送信されたり、永続的に保存されたりすることはありません。
+      </p>
+
+      <h3>2. 辞書データ</h3>
+      <p>
+        ユーザーが登録した置換辞書データは、ブラウザのローカルストレージ（chrome.storage.local）に保存されます。
+        このデータはユーザーのデバイス内に留まり、開発者を含む第三者がアクセスすることはできません。
+      </p>
+
+      <h3>3. 利用状況のトラッキング</h3>
+      <p>
+        本拡張機能には、Google Analytics等のアクセス解析ツールや、ユーザーの行動を追跡する仕組みは一切含まれていません。
+        また、将来にわたってもこのようなトラッキング機能を追加することはありません。
+      </p>
+    </section>
+
+    <section>
+      <h2>外部への送信</h2>
+      <p>
+        本拡張機能は、インターネット経由でいかなるデータも外部サーバーに送信しません。
+        形態素解析に使用する辞書（kuromoji.js）も拡張機能内に同梱されており、オフライン環境でも動作可能です。
+      </p>
+    </section>
+
+    <section>
+      <h2>お問い合わせ</h2>
+      <p>
+        本プライバシーポリシーまたは本拡張機能に関するお問い合わせは、GitHubリポジトリのIssueよりお願いいたします。
+      </p>
+    </section>
+
+    <section>
+      <p style="font-size: 0.875rem; color: var(--m3-sys-light-on-surface-variant);">
+        制定日：2026年4月11日
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Replace-Solo. All rights reserved.</p>
+  </footer>
+</body>
+</html>

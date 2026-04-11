@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>使い方 - Replace-Solo</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    .step-list {
+      counter-reset: step;
+      list-style: none;
+      padding: 0;
+    }
+    .step-item {
+      display: flex;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      align-items: flex-start;
+    }
+    .step-number {
+      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      background-color: var(--m3-sys-light-primary);
+      color: var(--m3-sys-light-on-primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+      font-size: 1.25rem;
+    }
+    .step-content {
+      flex: 1;
+    }
+    .step-content h3 {
+      margin-top: 0;
+      margin-bottom: 0.5rem;
+    }
+    .icon-desc {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+      background-color: var(--m3-sys-light-surface-variant);
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.9rem;
+      margin: 0.25rem 0;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <nav>
+      <a href="index.html" class="logo">
+        <img src="assets/icons/icon.svg" alt="Replace-Solo Logo" width="32" height="32">
+        Replace-Solo
+      </a>
+      <div class="nav-links">
+        <a href="usage.html">使い方</a>
+        <a href="privacy.html">プライバシーポリシー</a>
+      </div>
+    </nav>
+  </header>
+
+  <main>
+    <h1>使い方</h1>
+
+    <section>
+      <p>Replace-Soloを使用して、Microsoft Loop上のテキストを効率的に置換する手順を説明します。</p>
+    </section>
+
+    <section>
+      <ul class="step-list">
+        <li class="step-item">
+          <div class="step-number">1</div>
+          <div class="step-content">
+            <h3>ページを開く</h3>
+            <p>置換を行いたいMicrosoft Loopのページを開きます。URLが <code>loop.microsoft.com/p/...</code> の形式であることを確認してください。</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-number">2</div>
+          <div class="step-content">
+            <h3>サイドパネルを開く</h3>
+            <p>ブラウザのツールバーにあるReplace-Soloのアイコンをクリックして、サイドパネルを開きます。</p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-number">3</div>
+          <div class="step-content">
+            <h3>対象を抽出する</h3>
+            <p>
+              <span class="m3-button m3-button-filled" style="height: auto; padding: 4px 12px; font-size: 12px; pointer-events: none;">対象抽出</span>
+              ボタンをクリックします。ページ内のテキストが解析され、候補となる単語がリストアップされます。
+            </p>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-number">4</div>
+          <div class="step-content">
+            <h3>置換文字列を入力する</h3>
+            <p>リストの「置換文字列」欄に、新しく置き換えたい単語を入力します。</p>
+            <div class="icon-desc">
+              <svg class="m3-icon" style="width: 18px; height: 18px;" viewBox="0 -960 960 960"><path d="M240-120q-33 0-56.5-23.5T160-200v-560q0-33 23.5-56.5T240-840h480q33 0 56.5 23.5T800-760v560q0 33-23.5 56.5T720-120H240Zm0-80h480v-560H240v560Zm80-560v280l100-60 100 60v-280H320Z"/></svg>
+              辞書登録にチェックを入れると、次回以降も同じ置換が提案されます。
+            </div>
+          </div>
+        </li>
+        <li class="step-item">
+          <div class="step-number">5</div>
+          <div class="step-content">
+            <h3>置換を実行する</h3>
+            <p>「選択」にチェックを入れ、
+              <span class="m3-button m3-button-filled" style="height: auto; padding: 4px 12px; font-size: 12px; pointer-events: none;">選択項目を一括置換</span>
+              をクリックします。または、各行の右端にある置換ボタンで個別に行うことも可能です。
+            </p>
+          </div>
+        </li>
+      </ul>
+    </section>
+
+    <section>
+      <h2>便利な機能</h2>
+      <h3>日本語のみフィルタ</h3>
+      <p>
+        サイドパネル上部の「日本語のみ」スイッチをオンにすると、英数字のみの単語を除外し、漢字・ひらがな・カタカナを含む日本語の単語に絞って表示します。
+      </p>
+
+      <h3>設定と辞書管理</h3>
+      <p>
+        ヘッダーの
+        <svg class="m3-icon" style="vertical-align: middle; width: 20px; height: 20px;" viewBox="0 -960 960 960"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5t1-13.5l-103-78 110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5t-1 13.5l103 78-110 190-119-50q-11 8-23 15t-24 12L590-80H370Zm70-80h80l12-96q26-7 49-19t43-30l89 37 40-70-77-58q5-12 7-25t2-26q0-13-2-25.5t-7-25.5l77-58-40-70-89 37q-20-18-43-30t-49-19l-12-96h-80l-12 96q-26 7-49 19t-43 30l-89-37-40 70 77 58q-5 12-7 25t-2 26q0 13 2 25.5t7 25.5l-77 58 40 70 89-37q20 18 43 30t49 19l12 96Zm40-240q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm0-80Z"/></svg>
+        設定アイコンから、辞書データのエクスポートやインポートが可能です。
+      </p>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2026 Replace-Solo. All rights reserved.</p>
+  </footer>
+</body>
+</html>
