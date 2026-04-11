@@ -259,7 +259,7 @@ document.getElementById('clear-btn').addEventListener('click', () => {
   const toggle = document.getElementById('japanese-only-toggle');
   if (toggle) toggle.checked = true;
   const wordList = document.getElementById('word-list');
-  while (wordList.firstChild) wordList.removeChild(wordList.firstChild);
+  wordList.textContent = '';
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
@@ -269,7 +269,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   const toggle = document.getElementById('japanese-only-toggle');
   if (toggle) toggle.checked = true;
   const wordList = document.getElementById('word-list');
-  while (wordList.firstChild) wordList.removeChild(wordList.firstChild);
+  wordList.textContent = '';
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
@@ -505,7 +505,7 @@ async function extractAndDisplay(text) {
  */
 async function renderWordList() {
   const wordList = document.getElementById('word-list');
-  while (wordList.firstChild) wordList.removeChild(wordList.firstChild);
+  wordList.textContent = '';
   currentWords.clear();
   rowCounter = 0;
 
