@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Replace-Solo 辞書エディタ</title>
+  <link rel="stylesheet" href="../css/editor.css">
+</head>
+<body class="m3-body">
+  <header class="m3-header">
+    <div class="header-container">
+      <h1 class="m3-headline-small">辞書エディタ</h1>
+      <div class="header-actions">
+        <button id="add-row-btn" class="m3-button m3-button-filled primary-action">新規行を追加</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="m3-main">
+    <div class="editor-container">
+      <table id="dictionary-table" class="m3-table">
+        <thead>
+          <tr>
+            <th class="col-target">置換文字列</th>
+            <th class="col-origins">元単語</th>
+            <th class="col-actions">操作</th>
+          </tr>
+        </thead>
+        <tbody id="dictionary-list">
+          <!-- 動的に追加される -->
+        </tbody>
+      </table>
+    </div>
+  </main>
+
+  <script src="../js/editor.js"></script>
+</body>
+</html>

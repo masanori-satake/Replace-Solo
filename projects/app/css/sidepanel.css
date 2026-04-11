@@ -13,6 +13,8 @@
   --m3-sys-light-surface-container-high: #ECE6F0;
   --m3-sys-light-inverse-surface: #313033;
   --m3-sys-light-inverse-on-surface: #F4EFF4;
+  --m3-sys-light-error: #B3261E;
+  --m3-sys-light-on-error: #FFFFFF;
 }
 
 body {
@@ -86,6 +88,19 @@ body {
 .m3-button-filled:hover {
   background-color: #1d4ed8;
   box-shadow: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+}
+
+.m3-button-filled.error-action {
+  background-color: var(--m3-sys-light-error);
+  color: var(--m3-sys-light-on-error);
+}
+
+.m3-button-filled.error-action:hover {
+  background-color: #8c1d18;
+}
+
+.error-text {
+  color: var(--m3-sys-light-error) !important;
 }
 
 .m3-button-outlined {
@@ -321,6 +336,14 @@ body {
 
 .settings-actions .m3-button {
   flex: 1;
+}
+
+.m3-divider {
+  border: none;
+  height: 1px;
+  background-color: var(--m3-sys-light-outline);
+  margin: 16px 0;
+  opacity: 0.2;
 }
 
 /* About Content */
