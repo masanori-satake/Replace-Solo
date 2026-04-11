@@ -17,7 +17,8 @@
     "tabs"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "https://loop.microsoft.com/*",
+    "https://loop.cloud.microsoft/*"
   ],
   "background": {
     "service_worker": "js/background.js"
@@ -34,7 +35,8 @@
         "lib/kuromoji/*"
       ],
       "matches": [
-        "<all_urls>"
+        "https://loop.microsoft.com/*",
+        "https://loop.cloud.microsoft/*"
       ]
     }
   ]

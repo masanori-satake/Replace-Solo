@@ -1,8 +1,9 @@
 import os
 import sys
 import re
+import argparse
 
-def generate_icons(output_dir=None, bg_color=None):
+def generate_icons(output_dir=None, bg_color=None, grayscale=False):
     # Use script file location as base to make it more robust
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -18,15 +19,11 @@ def generate_icons(output_dir=None, bg_color=None):
 
     if bg_color:
         # Improved replacement logic using regex to identify the background rect (512x512)
-        # This ensures we follow the master SVG's structure even if the base color changes.
-        # We also support optional attributes like 'rx' or 'class' that might be present.
         pattern = r'(<rect\s+[^>]*width="512"\s+[^>]*height="512"\s+[^>]*fill=")([^"]+)(")'
         if re.search(pattern, svg_content):
             svg_content = re.sub(pattern, rf'\1{bg_color}\3', svg_content)
             print(f"Background color dynamically changed to {bg_color}")
         else:
-            # Fallback if the strict pattern doesn't match (e.g. order of attributes)
-            # Find the first fill attribute in a rect
             svg_content = re.sub(r'(<rect\s+[^>]*fill=")([^"]+)(")', rf'\1{bg_color}\3', svg_content, count=1)
             print(f"Background color changed to {bg_color} (using fallback regex)")
 
@@ -53,15 +50,18 @@ def generate_icons(output_dir=None, bg_color=None):
         )
         page = context.new_page()
 
-        page.set_content("""
+        filter_style = "filter: grayscale(100%);" if grayscale else ""
+        page.set_content(f"""
             <style>
-              body, html { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }
-              svg { width: 100%; height: 100%; display: block; }
+              body, html {{ margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; }}
+              svg {{ width: 100%; height: 100%; display: block; {filter_style} }}
             </style>
         """ + svg_content)
 
+        suffix = "_gray" if grayscale else ""
+
         for size in [16, 32, 48, 128]:
-            output_path = os.path.join(output_dir, f"icon{size}.png")
+            output_path = os.path.join(output_dir, f"icon{size}{suffix}.png")
             print(f"Generating {size}x{size} icon: {output_path}")
 
             page.set_viewport_size({'width': size, 'height': size})
@@ -77,11 +77,14 @@ def generate_icons(output_dir=None, bg_color=None):
     return True
 
 if __name__ == "__main__":
-    # Support optional command line arguments: [output_dir] [bg_color]
-    target_dir = sys.argv[1] if len(sys.argv) > 1 else None
-    color = sys.argv[2] if len(sys.argv) > 2 else None
+    parser = argparse.ArgumentParser(description='Generate PNG icons from SVG.')
+    parser.add_argument('--output-dir', help='Output directory for icons')
+    parser.add_argument('--bg-color', help='Background color for the icon')
+    parser.add_argument('--gray', action='store_true', help='Generate grayscale icons')
 
-    if generate_icons(target_dir, color):
+    args = parser.parse_args()
+
+    if generate_icons(args.output_dir, args.bg_color, args.gray):
         exit(0)
     else:
         exit(1)

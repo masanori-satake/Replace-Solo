@@ -48,10 +48,29 @@ async function updateTabState(tabId, url) {
     await chrome.sidePanel.setOptions(options);
 
     // アクションボタンの有効/無効を設定（グレーアウト制御）
+    // アイコンも明示的に切り替える
     if (isSupported) {
       await chrome.action.enable(tabId);
+      await chrome.action.setIcon({
+        tabId: tabId,
+        path: {
+          "16": "assets/icons/icon16.png",
+          "32": "assets/icons/icon32.png",
+          "48": "assets/icons/icon48.png",
+          "128": "assets/icons/icon128.png"
+        }
+      });
     } else {
       await chrome.action.disable(tabId);
+      await chrome.action.setIcon({
+        tabId: tabId,
+        path: {
+          "16": "assets/icons/icon16_gray.png",
+          "32": "assets/icons/icon32_gray.png",
+          "48": "assets/icons/icon48_gray.png",
+          "128": "assets/icons/icon128_gray.png"
+        }
+      });
     }
   } catch (error) {
     // 特殊なタブ（chrome:// や設定ページなど）ではAPIが制限される場合があるため
