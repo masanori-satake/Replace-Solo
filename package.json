@@ -1,6 +1,6 @@
 {
   "name": "replace-solo",
-  "version": "0.11.0",
+  "version": "0.11.1",
   "description": "〜ブラウザ内で処理が完結する置換ツール〜",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
