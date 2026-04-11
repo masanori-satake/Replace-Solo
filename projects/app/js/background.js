@@ -35,10 +35,17 @@ async function updateTabState(tabId, url) {
   try {
     // サイドパネルの有効/無効を設定
     // enabled: false に設定すると、そのタブでサイドパネルが開いていた場合は自動的に閉じられる
-    await chrome.sidePanel.setOptions({
+    // 有効化する際は明示的に path を指定することで、グローバルな無効化設定を確実に上書きする
+    const options = {
       tabId: tabId,
       enabled: isSupported
-    });
+    };
+
+    if (isSupported) {
+      options.path = 'pages/sidepanel.html';
+    }
+
+    await chrome.sidePanel.setOptions(options);
 
     // アクションボタンの有効/無効を設定（グレーアウト制御）
     if (isSupported) {
@@ -53,15 +60,18 @@ async function updateTabState(tabId, url) {
 }
 
 /**
+ * Global side panel behavior is managed by the action button.
+ * Note: openPanelOnActionClick: true ensures the side panel opens when the action button is clicked.
+ * This must be called at the top level to persist across service worker restarts.
+ */
+chrome.sidePanel
+  .setPanelBehavior({ openPanelOnActionClick: true })
+  .catch((error) => console.error('Replace-Solo: Failed to set panel behavior:', error));
+
+/**
  * Initialize side panel behavior and update all existing tabs.
  */
 function initializeSidePanel() {
-  // Global side panel behavior is managed by the action button.
-  // Note: openPanelOnActionClick: true ensures the side panel opens when the action button is clicked.
-  chrome.sidePanel
-    .setPanelBehavior({ openPanelOnActionClick: true })
-    .catch((error) => console.error('Replace-Solo: Failed to set panel behavior:', error));
-
   // デフォルトではサイドパネルとアクションボタンを無効化（Loop専用のため）
   chrome.sidePanel.setOptions({ enabled: false })
     .catch((error) => console.error('Replace-Solo: Failed to set default side panel options:', error));
