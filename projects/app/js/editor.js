@@ -351,7 +351,12 @@ function setupEventListeners() {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area === 'local' && changes.dictionary) {
-        localDictionary = changes.dictionary.newValue;
+        const newDict = changes.dictionary.newValue || {};
+        // Enforce system deletion entry existence even when updated from other tabs
+        if (!newDict.hasOwnProperty('')) {
+          newDict[''] = [];
+        }
+        localDictionary = newDict;
         renderDictionary();
       }
     });
