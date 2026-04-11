@@ -63,8 +63,6 @@ async function updateTabState(tabId, url) {
       await chrome.action.setTitle({ tabId: tabId, title: 'サイドパネルを開く' });
       await chrome.action.enable(tabId);
     } else {
-      await chrome.action.disable(tabId);
-      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
@@ -74,6 +72,8 @@ async function updateTabState(tabId, url) {
           "128": "/assets/icons/icon128_gray.png"
         }
       });
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
+      await chrome.action.disable(tabId);
     }
   } catch (error) {
     // 特殊なタブ（chrome:// や設定ページなど）ではAPIが制限される場合があるため
