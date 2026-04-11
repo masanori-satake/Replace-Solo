@@ -25,7 +25,7 @@
 
   <main class="m3-main">
     <section id="actions" class="m3-section action-row">
-      <button id="analyze-btn" class="m3-button m3-button-filled primary-action">候補抽出</button>
+      <button id="extract-btn" class="m3-button m3-button-filled primary-action">対象抽出</button>
       <button id="replace-all-btn" class="m3-button m3-button-filled primary-action">選択項目を一括置換</button>
       <button id="clear-btn" class="m3-icon-button" title="クリア">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M440-520h80v-280q0-17-11.5-28.5T480-840q-17 0-28.5 11.5T440-800v280ZM200-360h560v-80H200v80Zm-58 240h98v-80q0-17 11.5-28.5T280-240q17 0 28.5 11.5T320-200v80h120v-80q0-17 11.5-28.5T480-240q17 0 28.5 11.5T520-200v80h120v-80q0-17 11.5-28.5T680-240q17 0 28.5 11.5T720-200v80h98l-40-160H182l-40 160Zm676 80H142q-39 0-63-31t-14-69l55-220v-80q0-33 23.5-56.5T200-520h160v-280q0-50 35-85t85-35q50 0 85 35t35 85v280h160q33 0 56.5 23.5T840-440v80l55 220q13 38-11.5 69T818-40Zm-58-400H200h560Zm-240-80h-80 80Z"/></svg>
@@ -37,7 +37,7 @@
 
     <section id="manual-add" class="m3-section">
       <div class="m3-text-field compact">
-        <input type="text" id="manual-word" placeholder="対象を手動追加">
+        <input type="text" id="manual-word" placeholder="対象を追加">
         <button id="add-word-btn" class="m3-button m3-button-text">追加</button>
       </div>
     </section>
@@ -46,11 +46,11 @@
       <table id="word-table" class="m3-table">
         <thead>
           <tr>
-            <th>適用</th>
+            <th>選択</th>
             <th>対象</th>
-            <th>置換候補</th>
+            <th>置換文字列</th>
             <th>辞書登録</th>
-            <th>実行</th>
+            <th>置換</th>
           </tr>
         </thead>
         <tbody id="word-list">
@@ -69,8 +69,8 @@
         </button>
       </div>
       <div class="modal-tabs">
-        <button class="tab-btn active" data-tab="general" title="一般">
-          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="m370-80-16-128q-13-5-24.5-12T307-235l-119 50L78-375l103-78q-1-7-1-13.5t1-13.5l-103-78 110-190 119 50q11-8 23-15t24-12l16-128h220l16 128q13 5 24.5 12t22.5 15l119-50 110 190-103 78q1 7 1 13.5t-1 13.5l103 78-110 190-119-50q-11 8-23 15t-24 12L590-80H370Zm70-80h80l12-96q26-7 49-19t43-30l89 37 40-70-77-58q5-12 7-25t2-26q0-13-2-25.5t-7-25.5l77-58-40-70-89 37q-20-18-43-30t-49-19l-12-96h-80l-12 96q-26 7-49 19t-43 30l-89-37-40 70 77 58q-5 12-7 25t-2 26q0 13 2 25.5t7 25.5l-77 58 40 70 89-37q20 18 43 30t49 19l12 96Zm40-240q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm0-80Z"/></svg>
+        <button class="tab-btn active" data-tab="dictionary" title="辞書">
+          <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M560-120q-50 0-80-25t-80-25q-50 0-80 25t-80 25q-50 0-80-15v-515q30-15 80-15t80 25q50 25 80 25t80-25q50-25 80-25t80 15v515q-30 0-80 15t-80 15ZM200-244q27-10 60-10t60 14q30 14 60 14t60-14q30-14 60-14t60 10v-390q-27-10-60-10t-60 14q-30 14-60 14t-60-14q-30-14-60-14t-60 10v390Zm320-30v-40h160v40H520Zm0-110v-40h160v40H520Zm0-110v-40h160v40H520ZM200-244v-390 390Z"/></svg>
         </button>
         <button class="tab-btn" data-tab="about" title="About">
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M440-280h80v-240h-80v240Zm40-320q17 0 28.5-11.5T520-640q0-17-11.5-28.5T480-680q-17 0-28.5 11.5T440-640q0 17 11.5 28.5T480-600Zm0 520q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-80q134 0 227-93t93-227q0-134-93-227t-227-93q-134 0-227 93t-93 227q0 134 93 227t227 93Zm0-320Z"/></svg>
@@ -79,17 +79,14 @@
           <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M480-80q-63 0-117.5-22.5T267-164q-41-41-63.5-95.5T181-377h100q0 40 14.5 76t40.5 64l-66 66q31 24 67.5 37.5T413-120h134q39 0 75.5-13.5T690-171l-66-66q26-28 40.5-64t14.5-76h100q0 63-22.5 117.5T693-164q-41 41-95.5 63.5T480-80Zm0-184q-13 0-25.5-2t-25.5-7l-10-67q-23-10-43-24.5T340-400h-67q-3-11-4.5-22.5T267-445q0-33 11-63.5t31-56.5l-47-47q-20 28-31.5 61T220-480l-39 10q-33 0-56.5-23.5T101-550v-64q0-33 23.5-56.5T181-694l39 10v-36q0-11 1.5-22.5T226-765l47-47q20 26 31 56.5t11 63.5q0 11 1.5 22.5T320-627h67q16-22 36-36.5t43-24.5l10-67q1-5 4-8.5t10-5.5q33-11 67.5-11t67.5 11q7 2 10 5.5t4 8.5l10 67q23 10 43 24.5T731-627h67q3 11 4.5 22.5T804-582q0 33-11 63.5t-31 56.5l47 47q20-28 31.5-61t11.5-71l39-10q33 0 56.5 23.5T960-550v64q0 33-23.5 56.5T880-406l-39-10v36q0 11-1.5 22.5T835-335l-47 47q-20-26-31-56.5t-11-63.5q0-11-1.5-22.5T741-453h-67q-16 22-36 36.5T595-392l-10 67q-1 5-4 8.5t-10 5.5q-13 5-25.5 7t-25.5 2ZM480-400q33 0 56.5-23.5T560-480q0-33-23.5-56.5T480-560q-33 0-56.5 23.5T400-480q0 33 23.5 56.5T480-400Zm0-80Z"/></svg>
         </button>
       </div>
-      <div id="tab-general" class="tab-panel active">
+      <div id="tab-dictionary" class="tab-panel active">
         <div class="m3-section">
-          <div class="settings-group">
-            <p class="settings-label">辞書データ</p>
-            <div class="settings-actions">
-              <button id="export-json" class="m3-button m3-button-outlined">エクスポート</button>
-              <button id="import-json" class="m3-button m3-button-outlined">インポート</button>
-            </div>
-            <div class="settings-actions">
-              <button id="clear-dictionary" class="m3-button m3-button-outlined">クリア</button>
-            </div>
+          <div class="settings-actions">
+            <button id="export-json" class="m3-button m3-button-outlined">エクスポート</button>
+            <button id="import-json" class="m3-button m3-button-outlined">インポート</button>
+          </div>
+          <div class="settings-actions" style="margin-top: 8px;">
+            <button id="clear-dictionary" class="m3-button m3-button-outlined">クリア</button>
           </div>
         </div>
       </div>
@@ -105,7 +102,7 @@
           </section>
           <section>
             <p class="about-label">Replace-Solo</p>
-            <p>Replace-Soloは、プライバシーを最優先に設計された、ブラウザ内で処理が完結する置換ツールです。形態素解析を利用して、文書内の特定の単語を効率的に見つけ出し、一括で置換することができます。データはすべてブラウザ内に保存され、外部に送信されることはありません。</p>
+            <p>Replace-Soloは、プライバシーを最優先に設計された、ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツールです。形態素解析を利用して、文書内の特定の単語を効率的に見つけ出し、一括で置換することができます。データはすべてブラウザ内に保存され、外部に送信されることはありません。</p>
           </section>
           <section>
             <p class="disclaimer">【免責事項】 本ソフトウェアは個人開発によるオープンソースプロジェクトであり、無保証です。利用により生じたいかなる損害についても、開発者は一切の責任を負いません。自己責任でご利用ください。</p>
@@ -120,7 +117,7 @@
               <button id="download-debug-info" class="m3-button m3-button-filled primary-action" style="width: 100%;">抽出結果の一括ダウンロード</button>
             </div>
             <p style="margin-top: 12px; font-size: 12px; color: var(--m3-sys-light-on-surface-variant);">
-              解析実行した際の原文、抽出された単語、および形態素解析の詳細情報をJSON形式でダウンロードします。
+              対象抽出した際の原文、抽出された単語、および形態素解析の詳細情報をJSON形式でダウンロードします。
             </p>
           </section>
         </div>

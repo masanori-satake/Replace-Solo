@@ -7,7 +7,7 @@ console.log('Replace-Solo: Side Panel Loaded');
 
 let tokenizer = null;
 let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
-let lastAnalyzedData = {
+let lastExtractedData = {
   text: "",
   tokens: [],
   extractedWords: []
@@ -211,7 +211,7 @@ async function sendMessageToTab(tabId, message) {
 }
 
 // UI Event Listeners
-document.getElementById('analyze-btn').addEventListener('click', async () => {
+document.getElementById('extract-btn').addEventListener('click', async () => {
   if (!tokenizer) {
     alert('形態素解析エンジンの準備中です。少々お待ちください。');
     return;
@@ -225,10 +225,10 @@ document.getElementById('analyze-btn').addEventListener('click', async () => {
     try {
       const response = await sendMessageToTab(tab.id, { action: 'EXTRACT_TEXT' });
       if (response && response.text) {
-        analyzeAndDisplay(response.text);
+        extractAndDisplay(response.text);
       }
     } catch (error) {
-      console.error('Analyze failed:', error);
+      console.error('Extraction failed:', error);
       alert(error.message);
     }
   } else {
@@ -289,7 +289,7 @@ document.getElementById('reset-btn').addEventListener('click', () => {
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
-  document.getElementById('analyze-btn').click();
+  document.getElementById('extract-btn').click();
 });
 
 // Japanese Only Toggle logic
@@ -329,7 +329,10 @@ tabBtns.forEach(btn => {
     tabPanels.forEach(p => p.classList.remove('active'));
 
     btn.classList.add('active');
-    document.getElementById(`tab-${targetTab}`).classList.add('active');
+    const tabPanel = document.getElementById(`tab-${targetTab}`);
+    if (tabPanel) {
+      tabPanel.classList.add('active');
+    }
   });
 });
 
@@ -347,7 +350,7 @@ document.getElementById('download-debug-info').addEventListener('click', () => {
   const data = {
     version: document.getElementById('app-version').innerText,
     timestamp: new Date().toISOString(),
-    ...lastAnalyzedData
+    ...lastExtractedData
   };
 
   const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -365,8 +368,8 @@ document.getElementById('clear-dictionary').addEventListener('click', () => {
     chrome.storage.local.set({ dictionary: localDictionary }, () => {
       alert('辞書をクリアしました。');
       updateDictCache();
-      const analyzeBtn = document.getElementById('analyze-btn');
-      if (analyzeBtn) analyzeBtn.click();
+      const extractBtn = document.getElementById('extract-btn');
+      if (extractBtn) extractBtn.click();
     });
   }
 });
@@ -406,8 +409,8 @@ document.getElementById('import-json').addEventListener('click', () => {
 
         chrome.storage.local.set({ dictionary: localDictionary }, () => {
           alert('インポートが完了しました。');
-          const analyzeBtn = document.getElementById('analyze-btn');
-          if (analyzeBtn) analyzeBtn.click();
+          const extractBtn = document.getElementById('extract-btn');
+          if (extractBtn) extractBtn.click();
         });
       } catch (err) {
         console.error('Import error:', err);
@@ -419,12 +422,12 @@ document.getElementById('import-json').addEventListener('click', () => {
   input.click();
 });
 
-async function analyzeAndDisplay(text) {
+async function extractAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
 
   // デバッグ用データの保存
-  lastAnalyzedData.text = text;
-  lastAnalyzedData.tokens = tokens;
+  lastExtractedData.text = text;
+  lastExtractedData.tokens = tokens;
 
   const nouns = new Set();
 
@@ -508,7 +511,7 @@ async function analyzeAndDisplay(text) {
     return collator.compare(a, b);
   });
 
-  lastAnalyzedData.extractedWords = [...allExtractedWords];
+  lastExtractedData.extractedWords = [...allExtractedWords];
 
   await renderWordList();
 }
@@ -594,7 +597,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
     </td>
     <td><input type="checkbox" class="m3-checkbox dict-check" ${isManualInternal ? 'checked' : ''}></td>
     <td>
-      <button class="m3-icon-button single-exec" title="実行">
+      <button class="m3-icon-button single-exec" title="置換">
         <svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M320-200v-560l440 280-440 280Z"/></svg>
       </button>
     </td>
@@ -617,7 +620,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
         dictCheck.checked = false;
         dictCheck.disabled = true;
       } else {
-        // 置換候補が入力されても、自動的に辞書登録をONにしない（ユーザーの明示的な操作を優先）
+        // 置換文字列が入力されても、自動的に辞書登録をONにしない（ユーザーの明示的な操作を優先）
         dictCheck.disabled = false;
       }
     } else {
