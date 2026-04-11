@@ -31,17 +31,21 @@ async function updateTabState(tabId, url) {
   if (!tabId) return;
 
   const isSupported = isSupportedLoopPage(url);
-  console.log(`Replace-Solo: Updating tab ${tabId} state. Supported: ${isSupported}, URL: ${url}`);
 
   try {
     // サイドパネルの有効/無効を設定
     // enabled: false に設定すると、そのタブでサイドパネルが開いていた場合は自動的に閉じられる
     // 有効化する際は明示的に path を指定することで、グローバルな無効化設定を確実に上書きする
-    await chrome.sidePanel.setOptions({
+    const options = {
       tabId: tabId,
-      path: 'pages/sidepanel.html',
       enabled: isSupported
-    });
+    };
+
+    if (isSupported) {
+      options.path = 'pages/sidepanel.html';
+    }
+
+    await chrome.sidePanel.setOptions(options);
 
     // アクションボタンの有効/無効を設定（グレーアウト制御）
     if (isSupported) {
@@ -68,14 +72,11 @@ chrome.sidePanel
  * Initialize side panel behavior and update all existing tabs.
  */
 function initializeSidePanel() {
-  console.log('Replace-Solo: Initializing side panel state');
   // デフォルトではサイドパネルとアクションボタンを無効化（Loop専用のため）
   chrome.sidePanel.setOptions({ enabled: false })
-    .then(() => console.log('Replace-Solo: Default side panel disabled'))
     .catch((error) => console.error('Replace-Solo: Failed to set default side panel options:', error));
 
   chrome.action.disable()
-    .then(() => console.log('Replace-Solo: Default action disabled'))
     .catch((error) => console.error('Replace-Solo: Failed to disable default action:', error));
 
   // 初回起動時やリロード時に全タブの状態を更新する
