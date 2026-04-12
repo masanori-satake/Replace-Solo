@@ -3,7 +3,7 @@ name: Generate PNG Icons
 on:
   pull_request:
     paths:
-      - 'projects/app/assets/icons/icon.svg'
+      - 'projects/app/assets/icons/icon.png'
 
 jobs:
   generate-icons:
