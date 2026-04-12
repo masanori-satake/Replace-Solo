@@ -30,15 +30,6 @@ function isSupportedLoopPage(urlStr) {
 async function updateTabState(tabId, url) {
   if (!tabId) return;
 
-  // タブが存在するか確認し、存在しない場合は早期リターンする
-  try {
-    const tab = await chrome.tabs.get(tabId);
-    if (!tab) return;
-  } catch (e) {
-    // タブが存在しない場合のエラー（No tab with id）をキャッチして無視する
-    return;
-  }
-
   const isSupported = isSupportedLoopPage(url);
 
   try {
@@ -114,14 +105,13 @@ async function initializeSidePanel() {
   // 初回起動時やリロード時に全タブの状態を更新する
   try {
     const tabs = await chrome.tabs.query({});
-    for (const tab of tabs) {
+    // 各タブの状態更新を並列で実行し、個別のエラーが他に影響しないようにする
+    await Promise.allSettled(tabs.map(tab => {
       if (tab.id) {
-        // 各タブの状態更新を待機し、エラーを個別にキャッチできるようにする
-        updateTabState(tab.id, tab.url || tab.pendingUrl).catch(e =>
-          console.debug(`Replace-Solo: Async update failed for tab ${tab.id}:`, e)
-        );
+        return updateTabState(tab.id, tab.url || tab.pendingUrl);
       }
-    }
+      return Promise.resolve();
+    }));
   } catch (error) {
     console.debug('Replace-Solo: Failed to query tabs during initialization:', error);
   }
@@ -146,12 +136,14 @@ chrome.runtime.onStartup.addListener(() => {
 /**
  * タブのURL更新を監視（SPA遷移や通常のページ遷移、戻る・進むに対応）
  */
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // URLが変わった場合、または読み込みが完了した場合に状態を更新
   if (changeInfo.url || changeInfo.status === 'complete') {
-    updateTabState(tabId, tab.url || tab.pendingUrl).catch(e =>
-      console.debug(`Replace-Solo: Error in onUpdated for tab ${tabId}:`, e)
-    );
+    try {
+      await updateTabState(tabId, tab.url || tab.pendingUrl);
+    } catch (error) {
+      console.debug(`Replace-Solo: Failed to handle onUpdated for tab ${tabId}:`, error);
+    }
   }
 });
 

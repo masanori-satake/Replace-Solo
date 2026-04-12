@@ -425,17 +425,16 @@ document.getElementById('import-json').addEventListener('click', () => {
           }
         }
 
-        chrome.storage.local.set({ dictionary: localDictionary }, () => {
-          // Check for errors to avoid "Unchecked runtime.lastError"
-          if (chrome.runtime.lastError) {
-            console.error('Import save failed:', chrome.runtime.lastError);
+        chrome.storage.local.set({ dictionary: localDictionary })
+          .then(() => {
+            alert('インポートが完了しました。');
+            const extractBtn = document.getElementById('extract-btn');
+            if (extractBtn) extractBtn.click();
+          })
+          .catch((error) => {
+            console.error('Import save failed:', error);
             alert('辞書の保存に失敗しました。');
-            return;
-          }
-          alert('インポートが完了しました。');
-          const extractBtn = document.getElementById('extract-btn');
-          if (extractBtn) extractBtn.click();
-        });
+          });
       } catch (err) {
         console.error('Import error:', err);
         alert('インポートに失敗しました: ' + err.message);
