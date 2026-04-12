@@ -1,0 +1,55 @@
+name: 機能追加の要望
+description: Replace-Soloをより良くするための新しいアイデアを提案してください。
+title: "Feature: [機能要望の簡潔な説明をここに記述]"
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        新機能の提案ありがとうございます！あなたのアイデアを形にするため、詳細を教えてください。
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: 実現したいこと
+      description: どのような機能を追加したいか、またはどのような問題を解決したいかを教えてください。
+      placeholder: |
+        （例）抽出された単語の一覧を、ひらがな順ではなく、出現回数順に並べ替えられるようにしたい。
+    validations:
+      required: true
+
+  - type: textarea
+    id: background
+    attributes:
+      label: 背景・目的
+      description: その機能が必要だと感じた理由や、その機能があることでどのようなメリットがあるかを教えてください。
+      placeholder: |
+        （例）長い議事録を編集する際、頻繁に出現する表記揺れを優先的に直したいから。
+    validations:
+      required: true
+
+  - type: textarea
+    id: behavior-example
+    attributes:
+      label: 期待する動作の例
+      description: その機能がどのように動作することを期待しているか、具体例があれば教えてください。
+      placeholder: |
+        （例）一覧のヘッダーをクリックするとソート順が切り替わる、または設定画面でデフォルトの並び順を選択できる。
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: スクリーンショット（任意）
+      description: イメージ図などがあればここにドラッグ＆ドロップしてください。
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: その他
+      description: その他、補足情報があれば自由に入力してください。
+    validations:
+      required: false

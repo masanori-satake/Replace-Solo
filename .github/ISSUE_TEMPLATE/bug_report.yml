@@ -1,0 +1,90 @@
+name: 不具合の報告
+description: Replace-Soloの不具合を報告して、改善に協力してください。
+title: "Bug: [不具合の簡潔な説明をここに記述]"
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        不具合の報告ありがとうございます！より迅速な対応のため、以下の項目への入力をお願いします。
+
+  - type: textarea
+    id: description
+    attributes:
+      label: 不具合の内容
+      description: どのような問題が発生しているか、簡潔に教えてください。
+      placeholder: |
+        （例）「対象抽出」ボタンを押しても、ページ内のテキストが全く抽出されません。
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: Replace-Soloのバージョン
+      description: |
+        サイドパネル右上の歯車アイコン（設定） > 「About」タブを開き、表示されているバージョン番号を入力してください。
+      placeholder: 0.12.1
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: 再現手順
+      description: 不具合が発生した際の手順を教えてください。
+      placeholder: |
+        1. Microsoft Loopで任意のページを開く
+        2. サイドパネルを開き「対象抽出」をクリック
+        3. ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: OS・ブラウザのバージョン
+      description: ご利用のOS（Windows, macOSなど）とブラウザのバージョンを教えてください。
+      placeholder: |
+        - OS: Windows 11
+        - ブラウザ: Chrome 120.0.6099.130
+    validations:
+      required: true
+
+  - type: input
+    id: loop-url
+    attributes:
+      label: 発生したMicrosoft LoopのURL
+      description: |
+        不具合が発生したページのURLを教えてください。
+        **注意**: ワークスペース名や特定の文書を特定できるIDなど、機密情報が含まれる場合は、適宜伏せ字（例: `https://loop.microsoft.com/p/XXXXXXXXXX`）にするか、ドメイン名のみを記載してください。
+      placeholder: https://loop.microsoft.com/p/...
+    validations:
+      required: false
+
+  - type: textarea
+    id: behavior
+    attributes:
+      label: 期待する動作と実際の動作
+      description: 本来どうなるべきだったか、そして実際にはどうなったかを教えてください。
+      placeholder: |
+        期待される動作: テキストが抽出され、一覧が表示される
+        実際の動作: 画面が真っ白のまま変化しない
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: スクリーンショット・動画
+      description: 状況を説明する画像をここにドラッグ＆ドロップしてください。
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: その他
+      description: その他、補足情報があれば自由に入力してください。
+    validations:
+      required: false
