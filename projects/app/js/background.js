@@ -30,6 +30,15 @@ function isSupportedLoopPage(urlStr) {
 async function updateTabState(tabId, url) {
   if (!tabId) return;
 
+  // タブが存在するか確認し、存在しない場合は早期リターンする
+  try {
+    const tab = await chrome.tabs.get(tabId);
+    if (!tab) return;
+  } catch (e) {
+    // タブが存在しない場合のエラー（No tab with id）をキャッチして無視する
+    return;
+  }
+
   const isSupported = isSupportedLoopPage(url);
 
   try {
@@ -93,22 +102,29 @@ chrome.sidePanel
 /**
  * Initialize side panel behavior and update all existing tabs.
  */
-function initializeSidePanel() {
-  // デフォルトではサイドパネルとアクションボタンを無効化（Loop専用のため）
-  chrome.sidePanel.setOptions({ enabled: false })
-    .catch((error) => console.error('Replace-Solo: Failed to set default side panel options:', error));
-
-  chrome.action.disable()
-    .catch((error) => console.error('Replace-Solo: Failed to disable default action:', error));
+async function initializeSidePanel() {
+  try {
+    // デフォルトではサイドパネルとアクションボタンを無効化（Loop専用のため）
+    await chrome.sidePanel.setOptions({ enabled: false });
+    await chrome.action.disable();
+  } catch (error) {
+    console.debug('Replace-Solo: Failed to set default side panel options:', error);
+  }
 
   // 初回起動時やリロード時に全タブの状態を更新する
-  chrome.tabs.query({}, (tabs) => {
-    tabs.forEach(tab => {
+  try {
+    const tabs = await chrome.tabs.query({});
+    for (const tab of tabs) {
       if (tab.id) {
-        updateTabState(tab.id, tab.url || tab.pendingUrl);
+        // 各タブの状態更新を待機し、エラーを個別にキャッチできるようにする
+        updateTabState(tab.id, tab.url || tab.pendingUrl).catch(e =>
+          console.debug(`Replace-Solo: Async update failed for tab ${tab.id}:`, e)
+        );
       }
-    });
-  });
+    }
+  } catch (error) {
+    console.debug('Replace-Solo: Failed to query tabs during initialization:', error);
+  }
 }
 
 /**
@@ -133,7 +149,9 @@ chrome.runtime.onStartup.addListener(() => {
 chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
   // URLが変わった場合、または読み込みが完了した場合に状態を更新
   if (changeInfo.url || changeInfo.status === 'complete') {
-    updateTabState(tabId, tab.url || tab.pendingUrl);
+    updateTabState(tabId, tab.url || tab.pendingUrl).catch(e =>
+      console.debug(`Replace-Solo: Error in onUpdated for tab ${tabId}:`, e)
+    );
   }
 });
 
@@ -144,9 +162,10 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
   try {
     const tab = await chrome.tabs.get(activeInfo.tabId);
     if (tab) {
-      updateTabState(activeInfo.tabId, tab.url || tab.pendingUrl);
+      await updateTabState(activeInfo.tabId, tab.url || tab.pendingUrl);
     }
   } catch (error) {
+    // タブが存在しない場合のエラー（No tab with id）をキャッチして無視する
     console.debug('Replace-Solo: Failed to handle tab activation:', error);
   }
 });

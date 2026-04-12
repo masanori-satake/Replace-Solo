@@ -56,18 +56,22 @@ function updateDictCache() {
 }
 
 // 初期データの読み込みと辞書更新の購読
-function loadDictionary() {
+async function loadDictionary() {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(['dictionary'], (result) => {
+    try {
+      const result = await chrome.storage.local.get(['dictionary']);
       if (result.dictionary) {
         localDictionary = result.dictionary;
         console.log('Replace-Solo: Local dictionary loaded');
       } else {
         localDictionary = DEFAULT_DICTIONARY;
-        chrome.storage.local.set({ dictionary: localDictionary });
+        await chrome.storage.local.set({ dictionary: localDictionary });
       }
-      updateDictCache();
-    });
+    } catch (error) {
+      console.error('Replace-Solo: Failed to load dictionary:', error);
+      localDictionary = DEFAULT_DICTIONARY;
+    }
+    updateDictCache();
   } else {
     localDictionary = DEFAULT_DICTIONARY;
     updateDictCache();
@@ -358,27 +362,34 @@ confirmCancelBtn.addEventListener('click', () => {
   confirmDialog.style.display = 'none';
 });
 
-confirmOkBtn.addEventListener('click', () => {
-  localDictionary = DEFAULT_DICTIONARY;
-  chrome.storage.local.set({ dictionary: localDictionary }, () => {
+confirmOkBtn.addEventListener('click', async () => {
+  try {
+    localDictionary = DEFAULT_DICTIONARY;
+    await chrome.storage.local.set({ dictionary: localDictionary });
     updateDictCache();
     const extractBtn = document.getElementById('extract-btn');
     if (extractBtn) extractBtn.click();
+  } catch (error) {
+    console.error('Replace-Solo: Failed to clear dictionary:', error);
+  } finally {
     confirmDialog.style.display = 'none';
-  });
+  }
 });
 
-document.getElementById('open-editor').addEventListener('click', () => {
-  const editorUrl = chrome.runtime.getURL('pages/editor.html');
-  chrome.tabs.query({ url: editorUrl }, (tabs) => {
+document.getElementById('open-editor').addEventListener('click', async () => {
+  try {
+    const editorUrl = chrome.runtime.getURL('pages/editor.html');
+    const tabs = await chrome.tabs.query({ url: editorUrl });
     if (tabs.length > 0) {
       const tab = tabs[0];
-      chrome.tabs.update(tab.id, { active: true });
-      chrome.windows.update(tab.windowId, { focused: true });
+      await chrome.tabs.update(tab.id, { active: true });
+      await chrome.windows.update(tab.windowId, { focused: true });
     } else {
-      chrome.tabs.create({ url: editorUrl });
+      await chrome.tabs.create({ url: editorUrl });
     }
-  });
+  } catch (error) {
+    console.debug('Replace-Solo: Failed to open editor:', error);
+  }
 });
 
 document.getElementById('import-json').addEventListener('click', () => {
@@ -415,6 +426,12 @@ document.getElementById('import-json').addEventListener('click', () => {
         }
 
         chrome.storage.local.set({ dictionary: localDictionary }, () => {
+          // Check for errors to avoid "Unchecked runtime.lastError"
+          if (chrome.runtime.lastError) {
+            console.error('Import save failed:', chrome.runtime.lastError);
+            alert('辞書の保存に失敗しました。');
+            return;
+          }
           alert('インポートが完了しました。');
           const extractBtn = document.getElementById('extract-btn');
           if (extractBtn) extractBtn.click();
@@ -704,14 +721,18 @@ function getDictMatch(word) {
   return null;
 }
 
-function saveToDictionary(origin, target) {
+async function saveToDictionary(origin, target) {
   if (!localDictionary[target]) {
     localDictionary[target] = [];
   }
   if (!localDictionary[target].includes(origin)) {
     localDictionary[target].push(origin);
     updateDictCache();
-    chrome.storage.local.set({ dictionary: localDictionary });
+    try {
+      await chrome.storage.local.set({ dictionary: localDictionary });
+    } catch (error) {
+      console.error('Replace-Solo: Failed to save to dictionary:', error);
+    }
   }
 }
 

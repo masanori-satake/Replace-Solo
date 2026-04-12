@@ -12,22 +12,26 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Load dictionary from chrome storage
-function loadDictionary() {
+async function loadDictionary() {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.get(['dictionary'], (result) => {
+    try {
+      const result = await chrome.storage.local.get(['dictionary']);
       if (result.dictionary) {
         localDictionary = result.dictionary;
         // Ensure system deletion entry exists
         if (!localDictionary.hasOwnProperty('')) {
           localDictionary[''] = [];
-          saveToStorage();
+          await saveToStorage();
         }
       } else {
         localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
-        saveToStorage();
+        await saveToStorage();
       }
-      renderDictionary();
-    });
+    } catch (error) {
+      console.error('Replace-Solo: Failed to load dictionary:', error);
+      localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
+    }
+    renderDictionary();
   } else {
     localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
     renderDictionary();
@@ -35,11 +39,14 @@ function loadDictionary() {
 }
 
 // Save dictionary to chrome storage
-function saveToStorage() {
+async function saveToStorage() {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
-    chrome.storage.local.set({ dictionary: localDictionary }, () => {
+    try {
+      await chrome.storage.local.set({ dictionary: localDictionary });
       console.log('Replace-Solo: Dictionary saved to storage');
-    });
+    } catch (error) {
+      console.error('Replace-Solo: Failed to save dictionary:', error);
+    }
   }
 }
 
