@@ -26,7 +26,7 @@ test('should not automatically check dictionary registration for manually added 
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: '0.13.1' }),
+        getManifest: () => ({ version: '0.14.0' }),
         lastError: null
       },
       tabs: {
@@ -43,8 +43,9 @@ test('should not automatically check dictionary registration for manually added 
 
   await page.goto(filePath);
 
-  // Wait for Kuromoji
-  await page.waitForTimeout(2000);
+  // Wait for the UI to be ready.
+  // We wait for the "Extract" button to be attached/visible as it's a primary UI element.
+  await expect(page.locator('#extract-btn')).toBeVisible();
 
   // Input a word
   await page.fill('#manual-word', 'テスト単語');
@@ -58,5 +59,7 @@ test('should not automatically check dictionary registration for manually added 
   const dictCheck = row.locator('.dict-check');
 
   // We expect it NOT to be checked by default for manually added words
-  await expect(dictCheck).not.toBeChecked();
+  // Use state check that works even if the element is visually hidden (but present in DOM)
+  const isChecked = await dictCheck.evaluate(el => el.checked);
+  expect(isChecked).toBe(false);
 });
