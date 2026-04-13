@@ -332,22 +332,15 @@ document.getElementById('copy-copilot-prompt-btn').addEventListener('click', asy
   const dictionary = localDictionary;
   let deletionInstructions = "";
   if (dictionary[""] && dictionary[""].length > 0) {
-    deletionInstructions = `\nまた、キーが空文字列 "" のリストに含まれる語句は、適宜削除（空文字に置換）して処理してください。`;
+    deletionInstructions = `（空キーの語句は削除）`;
   }
 
-  const prompt = `💡 AI精度向上のための用語補正データを適用します（参加者の方は無視してください）。
-
-@facilitator 以下のJSONデータは、音声認識の「聞き間違い」を修正するための対応表です。
-要約や議事録を作成する際は、"values"リストに含まれる誤記を、対応する"key"の正しい名称に必ず置換して処理してください。${deletionInstructions}
-
-<details>
-<summary>Term Correction Data (Expand for details)</summary>
+  const prompt = `💡 AI補正データ (@facilitator 用)
+以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}
 
 \`\`\`json
 ${JSON.stringify(dictionary, null, 2)}
 \`\`\`
-
-</details>
 `;
 
   try {
