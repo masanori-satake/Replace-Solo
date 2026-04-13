@@ -332,11 +332,11 @@ document.getElementById('copy-copilot-prompt-btn').addEventListener('click', asy
   const dictionary = localDictionary;
   let deletionInstructions = "";
   if (dictionary[""] && dictionary[""].length > 0) {
-    deletionInstructions = `空キーの語句は削除してください。`;
+    deletionInstructions = `（空キーの語句は削除）`;
   }
 
   const prompt = `💡 AI補正データ (@facilitator 用)
-以下のJSONに従い、"values"を"key"に置換してください。${deletionInstructions}
+以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}
 
 \`\`\`json
 ${JSON.stringify(dictionary, null, 2)}
