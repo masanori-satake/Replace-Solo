@@ -360,15 +360,13 @@ document.getElementById('copy-copilot-prompt-btn').addEventListener('click', asy
   // HTML版 (Teams向け)
   const escapedInstruction = escapeHtml(instruction).replace(/\n/g, '<br>');
   const escapedJson = escapeHtml(jsonString);
-  const htmlContent = `
-    <div style="font-family: sans-serif;">
-      <p>${escapedInstruction}</p>
-      <pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">
-        <code>${escapedJson}</code>
-      </pre>
-      <p style="font-size: 0.1em; color: transparent;">.</p>
-    </div>
-  `;
+  const htmlContent = '<div style="font-family: sans-serif;">' +
+    `<p>${escapedInstruction}</p>` +
+    '<pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">' +
+    `<code>${escapedJson}</code>` +
+    '</pre>' +
+    '<p style="font-size: 0.1em; color: transparent;">.</p>' +
+    '</div>';
 
   try {
     const blobPlain = new Blob([plainText], { type: 'text/plain' });
