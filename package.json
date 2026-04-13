@@ -3,7 +3,7 @@
   "version": "0.13.1",
   "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
   "scripts": {
-    "test": "npx playwright test",
+    "test": "npx playwright test projects/app/tests --output projects/app/test-results",
     "build": "mkdir -p releases && python3 scripts/check_version.py && cd projects/app && zip -r ../../releases/Replace-Solo-Chrome.zip . -x \"*.log\"",
     "version:bump": "python3 scripts/bump_version.py"
   },
