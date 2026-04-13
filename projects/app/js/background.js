@@ -60,7 +60,7 @@ async function updateTabState(tabId, url) {
           "128": "/assets/icons/icon128.png"
         }
       });
-      await chrome.action.setTitle({ tabId: tabId, title: 'サイドパネルを開く' });
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Soloを開く' });
       await chrome.action.enable(tabId);
     } else {
       await chrome.action.setIcon({
