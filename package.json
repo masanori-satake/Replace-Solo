@@ -3,13 +3,13 @@
   "version": "0.13.1",
   "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "npx playwright test",
     "build": "mkdir -p releases && python3 scripts/check_version.py && cd projects/app && zip -r ../../releases/Replace-Solo-Chrome.zip . -x \"*.log\"",
     "version:bump": "python3 scripts/bump_version.py"
   },
   "author": "Masanori SATAKE",
   "license": "MIT",
   "devDependencies": {
-    "playwright": "^1.59.1"
+    "@playwright/test": "^1.59.1"
   }
 }

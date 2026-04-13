@@ -654,7 +654,6 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const dictCheck = document.createElement('input');
   dictCheck.type = 'checkbox';
   dictCheck.className = 'm3-checkbox dict-check';
-  if (isManualInternal) dictCheck.checked = true;
   tdDict.appendChild(dictCheck);
   row.appendChild(tdDict);
 
