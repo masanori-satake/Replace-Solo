@@ -1,7 +1,7 @@
 const { test, expect } = require('@playwright/test');
 const path = require('path');
 
-test('Copilot prompt generation should work correctly', async ({ page }) => {
+test('Copilot prompt generation should support both Plain Text and HTML', async ({ page }) => {
   const filePath = 'file://' + path.resolve('projects/app/pages/sidepanel.html');
 
   // Mock chrome API and clipboard
@@ -71,21 +71,28 @@ test('Copilot prompt generation should work correctly', async ({ page }) => {
   expect(currentPath).toBe(checkMarkPath);
 
   // Verify clipboard content
-  const clipboardContent = await page.evaluate(async () => {
+  const clipboardData = await page.evaluate(async () => {
+    const results = {};
     const items = window.lastClipboardData;
     if (items.length > 0) {
       const data = items[0];
-      if (data['text/plain']) {
-        return await data['text/plain'].text();
+      for (const type of Object.keys(data)) {
+        results[type] = await data[type].text();
       }
     }
-    return "";
+    return results;
   });
 
-  expect(clipboardContent).toContain('💡 AI補正データ (@facilitator 用)');
-  expect(clipboardContent).toContain('"正しい": [');
-  expect(clipboardContent).toContain('"誤り1"');
-  expect(clipboardContent).toContain('（空キーの語句は削除）');
-  expect(clipboardContent).not.toContain('<details>');
-  expect(clipboardContent).toContain('```json');
+  // Verify Plain Text
+  expect(clipboardData['text/plain']).toContain('💡 AI補正データ (@facilitator 用)');
+  expect(clipboardData['text/plain']).toContain('```json');
+  expect(clipboardData['text/plain']).toContain('"正しい": [');
+  expect(clipboardData['text/plain']).toContain('（空キーの語句は削除）');
+
+  // Verify HTML
+  expect(clipboardData['text/html']).toContain('<div style="font-family: sans-serif;">');
+  expect(clipboardData['text/html']).toContain('<pre style="background-color: #f3f2f1;');
+  expect(clipboardData['text/html']).toContain('<code>');
+  expect(clipboardData['text/html']).toContain('&quot;正しい&quot;:');
+  expect(clipboardData['text/html']).toContain('<br>');
 });

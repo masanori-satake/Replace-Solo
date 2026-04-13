@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Replace-Solo",
-  "version": "0.15.1",
+  "version": "0.16.0",
   "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
   "icons": {
     "16": "assets/icons/icon16.png",
