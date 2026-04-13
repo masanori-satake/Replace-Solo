@@ -27,6 +27,20 @@ const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{3,}$/;
 const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
 const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
 
+/**
+ * HTML文字列をエスケープする
+ */
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+
 // kuromoji.js の初期化
 kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
   if (err) {
@@ -335,16 +349,36 @@ document.getElementById('copy-copilot-prompt-btn').addEventListener('click', asy
     deletionInstructions = `（空キーの語句は削除）`;
   }
 
-  const prompt = `💡 AI補正データ (@facilitator 用)
-以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}
+  const instruction = `💡 AI補正データ (@facilitator 用)
+以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}`;
 
-\`\`\`json
-${JSON.stringify(dictionary, null, 2)}
-\`\`\`
-`;
+  const jsonString = JSON.stringify(dictionary, null, 2);
+
+  // プレーンテキスト版
+  const plainText = `${instruction}\n\n\`\`\`json\n${jsonString}\n\`\`\`\n`;
+
+  // HTML版 (Teams向け)
+  const escapedInstruction = escapeHtml(instruction).replace(/\n/g, '<br>');
+  const escapedJson = escapeHtml(jsonString);
+  const htmlContent = `
+    <div style="font-family: sans-serif;">
+      <p>${escapedInstruction}</p>
+      <pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">
+        <code>${escapedJson}</code>
+      </pre>
+      <p style="font-size: 0.1em; color: transparent;">.</p>
+    </div>
+  `;
 
   try {
-    await navigator.clipboard.writeText(prompt);
+    const blobPlain = new Blob([plainText], { type: 'text/plain' });
+    const blobHtml = new Blob([htmlContent], { type: 'text/html' });
+    const clipboardItem = new ClipboardItem({
+      'text/plain': blobPlain,
+      'text/html': blobHtml
+    });
+    await navigator.clipboard.write([clipboardItem]);
+
     btn.innerHTML = checkSvg;
     setTimeout(() => {
       btn.innerHTML = originalSvg;
