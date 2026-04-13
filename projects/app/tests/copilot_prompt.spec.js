@@ -69,11 +69,10 @@ test('Copilot prompt generation should work correctly', async ({ page }) => {
   // Verify clipboard content
   const clipboardContent = await page.evaluate(() => navigator.clipboard.readText());
 
-  expect(clipboardContent).toContain('💡 AI精度向上のための用語補正データを適用します');
-  expect(clipboardContent).toContain('@facilitator');
+  expect(clipboardContent).toContain('💡 AI補正データ (@facilitator 用)');
   expect(clipboardContent).toContain('"正しい": [');
   expect(clipboardContent).toContain('"誤り1"');
-  expect(clipboardContent).toContain('キーが空文字列 "" のリストに含まれる語句は、適宜削除');
-  expect(clipboardContent).toContain('<details>');
+  expect(clipboardContent).toContain('空キーの語句は削除してください。');
+  expect(clipboardContent).not.toContain('<details>');
   expect(clipboardContent).toContain('```json');
 });
