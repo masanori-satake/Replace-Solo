@@ -332,7 +332,7 @@ document.getElementById('copy-copilot-prompt-btn').addEventListener('click', asy
   const dictionary = localDictionary;
   let deletionInstructions = "";
   if (dictionary[""] && dictionary[""].length > 0) {
-    deletionInstructions = ` 空キーの語句は削除してください。`;
+    deletionInstructions = `空キーの語句は削除してください。`;
   }
 
   const prompt = `💡 AI補正データ (@facilitator 用)
