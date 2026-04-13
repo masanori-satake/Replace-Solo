@@ -324,6 +324,44 @@ tabBtns.forEach(btn => {
   });
 });
 
+document.getElementById('copy-copilot-prompt-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('copy-copilot-prompt-btn');
+  const originalSvg = btn.innerHTML;
+  const checkSvg = '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>';
+
+  const dictionary = localDictionary;
+  let deletionInstructions = "";
+  if (dictionary[""] && dictionary[""].length > 0) {
+    deletionInstructions = `\nまた、キーが空文字列 "" のリストに含まれる語句は、適宜削除（空文字に置換）して処理してください。`;
+  }
+
+  const prompt = `💡 AI精度向上のための用語補正データを適用します（参加者の方は無視してください）。
+
+@facilitator 以下のJSONデータは、音声認識の「聞き間違い」を修正するための対応表です。
+要約や議事録を作成する際は、"values"リストに含まれる誤記を、対応する"key"の正しい名称に必ず置換して処理してください。${deletionInstructions}
+
+<details>
+<summary>Term Correction Data (Expand for details)</summary>
+
+\`\`\`json
+${JSON.stringify(dictionary, null, 2)}
+\`\`\`
+
+</details>
+`;
+
+  try {
+    await navigator.clipboard.writeText(prompt);
+    btn.innerHTML = checkSvg;
+    setTimeout(() => {
+      btn.innerHTML = originalSvg;
+    }, 2000);
+  } catch (err) {
+    console.error('Failed to copy prompt:', err);
+    alert('プロンプトのコピーに失敗しました。');
+  }
+});
+
 document.getElementById('export-json').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(localDictionary, null, 2)], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
