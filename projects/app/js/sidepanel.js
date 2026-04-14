@@ -16,6 +16,7 @@ let manualWords = new Set(); // 手動で追加された単語
 let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
+let sortedDictOrigins = []; // キャッシュ: 長い順にソートされた元単語の配列
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
 
@@ -67,6 +68,8 @@ function updateDictCache() {
       }
     });
   }
+  // 長い順にソートした配列を作成（部分一致置換用）
+  sortedDictOrigins = Array.from(dictOrigins).sort((a, b) => b.length - a.length);
 }
 
 // 初期データの読み込みと辞書更新の購読
@@ -587,15 +590,24 @@ async function extractAndDisplay(text) {
   }
 
   const collator = new Intl.Collator('ja');
-  allExtractedWords = Array.from(nouns).sort((a, b) => {
-    const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
-    const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
+  const nounsWithMetadata = Array.from(nouns).map(word => ({
+    word,
+    hasMatch: !!getDictMatch(word),
+    hasJapanese: JAPANESE_CHAR_REGEX.test(word)
+  }));
 
-    if (aHasJapanese && !bHasJapanese) return -1;
-    if (!aHasJapanese && bHasJapanese) return 1;
+  nounsWithMetadata.sort((a, b) => {
+    // 辞書にヒットするものを優先
+    if (a.hasMatch && !b.hasMatch) return -1;
+    if (!a.hasMatch && b.hasMatch) return 1;
 
-    return collator.compare(a, b);
+    if (a.hasJapanese && !b.hasJapanese) return -1;
+    if (!a.hasJapanese && b.hasJapanese) return 1;
+
+    return collator.compare(a.word, b.word);
   });
+
+  allExtractedWords = nounsWithMetadata.map(item => item.word);
 
   lastExtractedData.extractedWords = [...allExtractedWords];
 
@@ -775,10 +787,39 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
 }
 
 function getDictMatch(word) {
-  const matches = reverseDictionary[word];
-  if (matches && matches.length > 0) {
-    return { target: matches[0], candidates: matches };
+  // 1. 完全一致を優先
+  const exactMatches = reverseDictionary[word];
+  if (exactMatches && exactMatches.length > 0) {
+    return { target: exactMatches[0], candidates: exactMatches };
   }
+
+  // 2. 部分一致を検索（空文字キーは除外）
+  // 候補となる置換結果を格納する配列
+  let currentResults = [word];
+
+  for (const origin of sortedDictOrigins) {
+    if (origin === "") continue;
+    if (word.includes(origin)) {
+      const targets = reverseDictionary[origin];
+      if (!targets || targets.length === 0) continue;
+
+      const nextResults = [];
+      for (const res of currentResults) {
+        for (const target of targets) {
+          // すべての出現箇所を置換
+          nextResults.push(res.split(origin).join(target));
+        }
+      }
+      currentResults = nextResults;
+    }
+  }
+
+  // 重複を除去し、元と異なるものがあれば返す
+  const uniqueResults = [...new Set(currentResults)].filter(r => r !== word);
+  if (uniqueResults.length > 0) {
+    return { target: uniqueResults[0], candidates: uniqueResults };
+  }
+
   return null;
 }
 
