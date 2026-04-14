@@ -798,7 +798,8 @@ function getDictMatch(word) {
   let currentResults = [word];
 
   for (const origin of sortedDictOrigins) {
-    if (origin === "") continue;
+    if (origin === "" || origin.length > word.length) continue;
+
     if (word.includes(origin)) {
       const targets = reverseDictionary[origin];
       if (!targets || targets.length === 0) continue;
@@ -807,7 +808,7 @@ function getDictMatch(word) {
       for (const res of currentResults) {
         for (const target of targets) {
           // すべての出現箇所を置換
-          nextResults.push(res.split(origin).join(target));
+          nextResults.push(res.replaceAll(origin, target));
         }
       }
       currentResults = nextResults;
