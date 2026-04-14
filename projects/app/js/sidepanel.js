@@ -16,7 +16,6 @@ let manualWords = new Set(); // 手動で追加された単語
 let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
 let localDictionary = {}; // {"target": ["origin1", "origin2", ...]}
 let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
-let sortedDictOrigins = []; // キャッシュ: 長い順にソートされた元単語の配列
 let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定結果
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
@@ -70,8 +69,6 @@ function updateDictCache() {
       }
     });
   }
-  // 長い順にソートした配列を作成（部分一致置換用）
-  sortedDictOrigins = Array.from(dictOrigins).sort((a, b) => b.length - a.length);
 }
 
 // 初期データの読み込みと辞書更新の購読
@@ -792,44 +789,10 @@ function getDictMatch(word) {
   if (dictMatchCache.has(word)) return dictMatchCache.get(word);
 
   const result = (() => {
-    // 1. 完全一致を優先
+    // 完全一致のみを検索
     const exactMatches = reverseDictionary[word];
     if (exactMatches && exactMatches.length > 0) {
       return { target: exactMatches[0], candidates: exactMatches };
-    }
-
-    // 2. 部分一致を検索（空文字キーは除外）
-    // 候補となる置換結果を格納する配列
-    let currentResults = [word];
-    const MAX_CANDIDATES = 10;
-
-    for (const origin of sortedDictOrigins) {
-      if (origin === "" || origin.length > word.length) continue;
-
-      if (word.includes(origin)) {
-        const targets = reverseDictionary[origin];
-        if (!targets || targets.length === 0) continue;
-
-        const nextResults = [];
-        for (const res of currentResults) {
-          for (const target of targets) {
-            // すべての出現箇所を置換
-            const nextVal = res.replaceAll(origin, target);
-            if (!nextResults.includes(nextVal)) {
-              nextResults.push(nextVal);
-            }
-            if (nextResults.length >= MAX_CANDIDATES) break;
-          }
-          if (nextResults.length >= MAX_CANDIDATES) break;
-        }
-        currentResults = nextResults;
-      }
-    }
-
-    // 重複を除去し、元と異なるものがあれば返す
-    const uniqueResults = [...new Set(currentResults)].filter(r => r !== word);
-    if (uniqueResults.length > 0) {
-      return { target: uniqueResults[0], candidates: uniqueResults };
     }
 
     return null;

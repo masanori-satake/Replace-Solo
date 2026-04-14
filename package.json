@@ -1,6 +1,6 @@
 {
   "name": "replace-solo",
-  "version": "0.16.2",
+  "version": "0.16.3",
   "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
   "scripts": {
     "test": "npx playwright test projects/app/tests --output projects/app/test-results",
