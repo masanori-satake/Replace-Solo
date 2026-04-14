@@ -590,21 +590,24 @@ async function extractAndDisplay(text) {
   }
 
   const collator = new Intl.Collator('ja');
-  allExtractedWords = Array.from(nouns).sort((a, b) => {
+  const nounsWithMetadata = Array.from(nouns).map(word => ({
+    word,
+    hasMatch: !!getDictMatch(word),
+    hasJapanese: JAPANESE_CHAR_REGEX.test(word)
+  }));
+
+  nounsWithMetadata.sort((a, b) => {
     // 辞書にヒットするものを優先
-    const aMatch = getDictMatch(a);
-    const bMatch = getDictMatch(b);
-    if (aMatch && !bMatch) return -1;
-    if (!aMatch && bMatch) return 1;
+    if (a.hasMatch && !b.hasMatch) return -1;
+    if (!a.hasMatch && b.hasMatch) return 1;
 
-    const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
-    const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
+    if (a.hasJapanese && !b.hasJapanese) return -1;
+    if (!a.hasJapanese && b.hasJapanese) return 1;
 
-    if (aHasJapanese && !bHasJapanese) return -1;
-    if (!aHasJapanese && bHasJapanese) return 1;
-
-    return collator.compare(a, b);
+    return collator.compare(a.word, b.word);
   });
+
+  allExtractedWords = nounsWithMetadata.map(item => item.word);
 
   lastExtractedData.extractedWords = [...allExtractedWords];
 
