@@ -591,6 +591,12 @@ async function extractAndDisplay(text) {
 
   const collator = new Intl.Collator('ja');
   allExtractedWords = Array.from(nouns).sort((a, b) => {
+    // 辞書にヒットするものを優先
+    const aMatch = getDictMatch(a);
+    const bMatch = getDictMatch(b);
+    if (aMatch && !bMatch) return -1;
+    if (!aMatch && bMatch) return 1;
+
     const aHasJapanese = JAPANESE_CHAR_REGEX.test(a);
     const bHasJapanese = JAPANESE_CHAR_REGEX.test(b);
 
