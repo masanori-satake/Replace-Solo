@@ -1,31 +1,27 @@
-@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
-@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200");
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200');
 
 :root {
   --m3-sys-light-primary: #2563eb; /* Replace-Solo brand blue */
-  --m3-sys-light-on-primary: #ffffff;
-  --m3-sys-light-primary-container: #dbeafe;
-  --m3-sys-light-on-primary-container: #1e3a8a;
-  --m3-sys-light-secondary: #625b71;
-  --m3-sys-light-on-secondary: #ffffff;
-  --m3-sys-light-outline: #79747e;
-  --m3-sys-light-surface: #fef7ff;
-  --m3-sys-light-on-surface: #1d1b20;
-  --m3-sys-light-surface-variant: #e7e0eb;
-  --m3-sys-light-on-surface-variant: #49454f;
-  --m3-sys-light-surface-container-high: #ece6f0;
+  --m3-sys-light-on-primary: #FFFFFF;
+  --m3-sys-light-primary-container: #DBEAFE;
+  --m3-sys-light-on-primary-container: #1E3A8A;
+  --m3-sys-light-secondary: #625B71;
+  --m3-sys-light-on-secondary: #FFFFFF;
+  --m3-sys-light-outline: #79747E;
+  --m3-sys-light-surface: #FEF7FF;
+  --m3-sys-light-on-surface: #1D1B20;
+  --m3-sys-light-surface-variant: #E7E0EB;
+  --m3-sys-light-on-surface-variant: #49454F;
+  --m3-sys-light-surface-container-high: #ECE6F0;
   --m3-sys-light-inverse-surface: #313033;
-  --m3-sys-light-inverse-on-surface: #f4eff4;
+  --m3-sys-light-inverse-on-surface: #F4EFF4;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family:
-    "Roboto",
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   background-color: var(--m3-sys-light-surface);
   color: var(--m3-sys-light-on-surface);
   line-height: 1.6;
@@ -195,7 +191,7 @@ footer {
 
 /* Material Symbols like appearance for simple glyphs */
 .glyph {
-  font-family: "Material Symbols Outlined";
+  font-family: 'Material Symbols Outlined';
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
@@ -206,7 +202,7 @@ footer {
   white-space: nowrap;
   word-wrap: normal;
   direction: ltr;
-  -webkit-font-feature-settings: "liga";
+  -webkit-font-feature-settings: 'liga';
   -webkit-font-smoothing: antialiased;
 }
 

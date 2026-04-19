@@ -33,9 +33,3 @@ repos:
         language: python
         pass_filenames: false
         always_run: true
-    -   id: verify-version-impact
-        name: verify-version-impact
-        entry: python scripts/verify_version_impact.py
-        language: python
-        pass_filenames: false
-        always_run: true

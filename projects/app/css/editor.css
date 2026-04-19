@@ -1,28 +1,24 @@
 :root {
   --m3-sys-light-primary: #2563eb;
-  --m3-sys-light-on-primary: #ffffff;
-  --m3-sys-light-primary-container: #dbeafe;
-  --m3-sys-light-on-primary-container: #1e3a8a;
-  --m3-sys-light-secondary: #625b71;
-  --m3-sys-light-on-secondary: #ffffff;
-  --m3-sys-light-outline: #79747e;
-  --m3-sys-light-surface: #fef7ff;
-  --m3-sys-light-on-surface: #1d1b20;
-  --m3-sys-light-surface-variant: #e7e0eb;
-  --m3-sys-light-on-surface-variant: #49454f;
-  --m3-sys-light-surface-container-high: #ece6f0;
-  --m3-sys-light-error: #b3261e;
-  --m3-sys-light-on-error: #ffffff;
+  --m3-sys-light-on-primary: #FFFFFF;
+  --m3-sys-light-primary-container: #DBEAFE;
+  --m3-sys-light-on-primary-container: #1E3A8A;
+  --m3-sys-light-secondary: #625B71;
+  --m3-sys-light-on-secondary: #FFFFFF;
+  --m3-sys-light-outline: #79747E;
+  --m3-sys-light-surface: #FEF7FF;
+  --m3-sys-light-on-surface: #1D1B20;
+  --m3-sys-light-surface-variant: #E7E0EB;
+  --m3-sys-light-on-surface-variant: #49454F;
+  --m3-sys-light-surface-container-high: #ECE6F0;
+  --m3-sys-light-error: #B3261E;
+  --m3-sys-light-on-error: #FFFFFF;
 }
 
 body {
   margin: 0;
   padding: 0;
-  font-family:
-    "Roboto",
-    system-ui,
-    -apple-system,
-    sans-serif;
+  font-family: 'Roboto', system-ui, -apple-system, sans-serif;
   background-color: var(--m3-sys-light-surface);
   color: var(--m3-sys-light-on-surface);
   display: flex;
@@ -92,16 +88,9 @@ body {
   vertical-align: top;
 }
 
-.col-target {
-  width: 25%;
-}
-.col-origins {
-  width: 65%;
-}
-.col-actions {
-  width: 10%;
-  text-align: center;
-}
+.col-target { width: 25%; }
+.col-origins { width: 65%; }
+.col-actions { width: 10%; text-align: center; }
 
 /* Button Styles */
 .m3-button {
@@ -255,7 +244,7 @@ body {
   max-width: 320px;
   background-color: var(--m3-sys-light-surface-container-high);
   border-radius: 28px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -295,12 +284,6 @@ body {
 }
 
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }

@@ -12,16 +12,13 @@ function isSupportedLoopPage(urlStr) {
     const url = new URL(urlStr);
     const hostname = url.hostname;
     // Loopのドメイン判定
-    const isLoop =
-      hostname === "loop.microsoft.com" ||
-      hostname.endsWith(".loop.microsoft.com") ||
-      hostname === "loop.cloud.microsoft" ||
-      hostname.endsWith(".loop.cloud.microsoft");
+    const isLoop = hostname === 'loop.microsoft.com' || hostname.endsWith('.loop.microsoft.com') ||
+                   hostname === 'loop.cloud.microsoft' || hostname.endsWith('.loop.cloud.microsoft');
 
     if (!isLoop) return false;
 
     // Loopの場合、/p/（ページ）から始まるURLのみサポート
-    return url.pathname.startsWith("/p/");
+    return url.pathname.startsWith('/p/');
   } catch (e) {
     return false;
   }
@@ -41,11 +38,11 @@ async function updateTabState(tabId, url) {
     // 有効化する際は明示的に path を指定することで、グローバルな無効化設定を確実に上書きする
     const options = {
       tabId: tabId,
-      enabled: isSupported,
+      enabled: isSupported
     };
 
     if (isSupported) {
-      options.path = "/pages/sidepanel.html";
+      options.path = '/pages/sidepanel.html';
     }
 
     await chrome.sidePanel.setOptions(options);
@@ -57,39 +54,30 @@ async function updateTabState(tabId, url) {
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
-          16: "/assets/icons/icon16.png",
-          32: "/assets/icons/icon32.png",
-          48: "/assets/icons/icon48.png",
-          128: "/assets/icons/icon128.png",
-        },
+          "16": "/assets/icons/icon16.png",
+          "32": "/assets/icons/icon32.png",
+          "48": "/assets/icons/icon48.png",
+          "128": "/assets/icons/icon128.png"
+        }
       });
-      await chrome.action.setTitle({
-        tabId: tabId,
-        title: "Replace-Soloを開く",
-      });
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Soloを開く' });
       await chrome.action.enable(tabId);
     } else {
       await chrome.action.setIcon({
         tabId: tabId,
         path: {
-          16: "/assets/icons/icon16_gray.png",
-          32: "/assets/icons/icon32_gray.png",
-          48: "/assets/icons/icon48_gray.png",
-          128: "/assets/icons/icon128_gray.png",
-        },
+          "16": "/assets/icons/icon16_gray.png",
+          "32": "/assets/icons/icon32_gray.png",
+          "48": "/assets/icons/icon48_gray.png",
+          "128": "/assets/icons/icon128_gray.png"
+        }
       });
-      await chrome.action.setTitle({
-        tabId: tabId,
-        title: "Replace-Solo (サポートされていないページ)",
-      });
+      await chrome.action.setTitle({ tabId: tabId, title: 'Replace-Solo (サポートされていないページ)' });
       await chrome.action.disable(tabId);
     }
   } catch (error) {
     // 特殊なタブ（chrome:// や設定ページなど）ではAPIが制限される場合があるため
-    console.debug(
-      `Replace-Solo: Failed to update tab state for ${tabId}:`,
-      error,
-    );
+    console.debug(`Replace-Solo: Failed to update tab state for ${tabId}:`, error);
   }
 }
 
@@ -100,9 +88,7 @@ async function updateTabState(tabId, url) {
  */
 chrome.sidePanel
   .setPanelBehavior({ openPanelOnActionClick: true })
-  .catch((error) =>
-    console.error("Replace-Solo: Failed to set panel behavior:", error),
-  );
+  .catch((error) => console.error('Replace-Solo: Failed to set panel behavior:', error));
 
 /**
  * Initialize side panel behavior and update all existing tabs.
@@ -113,29 +99,21 @@ async function initializeSidePanel() {
     await chrome.sidePanel.setOptions({ enabled: false });
     await chrome.action.disable();
   } catch (error) {
-    console.debug(
-      "Replace-Solo: Failed to set default side panel options:",
-      error,
-    );
+    console.debug('Replace-Solo: Failed to set default side panel options:', error);
   }
 
   // 初回起動時やリロード時に全タブの状態を更新する
   try {
     const tabs = await chrome.tabs.query({});
     // 各タブの状態更新を並列で実行し、個別のエラーが他に影響しないようにする
-    await Promise.allSettled(
-      tabs.map((tab) => {
-        if (tab.id) {
-          return updateTabState(tab.id, tab.url || tab.pendingUrl);
-        }
-        return Promise.resolve();
-      }),
-    );
+    await Promise.allSettled(tabs.map(tab => {
+      if (tab.id) {
+        return updateTabState(tab.id, tab.url || tab.pendingUrl);
+      }
+      return Promise.resolve();
+    }));
   } catch (error) {
-    console.debug(
-      "Replace-Solo: Failed to query tabs during initialization:",
-      error,
-    );
+    console.debug('Replace-Solo: Failed to query tabs during initialization:', error);
   }
 }
 
@@ -143,7 +121,7 @@ async function initializeSidePanel() {
  * Handle extension installation or updates.
  */
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Replace-Solo: Extension installed/updated");
+  console.log('Replace-Solo: Extension installed/updated');
   initializeSidePanel();
 });
 
@@ -151,7 +129,7 @@ chrome.runtime.onInstalled.addListener(() => {
  * Handle browser startup.
  */
 chrome.runtime.onStartup.addListener(() => {
-  console.log("Replace-Solo: Browser started");
+  console.log('Replace-Solo: Browser started');
   initializeSidePanel();
 });
 
@@ -160,14 +138,11 @@ chrome.runtime.onStartup.addListener(() => {
  */
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   // URLが変わった場合、または読み込みが完了した場合に状態を更新
-  if (changeInfo.url || changeInfo.status === "complete") {
+  if (changeInfo.url || changeInfo.status === 'complete') {
     try {
       await updateTabState(tabId, tab.url || tab.pendingUrl);
     } catch (error) {
-      console.debug(
-        `Replace-Solo: Failed to handle onUpdated for tab ${tabId}:`,
-        error,
-      );
+      console.debug(`Replace-Solo: Failed to handle onUpdated for tab ${tabId}:`, error);
     }
   }
 });
@@ -183,6 +158,6 @@ chrome.tabs.onActivated.addListener(async (activeInfo) => {
     }
   } catch (error) {
     // タブが存在しない場合のエラー（No tab with id）をキャッチして無視する
-    console.debug("Replace-Solo: Failed to handle tab activation:", error);
+    console.debug('Replace-Solo: Failed to handle tab activation:', error);
   }
 });

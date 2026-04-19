@@ -1,9 +1,8 @@
-const { test, expect } = require("@playwright/test");
-const path = require("path");
+const { test, expect } = require('@playwright/test');
+const path = require('path');
 
-test("Copilot prompt generation should work correctly", async ({ page }) => {
-  const filePath =
-    "file://" + path.resolve("projects/app/pages/sidepanel.html");
+test('Copilot prompt generation should work correctly', async ({ page }) => {
+  const filePath = 'file://' + path.resolve('projects/app/pages/sidepanel.html');
 
   // Mock chrome API and clipboard
   await page.addInitScript(() => {
@@ -11,9 +10,7 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
       storage: {
         local: {
           get: (keys, cb) => {
-            const result = {
-              dictionary: { 正しい: ["誤り1", "誤り2"], "": ["えー"] },
-            };
+            const result = { dictionary: { "正しい": ["誤り1", "誤り2"], "": ["えー"] } };
             if (cb) cb(result);
             return Promise.resolve(result);
           },
@@ -22,24 +19,24 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
             return Promise.resolve();
           },
           onChanged: {
-            addListener: () => {},
-          },
-        },
+            addListener: () => {}
+          }
+        }
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "1.0.0" }),
-        lastError: null,
+        getManifest: () => ({ version: '1.0.0' }),
+        lastError: null
       },
       tabs: {
         query: (query, cb) => {
-          if (cb) cb([]);
-          return Promise.resolve([]);
-        },
+            if (cb) cb([]);
+            return Promise.resolve([]);
+        }
       },
       sidePanel: {
-        setPanelBehavior: () => {},
-      },
+        setPanelBehavior: () => {}
+      }
     };
 
     // Mock navigator.clipboard.write
@@ -50,19 +47,19 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
         window.lastClipboardData.push(data);
       }
     };
-    Object.defineProperty(navigator, "clipboard", {
+    Object.defineProperty(navigator, 'clipboard', {
       value: {
         write: async (items) => {
           return Promise.resolve();
-        },
+        }
       },
-      configurable: true,
+      configurable: true
     });
   });
 
   await page.goto(filePath);
 
-  const copyBtn = page.locator("#copy-copilot-prompt-btn");
+  const copyBtn = page.locator('#copy-copilot-prompt-btn');
   await expect(copyBtn).toBeVisible();
 
   // Click the button
@@ -70,7 +67,7 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
 
   // Verify visual feedback (icon change to check mark)
   const checkMarkPath = "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z";
-  const currentPath = await copyBtn.locator("path").getAttribute("d");
+  const currentPath = await copyBtn.locator('path').getAttribute('d');
   expect(currentPath).toBe(checkMarkPath);
 
   // Verify clipboard content
@@ -78,17 +75,17 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
     const items = window.lastClipboardData;
     if (items.length > 0) {
       const data = items[0];
-      if (data["text/plain"]) {
-        return await data["text/plain"].text();
+      if (data['text/plain']) {
+        return await data['text/plain'].text();
       }
     }
     return "";
   });
 
-  expect(clipboardContent).toContain("💡 AI補正データ (@facilitator 用)");
+  expect(clipboardContent).toContain('💡 AI補正データ (@facilitator 用)');
   expect(clipboardContent).toContain('"正しい": [');
   expect(clipboardContent).toContain('"誤り1"');
-  expect(clipboardContent).toContain("（空キーの語句は削除）");
-  expect(clipboardContent).not.toContain("<details>");
-  expect(clipboardContent).toContain("```json");
+  expect(clipboardContent).toContain('（空キーの語句は削除）');
+  expect(clipboardContent).not.toContain('<details>');
+  expect(clipboardContent).toContain('```json');
 });

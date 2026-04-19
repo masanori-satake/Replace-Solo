@@ -1,11 +1,8 @@
-const { test, expect } = require("@playwright/test");
-const path = require("path");
+const { test, expect } = require('@playwright/test');
+const path = require('path');
 
-test("Copilot prompt generation should support both Plain Text and HTML", async ({
-  page,
-}) => {
-  const filePath =
-    "file://" + path.resolve("projects/app/pages/sidepanel.html");
+test('Copilot prompt generation should support both Plain Text and HTML', async ({ page }) => {
+  const filePath = 'file://' + path.resolve('projects/app/pages/sidepanel.html');
 
   // Mock chrome API and clipboard
   await page.addInitScript(() => {
@@ -13,9 +10,7 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
       storage: {
         local: {
           get: (keys, cb) => {
-            const result = {
-              dictionary: { 正しい: ["誤り1", "誤り2"], "": ["えー"] },
-            };
+            const result = { dictionary: { "正しい": ["誤り1", "誤り2"], "": ["えー"] } };
             if (cb) cb(result);
             return Promise.resolve(result);
           },
@@ -24,24 +19,24 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
             return Promise.resolve();
           },
           onChanged: {
-            addListener: () => {},
-          },
-        },
+            addListener: () => {}
+          }
+        }
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "1.0.0" }),
-        lastError: null,
+        getManifest: () => ({ version: '1.0.0' }),
+        lastError: null
       },
       tabs: {
         query: (query, cb) => {
-          if (cb) cb([]);
-          return Promise.resolve([]);
-        },
+            if (cb) cb([]);
+            return Promise.resolve([]);
+        }
       },
       sidePanel: {
-        setPanelBehavior: () => {},
-      },
+        setPanelBehavior: () => {}
+      }
     };
 
     // Mock navigator.clipboard.write
@@ -52,19 +47,19 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
         window.lastClipboardData.push(data);
       }
     };
-    Object.defineProperty(navigator, "clipboard", {
+    Object.defineProperty(navigator, 'clipboard', {
       value: {
         write: async (items) => {
           return Promise.resolve();
-        },
+        }
       },
-      configurable: true,
+      configurable: true
     });
   });
 
   await page.goto(filePath);
 
-  const copyBtn = page.locator("#copy-copilot-prompt-btn");
+  const copyBtn = page.locator('#copy-copilot-prompt-btn');
   await expect(copyBtn).toBeVisible();
 
   // Click the button
@@ -72,7 +67,7 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
 
   // Verify visual feedback (icon change to check mark)
   const checkMarkPath = "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z";
-  const currentPath = await copyBtn.locator("path").getAttribute("d");
+  const currentPath = await copyBtn.locator('path').getAttribute('d');
   expect(currentPath).toBe(checkMarkPath);
 
   // Verify clipboard content
@@ -89,21 +84,15 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
   });
 
   // Verify Plain Text
-  expect(clipboardData["text/plain"]).toContain(
-    "💡 AI補正データ (@facilitator 用)",
-  );
-  expect(clipboardData["text/plain"]).toContain("```json");
-  expect(clipboardData["text/plain"]).toContain('"正しい": [');
-  expect(clipboardData["text/plain"]).toContain("（空キーの語句は削除）");
+  expect(clipboardData['text/plain']).toContain('💡 AI補正データ (@facilitator 用)');
+  expect(clipboardData['text/plain']).toContain('```json');
+  expect(clipboardData['text/plain']).toContain('"正しい": [');
+  expect(clipboardData['text/plain']).toContain('（空キーの語句は削除）');
 
   // Verify HTML
-  expect(clipboardData["text/html"]).toContain(
-    '<div style="font-family: sans-serif;">',
-  );
-  expect(clipboardData["text/html"]).toContain(
-    '<pre style="background-color: #f3f2f1;',
-  );
-  expect(clipboardData["text/html"]).toContain("<code>");
-  expect(clipboardData["text/html"]).toContain("&quot;正しい&quot;:");
-  expect(clipboardData["text/html"]).toContain("<br>");
+  expect(clipboardData['text/html']).toContain('<div style="font-family: sans-serif;">');
+  expect(clipboardData['text/html']).toContain('<pre style="background-color: #f3f2f1;');
+  expect(clipboardData['text/html']).toContain('<code>');
+  expect(clipboardData['text/html']).toContain('&quot;正しい&quot;:');
+  expect(clipboardData['text/html']).toContain('<br>');
 });

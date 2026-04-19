@@ -21,6 +21,32 @@ permissions:
   contents: read
 
 jobs:
+  version-impact:
+    name: バージョン影響範囲確認 (Version Impact)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
+
+      - name: Get app-related changed files
+        id: app-changes
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            projects/app/**
+
+      - name: 3. バージョン影響範囲確認 (Version Impact)
+        if: steps.app-changes.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: python3 scripts/verify_version_impact.py
+
   osv-scan:
     name: Google OSV-Scanner による脆弱性検査 (Vulnerability Scan)
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.9.1"
