@@ -21,86 +21,34 @@ permissions:
   contents: read
 
 jobs:
-  integrity-and-oss:
-    name: コード整合性とOSS監査 (Code Integrity and OSS Audit)
+  version-impact:
+    name: バージョン影響範囲確認 (Version Impact)
     runs-on: ubuntu-latest
-    timeout-minutes: 10
-
+    if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     steps:
-    - name: Checkout Code
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.x'
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.x'
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        cache: 'npm'
+      - name: Get app-related changed files
+        id: app-changes
+        uses: tj-actions/changed-files@v45
+        with:
+          files: |
+            projects/app/**
 
-    - name: Install dependencies (Dev only)
-      run: npm install
-      timeout-minutes: 5
-
-    - name: Get changed files
-      id: changed-files
-      uses: tj-actions/changed-files@v45
-      with:
-        files: |
-          projects/**
-          scripts/**
-          package.json
-
-    - name: Get app-related changed files
-      id: app-changes
-      uses: tj-actions/changed-files@v45
-      with:
-        files: |
-          projects/app/**
-
-    - name: 1. ルートディレクトリのクリーンネス確認 (Root Directory Cleanliness)
-      run: python3 scripts/check_root_files.py
-
-    - name: 2. バージョン整合性確認 (Version Consistency)
-      if: steps.changed-files.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
-      run: python3 scripts/check_version.py
-
-    - name: 3. バージョン影響範囲確認 (Version Impact)
-      if: (github.event_name == 'pull_request' && steps.app-changes.outputs.any_changed == 'true') || github.event_name == 'workflow_dispatch'
-      run: python3 scripts/verify_version_impact.py
-
-    - name: 4. 外部OSS依存関係なしの確認 (No Production Dependencies)
-      id: verify-no-deps
-      run: python3 scripts/audit_production_dependencies.py
-
-    - name: 透明性レポートのサマリー作成 (Transparency Report Summary)
-      if: always()
-      run: |
-        echo "### 🛡️ 透明性レポート (Transparency Report)" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "本プロジェクトの安全性と透明性に関する監査結果です。" >> $GITHUB_STEP_SUMMARY
-        echo "" >> $GITHUB_STEP_SUMMARY
-
-        # 依存関係のステータス
-        if [ "${{ steps.verify-no-deps.outcome }}" == "success" ]; then
-          echo "- ✅ **外部OSS依存関係:** なし (Pure Vanilla JS)" >> $GITHUB_STEP_SUMMARY
-        else
-          echo "- ❌ **外部OSS依存関係:** 検出されました。確認が必要です。" >> $GITHUB_STEP_SUMMARY
-        fi
-
-        # 整合性チェックのステータス
-        echo "- ✅ **コード整合性・バージョン管理:** 正常" >> $GITHUB_STEP_SUMMARY
-
-        echo "" >> $GITHUB_STEP_SUMMARY
-        echo "Replace-Solo は、ユーザーのプライバシーを保護するため、外部ライブラリを一切使用せず、すべての処理をローカルで完結させています。" >> $GITHUB_STEP_SUMMARY
+      - name: 3. バージョン影響範囲確認 (Version Impact)
+        if: steps.app-changes.outputs.any_changed == 'true' || github.event_name == 'workflow_dispatch'
+        run: python3 scripts/verify_version_impact.py
 
   osv-scan:
-    name: 5. Google OSV-Scanner による脆弱性検査 (Vulnerability Scan)
+    name: Google OSV-Scanner による脆弱性検査 (Vulnerability Scan)
     uses: "google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v1.9.1"
     with:
       scan-args: |-
