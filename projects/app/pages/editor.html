@@ -1,88 +1,132 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Replace-Solo 辞書エディタ</title>
-  <link rel="stylesheet" href="../css/editor.css">
-</head>
-<body class="m3-body">
-  <header class="m3-header">
-    <div class="header-container">
-      <h1 class="m3-headline-small">辞書エディタ</h1>
-      <div class="header-actions">
-        <button id="add-row-btn" class="m3-button m3-button-filled primary-action">新規行を追加</button>
-      </div>
-    </div>
-  </header>
-
-  <main class="m3-main">
-    <div class="editor-container">
-      <table id="dictionary-table" class="m3-table">
-        <thead>
-          <tr>
-            <th class="col-target">置換文字列</th>
-            <th class="col-origins">元単語</th>
-            <th class="col-actions">操作</th>
-          </tr>
-        </thead>
-        <tbody id="dictionary-list">
-          <!-- 動的に追加される -->
-        </tbody>
-      </table>
-    </div>
-  </main>
-
-  <!-- 削除確認ダイアログ -->
-  <div id="confirm-dialog" class="modal-overlay" style="z-index: 110;">
-    <div class="modal-content confirm-modal">
-      <div class="modal-header">
-        <h2 class="m3-headline-small">確認</h2>
-      </div>
-      <div class="modal-body" style="padding: 0 24px 16px;">
-        <p id="confirm-message" class="m3-body-medium">この行を削除しますか？</p>
-      </div>
-      <div class="modal-footer" style="padding: 8px 16px 16px; display: flex; justify-content: flex-end; gap: 8px;">
-        <button id="confirm-cancel" class="m3-button m3-button-text">キャンセル</button>
-        <button id="confirm-ok" class="m3-button m3-button-text error-text">はい</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- アラートダイアログ -->
-  <div id="alert-dialog" class="modal-overlay" style="z-index: 140;">
-    <div class="modal-content confirm-modal">
-      <div class="modal-header">
-        <h2 class="m3-headline-small">注意</h2>
-      </div>
-      <div class="modal-body" style="padding: 0 24px 16px;">
-        <p id="alert-message" class="m3-body-medium">同じ置換文字列が既に存在します。</p>
-      </div>
-      <div class="modal-footer" style="padding: 8px 16px 16px; display: flex; justify-content: flex-end;">
-        <button id="alert-ok" class="m3-button m3-button-text">OK</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 入力ダイアログ -->
-  <div id="prompt-dialog" class="modal-overlay" style="z-index: 130;">
-    <div class="modal-content confirm-modal">
-      <div class="modal-header">
-        <h2 class="m3-headline-small" id="prompt-title">新規置換文字列</h2>
-      </div>
-      <div class="modal-body" style="padding: 0 24px 16px;">
-        <p id="prompt-message" class="m3-body-medium" style="margin-bottom: 12px;">追加する置換後の文字列を入力してください。</p>
-        <div class="m3-text-field">
-          <input type="text" id="prompt-input" placeholder="置換後の文字列">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Replace-Solo 辞書エディタ</title>
+    <link rel="stylesheet" href="../css/editor.css" />
+  </head>
+  <body class="m3-body">
+    <header class="m3-header">
+      <div class="header-container">
+        <h1 class="m3-headline-small">辞書エディタ</h1>
+        <div class="header-actions">
+          <button
+            id="add-row-btn"
+            class="m3-button m3-button-filled primary-action"
+          >
+            新規行を追加
+          </button>
         </div>
       </div>
-      <div class="modal-footer" style="padding: 8px 16px 16px; display: flex; justify-content: flex-end; gap: 8px;">
-        <button id="prompt-cancel" class="m3-button m3-button-text">キャンセル</button>
-        <button id="prompt-ok" class="m3-button m3-button-text">作成</button>
+    </header>
+
+    <main class="m3-main">
+      <div class="editor-container">
+        <table id="dictionary-table" class="m3-table">
+          <thead>
+            <tr>
+              <th class="col-target">置換文字列</th>
+              <th class="col-origins">元単語</th>
+              <th class="col-actions">操作</th>
+            </tr>
+          </thead>
+          <tbody id="dictionary-list">
+            <!-- 動的に追加される -->
+          </tbody>
+        </table>
+      </div>
+    </main>
+
+    <!-- 削除確認ダイアログ -->
+    <div id="confirm-dialog" class="modal-overlay" style="z-index: 110">
+      <div class="modal-content confirm-modal">
+        <div class="modal-header">
+          <h2 class="m3-headline-small">確認</h2>
+        </div>
+        <div class="modal-body" style="padding: 0 24px 16px">
+          <p id="confirm-message" class="m3-body-medium">
+            この行を削除しますか？
+          </p>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            padding: 8px 16px 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+          "
+        >
+          <button id="confirm-cancel" class="m3-button m3-button-text">
+            キャンセル
+          </button>
+          <button id="confirm-ok" class="m3-button m3-button-text error-text">
+            はい
+          </button>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="../js/editor.js"></script>
-</body>
+    <!-- アラートダイアログ -->
+    <div id="alert-dialog" class="modal-overlay" style="z-index: 140">
+      <div class="modal-content confirm-modal">
+        <div class="modal-header">
+          <h2 class="m3-headline-small">注意</h2>
+        </div>
+        <div class="modal-body" style="padding: 0 24px 16px">
+          <p id="alert-message" class="m3-body-medium">
+            同じ置換文字列が既に存在します。
+          </p>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            padding: 8px 16px 16px;
+            display: flex;
+            justify-content: flex-end;
+          "
+        >
+          <button id="alert-ok" class="m3-button m3-button-text">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 入力ダイアログ -->
+    <div id="prompt-dialog" class="modal-overlay" style="z-index: 130">
+      <div class="modal-content confirm-modal">
+        <div class="modal-header">
+          <h2 class="m3-headline-small" id="prompt-title">新規置換文字列</h2>
+        </div>
+        <div class="modal-body" style="padding: 0 24px 16px">
+          <p
+            id="prompt-message"
+            class="m3-body-medium"
+            style="margin-bottom: 12px"
+          >
+            追加する置換後の文字列を入力してください。
+          </p>
+          <div class="m3-text-field">
+            <input type="text" id="prompt-input" placeholder="置換後の文字列" />
+          </div>
+        </div>
+        <div
+          class="modal-footer"
+          style="
+            padding: 8px 16px 16px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+          "
+        >
+          <button id="prompt-cancel" class="m3-button m3-button-text">
+            キャンセル
+          </button>
+          <button id="prompt-ok" class="m3-button m3-button-text">作成</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/editor.js"></script>
+  </body>
 </html>
