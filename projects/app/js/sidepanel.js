@@ -3,14 +3,14 @@
  * Handling UI interactions and kuromoji.js integration.
  */
 
-console.log('Replace-Solo: Side Panel Loaded');
+console.log("Replace-Solo: Side Panel Loaded");
 
 let tokenizer = null;
 let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
 let lastExtractedData = {
   text: "",
   tokens: [],
-  extractedWords: []
+  extractedWords: [],
 };
 let manualWords = new Set(); // 手動で追加された単語
 let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
@@ -21,36 +21,45 @@ let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2"
 let rowCounter = 0;
 
 // 定数定義
-const EXCLUDED_NOUN_TYPES = new Set(['代名詞', '非自立']);
+const EXCLUDED_NOUN_TYPES = new Set(["代名詞", "非自立"]);
 const DEFAULT_DICTIONARY = { "": ["えー", "えーっと", "あのー", "そのー"] };
-const JAPANESE_CHAR_REGEX = /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
+const JAPANESE_CHAR_REGEX =
+  /[\u3040-\u309F\u30A0-\u30FF\u4E00-\u9FFF\uFF66-\uFF9F]/;
 const IDENTIFIER_REGEX = /^[a-zA-Z0-9.\-_@]{3,}$/;
-const TRIM_SYMBOLS_SET = '[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛\'"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]';
-const TRIM_SYMBOLS_REGEX = new RegExp(`^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`, 'g');
+const TRIM_SYMBOLS_SET =
+  "[\\s()\\[\\]{}<>（）［］｛｝〈〉《》「」『』【】〔〕〖〗〘〙〚〛'\"`“”‘’。、！？!?:;：；・,.，．･+*\\/\\\\|~〜～=#$%\\^&@_…-]";
+const TRIM_SYMBOLS_REGEX = new RegExp(
+  `^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`,
+  "g",
+);
 
 /**
  * HTML文字列をエスケープする
  */
 function escapeHtml(text) {
   const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
   };
-  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+  return text.replace(/[&<>"']/g, function (m) {
+    return map[m];
+  });
 }
 
 // kuromoji.js の初期化
-kuromoji.builder({ dicPath: '../lib/kuromoji/dict/' }).build((err, _tokenizer) => {
-  if (err) {
-    console.error('kuromoji initialization error:', err);
-    return;
-  }
-  tokenizer = _tokenizer;
-  console.log('kuromoji.js initialized');
-});
+kuromoji
+  .builder({ dicPath: "../lib/kuromoji/dict/" })
+  .build((err, _tokenizer) => {
+    if (err) {
+      console.error("kuromoji initialization error:", err);
+      return;
+    }
+    tokenizer = _tokenizer;
+    console.log("kuromoji.js initialized");
+  });
 
 // 辞書のキャッシュ（Set/Map形式）を更新する
 function updateDictCache() {
@@ -59,7 +68,7 @@ function updateDictCache() {
   reverseDictionary = {};
 
   for (const [target, origins] of Object.entries(localDictionary)) {
-    origins.forEach(origin => {
+    origins.forEach((origin) => {
       dictOrigins.add(origin);
       if (!reverseDictionary[origin]) {
         reverseDictionary[origin] = [];
@@ -73,18 +82,18 @@ function updateDictCache() {
 
 // 初期データの読み込みと辞書更新の購読
 async function loadDictionary() {
-  if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
     try {
-      const result = await chrome.storage.local.get(['dictionary']);
+      const result = await chrome.storage.local.get(["dictionary"]);
       if (result.dictionary) {
         localDictionary = result.dictionary;
-        console.log('Replace-Solo: Local dictionary loaded');
+        console.log("Replace-Solo: Local dictionary loaded");
       } else {
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
     } catch (error) {
-      console.error('Replace-Solo: Failed to load dictionary:', error);
+      console.error("Replace-Solo: Failed to load dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
     }
     updateDictCache();
@@ -98,19 +107,23 @@ loadDictionary();
 
 // バージョン情報の読み込み
 function loadVersion() {
-  fetch('../version.json')
-    .then(response => response.json())
-    .then(data => {
-      const versionElem = document.getElementById('app-version');
+  fetch("../version.json")
+    .then((response) => response.json())
+    .then((data) => {
+      const versionElem = document.getElementById("app-version");
       versionElem.textContent = `v${data.version}`;
       setupDebugTrigger(versionElem);
     })
-    .catch(err => {
-      console.error('Failed to load version:', err);
+    .catch((err) => {
+      console.error("Failed to load version:", err);
       // フォールバック: manifestから取得
-      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+      if (
+        typeof chrome !== "undefined" &&
+        chrome.runtime &&
+        chrome.runtime.getManifest
+      ) {
         const manifest = chrome.runtime.getManifest();
-        const versionElem = document.getElementById('app-version');
+        const versionElem = document.getElementById("app-version");
         versionElem.textContent = `v${manifest.version}`;
         setupDebugTrigger(versionElem);
       }
@@ -124,7 +137,7 @@ function setupDebugTrigger(element) {
   let clickCount = 0;
   let lastClickTime = 0;
 
-  element.addEventListener('click', () => {
+  element.addEventListener("click", () => {
     const currentTime = new Date().getTime();
     if (currentTime - lastClickTime < 500) {
       clickCount++;
@@ -134,9 +147,9 @@ function setupDebugTrigger(element) {
     lastClickTime = currentTime;
 
     if (clickCount >= 3) {
-      const debugTabBtn = document.getElementById('debug-tab-btn');
+      const debugTabBtn = document.getElementById("debug-tab-btn");
       if (debugTabBtn) {
-        debugTabBtn.style.display = 'flex';
+        debugTabBtn.style.display = "flex";
       }
     }
   });
@@ -145,12 +158,16 @@ function setupDebugTrigger(element) {
 loadVersion();
 
 // 辞書が他タブのパネル等で更新されたら反映する
-if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+if (
+  typeof chrome !== "undefined" &&
+  chrome.storage &&
+  chrome.storage.onChanged
+) {
   chrome.storage.onChanged.addListener((changes, area) => {
-    if (area === 'local' && changes.dictionary) {
+    if (area === "local" && changes.dictionary) {
       localDictionary = changes.dictionary.newValue;
       updateDictCache();
-      console.log('Replace-Solo: Local dictionary updated from storage');
+      console.log("Replace-Solo: Local dictionary updated from storage");
     }
   });
 }
@@ -159,9 +176,12 @@ if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged)
  * 現在アクティブなタブを取得する
  */
 async function getActiveTab() {
-  if (typeof chrome === 'undefined' || !chrome.tabs) return null;
+  if (typeof chrome === "undefined" || !chrome.tabs) return null;
   try {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    const [tab] = await chrome.tabs.query({
+      active: true,
+      currentWindow: true,
+    });
     return tab;
   } catch (e) {
     return null;
@@ -173,8 +193,8 @@ async function getActiveTab() {
  * コンテンツスクリプトが未注入の場合は注入を試みる。
  */
 async function sendMessageToTab(tabId, message) {
-  if (!tabId || typeof chrome === 'undefined' || !chrome.tabs) {
-    throw new Error('有効なタブIDが見つかりません。');
+  if (!tabId || typeof chrome === "undefined" || !chrome.tabs) {
+    throw new Error("有効なタブIDが見つかりません。");
   }
 
   const doSend = () => {
@@ -192,20 +212,25 @@ async function sendMessageToTab(tabId, message) {
   try {
     return await doSend();
   } catch (error) {
-    if (error.message.includes('Could not establish connection') || error.message.includes('Receiving end does not exist')) {
-      console.log('Content script not found. Attempting to inject...');
+    if (
+      error.message.includes("Could not establish connection") ||
+      error.message.includes("Receiving end does not exist")
+    ) {
+      console.log("Content script not found. Attempting to inject...");
       // スクリプトを注入して再試行
       try {
         await chrome.scripting.executeScript({
           target: { tabId: tabId },
-          files: ['scripts/content.js']
+          files: ["scripts/content.js"],
         });
         // 注入後、メッセージを受け取れるようになるまで僅かに待機
-        await new Promise(resolve => setTimeout(resolve, 100));
+        await new Promise((resolve) => setTimeout(resolve, 100));
         return await doSend();
       } catch (injectError) {
-        console.error('Injection failed:', injectError);
-        throw new Error('このページでは拡張機能を使用できません（Chromeの設定ページや保護されたページなど）。ページを再読み込みしてから再度お試しください。');
+        console.error("Injection failed:", injectError);
+        throw new Error(
+          "このページでは拡張機能を使用できません（Chromeの設定ページや保護されたページなど）。ページを再読み込みしてから再度お試しください。",
+        );
       }
     }
     throw error;
@@ -213,59 +238,60 @@ async function sendMessageToTab(tabId, message) {
 }
 
 // UI Event Listeners
-document.getElementById('extract-btn').addEventListener('click', async () => {
+document.getElementById("extract-btn").addEventListener("click", async () => {
   if (!tokenizer) {
-    alert('形態素解析エンジンの準備中です。少々お待ちください。');
+    alert("形態素解析エンジンの準備中です。少々お待ちください。");
     return;
   }
 
-  const toggle = document.getElementById('japanese-only-toggle');
+  const toggle = document.getElementById("japanese-only-toggle");
   if (toggle) toggle.checked = true;
 
   const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
-      const response = await sendMessageToTab(tab.id, { action: 'EXTRACT_TEXT' });
+      const response = await sendMessageToTab(tab.id, {
+        action: "EXTRACT_TEXT",
+      });
       if (response && response.text) {
         extractAndDisplay(response.text);
       }
     } catch (error) {
-      console.error('Extraction failed:', error);
+      console.error("Extraction failed:", error);
       alert(error.message);
     }
   } else {
-    alert('操作対象のタブが見つかりません。');
+    alert("操作対象のタブが見つかりません。");
   }
 });
 
-
-document.getElementById('add-word-btn').addEventListener('click', () => {
-  const manualWord = document.getElementById('manual-word').value.trim();
+document.getElementById("add-word-btn").addEventListener("click", () => {
+  const manualWord = document.getElementById("manual-word").value.trim();
   if (manualWord) {
     if (!allExtractedWords.includes(manualWord)) {
       allExtractedWords.push(manualWord);
     }
     manualWords.add(manualWord);
     addWordToList(manualWord, true);
-    document.getElementById('manual-word').value = '';
+    document.getElementById("manual-word").value = "";
   }
 });
 
-document.getElementById('replace-all-btn').addEventListener('click', () => {
-  const rows = document.querySelectorAll('.word-row');
+document.getElementById("replace-all-btn").addEventListener("click", () => {
+  const rows = document.querySelectorAll(".word-row");
   const replacements = [];
-  rows.forEach(row => {
-    const applyCheck = row.querySelector('.apply-check');
+  rows.forEach((row) => {
+    const applyCheck = row.querySelector(".apply-check");
     if (applyCheck.checked) {
-      const origin = row.querySelector('.word-origin').textContent;
-      const target = row.querySelector('.replace-input').value;
-      const dictCheck = row.querySelector('.dict-check');
+      const origin = row.querySelector(".word-origin").textContent;
+      const target = row.querySelector(".replace-input").value;
+      const dictCheck = row.querySelector(".dict-check");
 
       replacements.push({ origin, target });
 
       if (dictCheck.checked && !dictCheck.disabled) {
         saveToDictionary(origin, target);
-        row.querySelector('.dict-check').disabled = true;
+        row.querySelector(".dict-check").disabled = true;
       }
     }
   });
@@ -275,175 +301,183 @@ document.getElementById('replace-all-btn').addEventListener('click', () => {
   }
 });
 
-document.getElementById('clear-btn').addEventListener('click', () => {
-  const toggle = document.getElementById('japanese-only-toggle');
+document.getElementById("clear-btn").addEventListener("click", () => {
+  const toggle = document.getElementById("japanese-only-toggle");
   if (toggle) toggle.checked = true;
-  const wordList = document.getElementById('word-list');
-  wordList.textContent = '';
+  const wordList = document.getElementById("word-list");
+  wordList.textContent = "";
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
 });
 
-document.getElementById('reset-btn').addEventListener('click', () => {
-  const toggle = document.getElementById('japanese-only-toggle');
+document.getElementById("reset-btn").addEventListener("click", () => {
+  const toggle = document.getElementById("japanese-only-toggle");
   if (toggle) toggle.checked = true;
-  const wordList = document.getElementById('word-list');
-  wordList.textContent = '';
+  const wordList = document.getElementById("word-list");
+  wordList.textContent = "";
   allExtractedWords = [];
   manualWords.clear();
   currentWords.clear();
-  document.getElementById('extract-btn').click();
+  document.getElementById("extract-btn").click();
 });
 
 // Japanese Only Toggle logic
-const japaneseOnlyToggle = document.getElementById('japanese-only-toggle');
-japaneseOnlyToggle.addEventListener('change', () => {
+const japaneseOnlyToggle = document.getElementById("japanese-only-toggle");
+japaneseOnlyToggle.addEventListener("change", () => {
   renderWordList();
 });
 
 // Settings Modal Logic
-const settingsModal = document.getElementById('settings-modal');
-const settingsOpenBtn = document.getElementById('settings-open-btn');
-const settingsCloseBtn = document.getElementById('settings-close-btn');
+const settingsModal = document.getElementById("settings-modal");
+const settingsOpenBtn = document.getElementById("settings-open-btn");
+const settingsCloseBtn = document.getElementById("settings-close-btn");
 
-settingsOpenBtn.addEventListener('click', () => {
-  settingsModal.style.display = 'flex';
+settingsOpenBtn.addEventListener("click", () => {
+  settingsModal.style.display = "flex";
 });
 
-settingsCloseBtn.addEventListener('click', () => {
-  settingsModal.style.display = 'none';
+settingsCloseBtn.addEventListener("click", () => {
+  settingsModal.style.display = "none";
 });
 
-settingsModal.addEventListener('click', (event) => {
+settingsModal.addEventListener("click", (event) => {
   if (event.target === settingsModal) {
-    settingsModal.style.display = 'none';
+    settingsModal.style.display = "none";
   }
 });
 
 // Tabs Logic
-const tabBtns = document.querySelectorAll('.tab-btn');
-const tabPanels = document.querySelectorAll('.tab-panel');
+const tabBtns = document.querySelectorAll(".tab-btn");
+const tabPanels = document.querySelectorAll(".tab-panel");
 
-tabBtns.forEach(btn => {
-  btn.addEventListener('click', () => {
-    const targetTab = btn.getAttribute('data-tab');
+tabBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    const targetTab = btn.getAttribute("data-tab");
 
-    tabBtns.forEach(b => b.classList.remove('active'));
-    tabPanels.forEach(p => p.classList.remove('active'));
+    tabBtns.forEach((b) => b.classList.remove("active"));
+    tabPanels.forEach((p) => p.classList.remove("active"));
 
-    btn.classList.add('active');
+    btn.classList.add("active");
     const tabPanel = document.getElementById(`tab-${targetTab}`);
     if (tabPanel) {
-      tabPanel.classList.add('active');
+      tabPanel.classList.add("active");
     }
   });
 });
 
-document.getElementById('copy-copilot-prompt-btn').addEventListener('click', async () => {
-  const btn = document.getElementById('copy-copilot-prompt-btn');
-  const originalSvg = btn.innerHTML;
-  const checkSvg = '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>';
+document
+  .getElementById("copy-copilot-prompt-btn")
+  .addEventListener("click", async () => {
+    const btn = document.getElementById("copy-copilot-prompt-btn");
+    const originalSvg = btn.innerHTML;
+    const checkSvg =
+      '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>';
 
-  const dictionary = localDictionary;
-  let deletionInstructions = "";
-  if (dictionary[""] && dictionary[""].length > 0) {
-    deletionInstructions = `（空キーの語句は削除）`;
-  }
+    const dictionary = localDictionary;
+    let deletionInstructions = "";
+    if (dictionary[""] && dictionary[""].length > 0) {
+      deletionInstructions = `（空キーの語句は削除）`;
+    }
 
-  const instruction = `💡 AI補正データ (@facilitator 用)
+    const instruction = `💡 AI補正データ (@facilitator 用)
 以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}`;
 
-  const jsonString = JSON.stringify(dictionary, null, 2);
+    const jsonString = JSON.stringify(dictionary, null, 2);
 
-  // プレーンテキスト版
-  const plainText = `${instruction}\n\n\`\`\`json\n${jsonString}\n\`\`\`\n`;
+    // プレーンテキスト版
+    const plainText = `${instruction}\n\n\`\`\`json\n${jsonString}\n\`\`\`\n`;
 
-  // HTML版 (Teams向け)
-  const escapedInstruction = escapeHtml(instruction).replace(/\n/g, '<br>');
-  const escapedJson = escapeHtml(jsonString);
-  const htmlContent = '<div style="font-family: sans-serif;">' +
-    `<p>${escapedInstruction}</p>` +
-    '<pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">' +
-    `<code>${escapedJson}</code>` +
-    '</pre>' +
-    '<p style="font-size: 0.1em; color: transparent;">.</p>' +
-    '</div>';
+    // HTML版 (Teams向け)
+    const escapedInstruction = escapeHtml(instruction).replace(/\n/g, "<br>");
+    const escapedJson = escapeHtml(jsonString);
+    const htmlContent =
+      '<div style="font-family: sans-serif;">' +
+      `<p>${escapedInstruction}</p>` +
+      '<pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">' +
+      `<code>${escapedJson}</code>` +
+      "</pre>" +
+      '<p style="font-size: 0.1em; color: transparent;">.</p>' +
+      "</div>";
 
-  try {
-    const blobPlain = new Blob([plainText], { type: 'text/plain' });
-    const blobHtml = new Blob([htmlContent], { type: 'text/html' });
-    const clipboardItem = new ClipboardItem({
-      'text/plain': blobPlain,
-      'text/html': blobHtml
-    });
-    await navigator.clipboard.write([clipboardItem]);
+    try {
+      const blobPlain = new Blob([plainText], { type: "text/plain" });
+      const blobHtml = new Blob([htmlContent], { type: "text/html" });
+      const clipboardItem = new ClipboardItem({
+        "text/plain": blobPlain,
+        "text/html": blobHtml,
+      });
+      await navigator.clipboard.write([clipboardItem]);
 
-    btn.innerHTML = checkSvg;
-    setTimeout(() => {
-      btn.innerHTML = originalSvg;
-    }, 2000);
-  } catch (err) {
-    console.error('Failed to copy prompt:', err);
-    alert('プロンプトのコピーに失敗しました。');
-  }
-});
+      btn.innerHTML = checkSvg;
+      setTimeout(() => {
+        btn.innerHTML = originalSvg;
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy prompt:", err);
+      alert("プロンプトのコピーに失敗しました。");
+    }
+  });
 
-document.getElementById('export-json').addEventListener('click', () => {
-  const blob = new Blob([JSON.stringify(localDictionary, null, 2)], { type: 'application/json' });
+document.getElementById("export-json").addEventListener("click", () => {
+  const blob = new Blob([JSON.stringify(localDictionary, null, 2)], {
+    type: "application/json",
+  });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
-  a.download = 'replace-solo-dictionary.json';
+  a.download = "replace-solo-dictionary.json";
   a.click();
   URL.revokeObjectURL(url);
 });
 
-document.getElementById('download-debug-info').addEventListener('click', () => {
+document.getElementById("download-debug-info").addEventListener("click", () => {
   const data = {
-    version: document.getElementById('app-version').textContent,
+    version: document.getElementById("app-version").textContent,
     timestamp: new Date().toISOString(),
-    ...lastExtractedData
+    ...lastExtractedData,
   };
 
-  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const blob = new Blob([JSON.stringify(data, null, 2)], {
+    type: "application/json",
+  });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
+  const a = document.createElement("a");
   a.href = url;
   a.download = `replace-solo-debug-${new Date().getTime()}.json`;
   a.click();
   URL.revokeObjectURL(url);
 });
 
-const confirmDialog = document.getElementById('confirm-dialog');
-const confirmOkBtn = document.getElementById('confirm-ok');
-const confirmCancelBtn = document.getElementById('confirm-cancel');
+const confirmDialog = document.getElementById("confirm-dialog");
+const confirmOkBtn = document.getElementById("confirm-ok");
+const confirmCancelBtn = document.getElementById("confirm-cancel");
 
-document.getElementById('clear-dictionary').addEventListener('click', () => {
-  confirmDialog.style.display = 'flex';
+document.getElementById("clear-dictionary").addEventListener("click", () => {
+  confirmDialog.style.display = "flex";
 });
 
-confirmCancelBtn.addEventListener('click', () => {
-  confirmDialog.style.display = 'none';
+confirmCancelBtn.addEventListener("click", () => {
+  confirmDialog.style.display = "none";
 });
 
-confirmOkBtn.addEventListener('click', async () => {
+confirmOkBtn.addEventListener("click", async () => {
   try {
     localDictionary = DEFAULT_DICTIONARY;
     await chrome.storage.local.set({ dictionary: localDictionary });
     updateDictCache();
-    const extractBtn = document.getElementById('extract-btn');
+    const extractBtn = document.getElementById("extract-btn");
     if (extractBtn) extractBtn.click();
   } catch (error) {
-    console.error('Replace-Solo: Failed to clear dictionary:', error);
+    console.error("Replace-Solo: Failed to clear dictionary:", error);
   } finally {
-    confirmDialog.style.display = 'none';
+    confirmDialog.style.display = "none";
   }
 });
 
-document.getElementById('open-editor').addEventListener('click', async () => {
+document.getElementById("open-editor").addEventListener("click", async () => {
   try {
-    const editorUrl = chrome.runtime.getURL('pages/editor.html');
+    const editorUrl = chrome.runtime.getURL("pages/editor.html");
     const tabs = await chrome.tabs.query({ url: editorUrl });
     if (tabs.length > 0) {
       const tab = tabs[0];
@@ -453,14 +487,14 @@ document.getElementById('open-editor').addEventListener('click', async () => {
       await chrome.tabs.create({ url: editorUrl });
     }
   } catch (error) {
-    console.debug('Replace-Solo: Failed to open editor:', error);
+    console.debug("Replace-Solo: Failed to open editor:", error);
   }
 });
 
-document.getElementById('import-json').addEventListener('click', () => {
-  const input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json';
+document.getElementById("import-json").addEventListener("click", () => {
+  const input = document.createElement("input");
+  input.type = "file";
+  input.accept = ".json";
   input.onchange = (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -469,8 +503,12 @@ document.getElementById('import-json').addEventListener('click', () => {
     reader.onload = (re) => {
       try {
         const imported = JSON.parse(re.target.result);
-        if (!imported || typeof imported !== 'object' || Array.isArray(imported)) {
-          throw new Error('JSONのルートはオブジェクトである必要があります。');
+        if (
+          !imported ||
+          typeof imported !== "object" ||
+          Array.isArray(imported)
+        ) {
+          throw new Error("JSONのルートはオブジェクトである必要があります。");
         }
         for (const [key, value] of Object.entries(imported)) {
           if (!Array.isArray(value)) {
@@ -478,31 +516,34 @@ document.getElementById('import-json').addEventListener('click', () => {
           }
         }
 
-        if (confirm('辞書を上書きしますか？（キャンセルで追加）')) {
+        if (confirm("辞書を上書きしますか？（キャンセルで追加）")) {
           localDictionary = imported;
         } else {
           for (const [target, origins] of Object.entries(imported)) {
             if (localDictionary[target]) {
-              localDictionary[target] = [...new Set([...localDictionary[target], ...origins])];
+              localDictionary[target] = [
+                ...new Set([...localDictionary[target], ...origins]),
+              ];
             } else {
               localDictionary[target] = [...origins];
             }
           }
         }
 
-        chrome.storage.local.set({ dictionary: localDictionary })
+        chrome.storage.local
+          .set({ dictionary: localDictionary })
           .then(() => {
-            alert('インポートが完了しました。');
-            const extractBtn = document.getElementById('extract-btn');
+            alert("インポートが完了しました。");
+            const extractBtn = document.getElementById("extract-btn");
             if (extractBtn) extractBtn.click();
           })
           .catch((error) => {
-            console.error('Import save failed:', error);
-            alert('辞書の保存に失敗しました。');
+            console.error("Import save failed:", error);
+            alert("辞書の保存に失敗しました。");
           });
       } catch (err) {
-        console.error('Import error:', err);
-        alert('インポートに失敗しました: ' + err.message);
+        console.error("Import error:", err);
+        alert("インポートに失敗しました: " + err.message);
       }
     };
     reader.readAsText(file);
@@ -525,8 +566,9 @@ async function extractAndDisplay(text) {
     const token = tokens[i];
 
     // 開始トークンの判定条件
-    const isNoun = token.pos === '名詞' && !EXCLUDED_NOUN_TYPES.has(token.pos_detail_1);
-    const isPrefix = token.pos === '接頭詞';
+    const isNoun =
+      token.pos === "名詞" && !EXCLUDED_NOUN_TYPES.has(token.pos_detail_1);
+    const isPrefix = token.pos === "接頭詞";
     const isDictMatch = dictOrigins.has(token.surface_form);
 
     // 日本語を含まない単語（識別子など）の判定
@@ -534,7 +576,7 @@ async function extractAndDisplay(text) {
 
     if (isDictMatch || isNoun || isPrefix) {
       let compound = token.surface_form;
-      let hasProperNoun = (token.pos_detail_1 === '固有名詞');
+      let hasProperNoun = token.pos_detail_1 === "固有名詞";
       let currentDictMatch = isDictMatch;
       let count = 1;
 
@@ -542,12 +584,12 @@ async function extractAndDisplay(text) {
       while (j < tokenLen) {
         const nextToken = tokens[j];
         // 複合語の構成要素としては、非自立名詞等も許容する
-        const nextIsNoun = nextToken.pos === '名詞';
+        const nextIsNoun = nextToken.pos === "名詞";
         const nextIsDictMatch = dictOrigins.has(nextToken.surface_form);
 
         if (nextIsNoun || nextIsDictMatch) {
           compound += nextToken.surface_form;
-          if (nextToken.pos_detail_1 === '固有名詞') hasProperNoun = true;
+          if (nextToken.pos_detail_1 === "固有名詞") hasProperNoun = true;
           if (nextIsDictMatch) currentDictMatch = true;
           count++;
           j++;
@@ -562,7 +604,7 @@ async function extractAndDisplay(text) {
       }
 
       // 前後の記号を除去
-      const trimmedCompound = compound.replace(TRIM_SYMBOLS_REGEX, '');
+      const trimmedCompound = compound.replace(TRIM_SYMBOLS_REGEX, "");
 
       // トリム後の文字列でも辞書マッチを確認
       if (!currentDictMatch && dictOrigins.has(trimmedCompound)) {
@@ -576,7 +618,11 @@ async function extractAndDisplay(text) {
       // かつ、1文字のみの一般名詞などは除外する（辞書マッチを除く）
       const hasJapanese = JAPANESE_CHAR_REGEX.test(trimmedCompound);
       const isQualifiedIdentifier = IDENTIFIER_REGEX.test(trimmedCompound);
-      const isQualified = currentDictMatch || (trimmedCompound.length > 0 && (hasJapanese || isQualifiedIdentifier) && (hasProperNoun || count > 1));
+      const isQualified =
+        currentDictMatch ||
+        (trimmedCompound.length > 0 &&
+          (hasJapanese || isQualifiedIdentifier) &&
+          (hasProperNoun || count > 1));
       const isNotTooShort = currentDictMatch || trimmedCompound.length > 1;
 
       if (trimmedCompound && isQualified && isNotTooShort) {
@@ -588,11 +634,11 @@ async function extractAndDisplay(text) {
     }
   }
 
-  const collator = new Intl.Collator('ja');
-  const nounsWithMetadata = Array.from(nouns).map(word => ({
+  const collator = new Intl.Collator("ja");
+  const nounsWithMetadata = Array.from(nouns).map((word) => ({
     word,
     hasMatch: !!getDictMatch(word),
-    hasJapanese: JAPANESE_CHAR_REGEX.test(word)
+    hasJapanese: JAPANESE_CHAR_REGEX.test(word),
   }));
 
   nounsWithMetadata.sort((a, b) => {
@@ -606,7 +652,7 @@ async function extractAndDisplay(text) {
     return collator.compare(a.word, b.word);
   });
 
-  allExtractedWords = nounsWithMetadata.map(item => item.word);
+  allExtractedWords = nounsWithMetadata.map((item) => item.word);
 
   lastExtractedData.extractedWords = [...allExtractedWords];
 
@@ -617,12 +663,12 @@ async function extractAndDisplay(text) {
  * リストを再描画する
  */
 async function renderWordList() {
-  const wordList = document.getElementById('word-list');
-  wordList.textContent = '';
+  const wordList = document.getElementById("word-list");
+  wordList.textContent = "";
   currentWords.clear();
   rowCounter = 0;
 
-  const toggle = document.getElementById('japanese-only-toggle');
+  const toggle = document.getElementById("japanese-only-toggle");
   const isJapaneseOnly = toggle ? toggle.checked : false;
 
   const BATCH_SIZE = 50;
@@ -639,7 +685,9 @@ async function renderWordList() {
     wordList.appendChild(fragment);
 
     // 描画サイクルを明け渡してUIのフリーズを防ぐ
-    await new Promise(resolve => requestAnimationFrame(() => setTimeout(resolve, 0)));
+    await new Promise((resolve) =>
+      requestAnimationFrame(() => setTimeout(resolve, 0)),
+    );
   }
 }
 
@@ -647,7 +695,7 @@ async function renderWordList() {
  * 個別の単語をリストに追加する（手動追加用）
  */
 function addWordToList(word, isManual = false) {
-  const wordList = document.getElementById('word-list');
+  const wordList = document.getElementById("word-list");
   const row = createWordRow(word, isManual, null);
   if (row) {
     wordList.appendChild(row);
@@ -661,7 +709,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   if (currentWords.has(word)) return null;
 
   if (isJapaneseOnly === null) {
-    const toggle = document.getElementById('japanese-only-toggle');
+    const toggle = document.getElementById("japanese-only-toggle");
     isJapaneseOnly = toggle ? toggle.checked : false;
   }
 
@@ -676,43 +724,43 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
 
   currentWords.add(word);
 
-  const row = document.createElement('tr');
-  row.className = 'word-row';
+  const row = document.createElement("tr");
+  row.className = "word-row";
   const dictMatch = getDictMatch(word);
   const rowId = rowCounter++;
 
   // 選択チェックボックス
-  const tdCheck = document.createElement('td');
-  const applyCheck = document.createElement('input');
-  applyCheck.type = 'checkbox';
-  applyCheck.className = 'm3-checkbox apply-check';
+  const tdCheck = document.createElement("td");
+  const applyCheck = document.createElement("input");
+  applyCheck.type = "checkbox";
+  applyCheck.className = "m3-checkbox apply-check";
   if (dictMatch) applyCheck.checked = true;
   tdCheck.appendChild(applyCheck);
   row.appendChild(tdCheck);
 
   // 対象単語
-  const tdOrigin = document.createElement('td');
-  const spanOrigin = document.createElement('span');
-  spanOrigin.className = 'body-large word-origin';
+  const tdOrigin = document.createElement("td");
+  const spanOrigin = document.createElement("span");
+  spanOrigin.className = "body-large word-origin";
   spanOrigin.textContent = word;
   tdOrigin.appendChild(spanOrigin);
   row.appendChild(tdOrigin);
 
   // 置換文字列入力
-  const tdReplace = document.createElement('td');
-  const divField = document.createElement('div');
-  divField.className = 'm3-text-field compact';
-  const replaceInput = document.createElement('input');
-  replaceInput.type = 'text';
-  replaceInput.className = 'replace-input';
-  replaceInput.value = dictMatch ? dictMatch.target : '';
-  replaceInput.setAttribute('list', `dict-${rowId}`);
+  const tdReplace = document.createElement("td");
+  const divField = document.createElement("div");
+  divField.className = "m3-text-field compact";
+  const replaceInput = document.createElement("input");
+  replaceInput.type = "text";
+  replaceInput.className = "replace-input";
+  replaceInput.value = dictMatch ? dictMatch.target : "";
+  replaceInput.setAttribute("list", `dict-${rowId}`);
 
-  const datalist = document.createElement('datalist');
+  const datalist = document.createElement("datalist");
   datalist.id = `dict-${rowId}`;
   if (dictMatch) {
-    dictMatch.candidates.forEach(c => {
-      const option = document.createElement('option');
+    dictMatch.candidates.forEach((c) => {
+      const option = document.createElement("option");
       option.value = c;
       datalist.appendChild(option);
     });
@@ -724,26 +772,29 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   row.appendChild(tdReplace);
 
   // 辞書登録チェックボックス
-  const tdDict = document.createElement('td');
-  const dictCheck = document.createElement('input');
-  dictCheck.type = 'checkbox';
-  dictCheck.className = 'm3-checkbox dict-check';
+  const tdDict = document.createElement("td");
+  const dictCheck = document.createElement("input");
+  dictCheck.type = "checkbox";
+  dictCheck.className = "m3-checkbox dict-check";
   tdDict.appendChild(dictCheck);
   row.appendChild(tdDict);
 
   // 置換実行ボタン
-  const tdExec = document.createElement('td');
-  const btnExec = document.createElement('button');
-  btnExec.className = 'm3-icon-button single-exec';
-  btnExec.title = '置換';
+  const tdExec = document.createElement("td");
+  const btnExec = document.createElement("button");
+  btnExec.className = "m3-icon-button single-exec";
+  btnExec.title = "置換";
 
-  const svgExec = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-  svgExec.setAttribute('height', '24px');
-  svgExec.setAttribute('viewBox', '0 -960 960 960');
-  svgExec.setAttribute('width', '24px');
-  svgExec.setAttribute('fill', 'currentColor');
-  const pathExec = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-  pathExec.setAttribute('d', 'M320-200v-560l440 280-440 280Z');
+  const svgExec = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svgExec.setAttribute("height", "24px");
+  svgExec.setAttribute("viewBox", "0 -960 960 960");
+  svgExec.setAttribute("width", "24px");
+  svgExec.setAttribute("fill", "currentColor");
+  const pathExec = document.createElementNS(
+    "http://www.w3.org/2000/svg",
+    "path",
+  );
+  pathExec.setAttribute("d", "M320-200v-560l440 280-440 280Z");
   svgExec.appendChild(pathExec);
 
   btnExec.appendChild(svgExec);
@@ -754,9 +805,9 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
     dictCheck.disabled = true;
   }
 
-  replaceInput.addEventListener('input', () => {
+  replaceInput.addEventListener("input", () => {
     const val = replaceInput.value;
-    if (val.trim() !== '') {
+    if (val.trim() !== "") {
       applyCheck.checked = true;
       const currentCandidates = dictMatch ? dictMatch.candidates : [];
       if (currentCandidates.includes(val)) {
@@ -773,7 +824,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
     }
   });
 
-  row.querySelector('.single-exec').addEventListener('click', () => {
+  row.querySelector(".single-exec").addEventListener("click", () => {
     const target = replaceInput.value;
     executeReplacement(word, target);
     if (dictCheck.checked && !dictCheck.disabled) {
@@ -812,7 +863,7 @@ async function saveToDictionary(origin, target) {
     try {
       await chrome.storage.local.set({ dictionary: localDictionary });
     } catch (error) {
-      console.error('Replace-Solo: Failed to save to dictionary:', error);
+      console.error("Replace-Solo: Failed to save to dictionary:", error);
     }
   }
 }
@@ -822,19 +873,18 @@ function executeReplacement(origin, target) {
 }
 
 async function executeMultipleReplacements(replacements) {
-  const mode = 'emulation';
+  const mode = "emulation";
   const tab = await getActiveTab();
   if (tab && tab.id) {
     try {
       await sendMessageToTab(tab.id, {
-        action: 'REPLACE_WORDS',
+        action: "REPLACE_WORDS",
         replacements,
-        mode
+        mode,
       });
     } catch (error) {
-      console.error('Replacement failed:', error);
+      console.error("Replacement failed:", error);
       alert(error.message);
     }
   }
 }
-
