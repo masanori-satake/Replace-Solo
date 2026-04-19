@@ -1,6 +1,7 @@
 # Replace-Solo
 
 ![version](https://img.shields.io/badge/version-0.16.3-blue)
+[![pre-commit.ci status](https://results.pre-commit.ci/badge/github/masanori-satake/Replace-Solo/main.svg)](https://results.pre-commit.ci/latest/github/masanori-satake/Replace-Solo/main)
 
 〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜
 
