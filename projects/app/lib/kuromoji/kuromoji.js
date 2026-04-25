@@ -7229,14 +7229,14 @@
               c = -1;
               for (a = f & 7; a--; ++b) c = (c >>> 8) ^ C[(c ^ e[b]) & 255];
               for (a = f >> 3; a--; b += 8)
-                (c = (c >>> 8) ^ C[(c ^ e[b]) & 255]),
+                ((c = (c >>> 8) ^ C[(c ^ e[b]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 1]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 2]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 3]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 4]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 5]) & 255]),
                   (c = (c >>> 8) ^ C[(c ^ e[b + 6]) & 255]),
-                  (c = (c >>> 8) ^ C[(c ^ e[b + 7]) & 255]);
+                  (c = (c >>> 8) ^ C[(c ^ e[b + 7]) & 255]));
               return (c ^ 4294967295) >>> 0;
             }
             var D = [
@@ -7318,7 +7318,7 @@
                 h,
                 v;
               for (g = 0; g < b; ++g)
-                e[g] > d && (d = e[g]), e[g] < c && (c = e[g]);
+                (e[g] > d && (d = e[g]), e[g] < c && (c = e[g]));
               a = 1 << d;
               f = new (x ? Uint32Array : Array)(a);
               k = 1;
@@ -7328,7 +7328,8 @@
                   if (e[g] === k) {
                     r = 0;
                     q = l;
-                    for (h = 0; h < k; ++h) (r = (r << 1) | (q & 1)), (q >>= 1);
+                    for (h = 0; h < k; ++h)
+                      ((r = (r << 1) | (q & 1)), (q >>= 1));
                     v = (k << 16) | g;
                     for (h = r; h < a; h += m) f[h] = v;
                     ++l;
@@ -7427,7 +7428,7 @@
                 d,
                 c;
               for (d = 3; 258 >= d; d++)
-                (c = e(d)), (b[d] = (c[2] << 24) | (c[1] << 16) | c[0]);
+                ((c = e(d)), (b[d] = (c[2] << 24) | (c[1] << 16) | c[0]));
               return b;
             })();
             x && new Uint32Array(ca);
@@ -7440,10 +7441,10 @@
               this.k = M;
               this.w = !1;
               if (b || !(b = {}))
-                b.index && (this.c = b.index),
+                (b.index && (this.c = b.index),
                   b.bufferSize && (this.j = b.bufferSize),
                   b.bufferType && (this.k = b.bufferType),
-                  b.resize && (this.w = b.resize);
+                  b.resize && (this.w = b.resize));
               switch (this.k) {
                 case N:
                   this.a = 32768;
@@ -7498,7 +7499,9 @@
                           r = m - a;
                           k -= r;
                           if (x)
-                            c.set(b.subarray(d, d + r), a), (a += r), (d += r);
+                            (c.set(b.subarray(d, d + r), a),
+                              (a += r),
+                              (d += r));
                           else for (; r--; ) c[a++] = b[d++];
                           this.a = a;
                           c = this.e();
@@ -7511,7 +7514,7 @@
                       default:
                         n(Error("invalid inflate mode"));
                     }
-                    if (x) c.set(b.subarray(d, d + k), a), (a += k), (d += k);
+                    if (x) (c.set(b.subarray(d, d + k), a), (a += k), (d += k));
                     else for (; k--; ) c[a++] = b[d++];
                     this.c = d;
                     this.a = a;
@@ -7616,11 +7619,10 @@
               for (
                 var d = e.f, c = e.d, a = e.input, f = e.c, k = a.length, l;
                 c < b;
-
               )
-                f >= k && n(Error("input buffer is broken")),
+                (f >= k && n(Error("input buffer is broken")),
                   (d |= a[f++] << c),
-                  (c += 8);
+                  (c += 8));
               l = d & ((1 << b) - 1);
               e.f = d >>> b;
               e.d = c - b;
@@ -7639,9 +7641,8 @@
                   r,
                   q;
                 c < m && !(f >= k);
-
               )
-                (d |= a[f++] << c), (c += 8);
+                ((d |= a[f++] << c), (c += 8));
               r = l[d & ((1 << m) - 1)];
               q = r >>> 16;
               q > c && n(Error("invalid code length: " + q));
@@ -7657,11 +7658,10 @@
               for (
                 var a = d.length - 258, f, k, l, m;
                 256 !== (f = R(this, e));
-
               )
                 if (256 > f)
-                  c >= a && ((this.a = c), (d = this.e()), (c = this.a)),
-                    (d[c++] = f);
+                  (c >= a && ((this.a = c), (d = this.e()), (c = this.a)),
+                    (d[c++] = f));
                 else {
                   k = f - 257;
                   m = ga[k];
@@ -7672,7 +7672,7 @@
                   c >= a && ((this.a = c), (d = this.e()), (c = this.a));
                   for (; m--; ) d[c] = d[c++ - l];
                 }
-              for (; 8 <= this.d; ) (this.d -= 8), this.c--;
+              for (; 8 <= this.d; ) ((this.d -= 8), this.c--);
               this.a = c;
             };
             L.prototype.C = function (e, b) {
@@ -7681,7 +7681,7 @@
               this.r = e;
               for (var a = d.length, f, k, l, m; 256 !== (f = R(this, e)); )
                 if (256 > f)
-                  c >= a && ((d = this.e()), (a = d.length)), (d[c++] = f);
+                  (c >= a && ((d = this.e()), (a = d.length)), (d[c++] = f));
                 else {
                   k = f - 257;
                   m = ga[k];
@@ -7692,7 +7692,7 @@
                   c + m > a && ((d = this.e()), (a = d.length));
                   for (; m--; ) d[c] = d[c++ - l];
                 }
-              for (; 8 <= this.d; ) (this.d -= 8), this.c--;
+              for (; 8 <= this.d; ) ((this.d -= 8), this.c--);
               this.a = c;
             };
             L.prototype.e = function () {
@@ -7872,7 +7872,7 @@
               if (x) {
                 z = new Uint8Array(w);
                 for (s = 0; s < F; ++s)
-                  z.set(v[s].data, H), (H += v[s].data.length);
+                  (z.set(v[s].data, H), (H += v[s].data.length));
               } else {
                 z = [];
                 for (s = 0; s < F; ++s) z[s] = v[s].data;
