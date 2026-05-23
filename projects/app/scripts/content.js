@@ -3,7 +3,7 @@
  * Responsible for text extraction and replacement in the active tab.
  */
 
-console.log("Replace-Solo: Content script injected");
+console.debug("Replace-Solo: Content script injected");
 
 if (typeof window.replaceSoloLoaded === "undefined") {
   window.replaceSoloLoaded = true;
@@ -435,7 +435,7 @@ function replaceByEmulationBatch(replacements) {
     }
   }
 
-  console.log(
+  console.debug(
     `Replace-Solo: Finished batch replacement of ${allReplacementRanges.length} occurrences.`,
   );
 }

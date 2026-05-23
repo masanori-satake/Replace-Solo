@@ -143,7 +143,7 @@ async function initializeSidePanel() {
  * Handle extension installation or updates.
  */
 chrome.runtime.onInstalled.addListener(() => {
-  console.log("Replace-Solo: Extension installed/updated");
+  console.debug("Replace-Solo: Extension installed/updated");
   initializeSidePanel();
 });
 
@@ -151,7 +151,7 @@ chrome.runtime.onInstalled.addListener(() => {
  * Handle browser startup.
  */
 chrome.runtime.onStartup.addListener(() => {
-  console.log("Replace-Solo: Browser started");
+  console.debug("Replace-Solo: Browser started");
   initializeSidePanel();
 });
 
