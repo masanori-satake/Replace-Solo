@@ -3,7 +3,7 @@
  * Handling UI interactions and kuromoji.js integration.
  */
 
-console.log("Replace-Solo: Side Panel Loaded");
+console.debug("Replace-Solo: Side Panel Loaded");
 
 let tokenizer = null;
 let allExtractedWords = []; // 抽出されたすべての単語（フィルタリング前）
@@ -58,7 +58,7 @@ kuromoji
       return;
     }
     tokenizer = _tokenizer;
-    console.log("kuromoji.js initialized");
+    console.debug("kuromoji.js initialized");
   });
 
 // 辞書のキャッシュ（Set/Map形式）を更新する
@@ -87,7 +87,7 @@ async function loadDictionary() {
       const result = await chrome.storage.local.get(["dictionary"]);
       if (result.dictionary) {
         localDictionary = result.dictionary;
-        console.log("Replace-Solo: Local dictionary loaded");
+        console.debug("Replace-Solo: Local dictionary loaded");
       } else {
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
@@ -167,7 +167,7 @@ if (
     if (area === "local" && changes.dictionary) {
       localDictionary = changes.dictionary.newValue;
       updateDictCache();
-      console.log("Replace-Solo: Local dictionary updated from storage");
+      console.debug("Replace-Solo: Local dictionary updated from storage");
     }
   });
 }
@@ -216,7 +216,7 @@ async function sendMessageToTab(tabId, message) {
       error.message.includes("Could not establish connection") ||
       error.message.includes("Receiving end does not exist")
     ) {
-      console.log("Content script not found. Attempting to inject...");
+      console.debug("Content script not found. Attempting to inject...");
       // スクリプトを注入して再試行
       try {
         await chrome.scripting.executeScript({

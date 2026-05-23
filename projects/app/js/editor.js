@@ -43,7 +43,7 @@ async function saveToStorage() {
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
     try {
       await chrome.storage.local.set({ dictionary: localDictionary });
-      console.log("Replace-Solo: Dictionary saved to storage");
+      console.debug("Replace-Solo: Dictionary saved to storage");
     } catch (error) {
       console.error("Replace-Solo: Failed to save dictionary:", error);
     }
