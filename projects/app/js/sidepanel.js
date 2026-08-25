@@ -698,7 +698,7 @@ function addWordToList(word, isManual = false) {
   const wordList = document.getElementById("word-list");
   const row = createWordRow(word, isManual, null);
   if (row) {
-    wordList.appendChild(row);
+    wordList.prepend(row);
   }
 }
 
