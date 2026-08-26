@@ -43,6 +43,80 @@ function setupMessageListener() {
       sendResponse({ success: true });
       return true;
     }
+
+    if (request.action === "HIGHLIGHT_WORD") {
+      highlightWord(request.word);
+      sendResponse({ success: true });
+      return true;
+    }
+
+    if (request.action === "CLEAR_HIGHLIGHT") {
+      clearHighlight();
+      sendResponse({ success: true });
+      return true;
+    }
+  });
+}
+
+/**
+ * Loopページ内の該当文字列をハイライト表示する
+ */
+function highlightWord(targetText) {
+  clearHighlight();
+  if (!targetText) return;
+
+  const root = getTargetRoot();
+  const ranges = findRangesAcrossNodes(root, [{ origin: targetText }]);
+
+  // 後ろから順にハイライト処理を行うことでノードのインデックスズレを防止
+  for (let i = ranges.length - 1; i >= 0; i--) {
+    const { range } = ranges[i];
+    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
+      continue;
+    }
+
+    try {
+      const highlightSpan = document.createElement("span");
+      highlightSpan.className = "replace-solo-highlight";
+      highlightSpan.style.backgroundColor = "#ccff90"; // M3 fluorescent light green
+      highlightSpan.style.color = "#000000";
+      highlightSpan.style.borderRadius = "2px";
+      highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
+
+      range.surroundContents(highlightSpan);
+    } catch (e) {
+      // rangeが複数親ノードに跨る場合は extractContents と appendChild で対応
+      try {
+        const contents = range.extractContents();
+        const highlightSpan = document.createElement("span");
+        highlightSpan.className = "replace-solo-highlight";
+        highlightSpan.style.backgroundColor = "#ccff90";
+        highlightSpan.style.color = "#000000";
+        highlightSpan.style.borderRadius = "2px";
+        highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
+        highlightSpan.appendChild(contents);
+        range.insertNode(highlightSpan);
+      } catch (err) {
+        console.warn("Replace-Solo: Failed to highlight range", err);
+      }
+    }
+  }
+}
+
+/**
+ * Loopページ内のハイライト表示を解除する
+ */
+function clearHighlight() {
+  const highlights = document.querySelectorAll(".replace-solo-highlight");
+  highlights.forEach((span) => {
+    const parent = span.parentNode;
+    if (!parent) return;
+
+    while (span.firstChild) {
+      parent.insertBefore(span.firstChild, span);
+    }
+    parent.removeChild(span);
+    parent.normalize();
   });
 }
 

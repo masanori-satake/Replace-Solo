@@ -302,6 +302,7 @@ document.getElementById("replace-all-btn").addEventListener("click", () => {
 });
 
 document.getElementById("clear-btn").addEventListener("click", () => {
+  clearPageHighlight();
   const toggle = document.getElementById("japanese-only-toggle");
   if (toggle) toggle.checked = true;
   const wordList = document.getElementById("word-list");
@@ -312,6 +313,7 @@ document.getElementById("clear-btn").addEventListener("click", () => {
 });
 
 document.getElementById("reset-btn").addEventListener("click", () => {
+  clearPageHighlight();
   const toggle = document.getElementById("japanese-only-toggle");
   if (toggle) toggle.checked = true;
   const wordList = document.getElementById("word-list");
@@ -320,6 +322,11 @@ document.getElementById("reset-btn").addEventListener("click", () => {
   manualWords.clear();
   currentWords.clear();
   document.getElementById("extract-btn").click();
+});
+
+// テーブルからマウスが離れた際にもハイライトを解除
+document.getElementById("word-list").addEventListener("mouseleave", () => {
+  clearPageHighlight();
 });
 
 // Japanese Only Toggle logic
@@ -663,6 +670,7 @@ async function extractAndDisplay(text) {
  * リストを再描画する
  */
 async function renderWordList() {
+  clearPageHighlight();
   const wordList = document.getElementById("word-list");
   wordList.textContent = "";
   currentWords.clear();
@@ -833,7 +841,49 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
     }
   });
 
+  // マウスオーバー・マウスアウトのイベントリスナー（対象行の文字をハイライト）
+  row.addEventListener("mouseenter", () => {
+    highlightPageWord(word);
+  });
+
+  row.addEventListener("mouseleave", () => {
+    clearPageHighlight();
+  });
+
   return row;
+}
+
+/**
+ * Loopページ上の単語をハイライト表示させる
+ */
+async function highlightPageWord(word) {
+  const tab = await getActiveTab();
+  if (tab && tab.id) {
+    try {
+      await sendMessageToTab(tab.id, {
+        action: "HIGHLIGHT_WORD",
+        word: word,
+      });
+    } catch (error) {
+      console.debug("Highlighting failed:", error);
+    }
+  }
+}
+
+/**
+ * Loopページ上のハイライト表示を解除させる
+ */
+async function clearPageHighlight() {
+  const tab = await getActiveTab();
+  if (tab && tab.id) {
+    try {
+      await sendMessageToTab(tab.id, {
+        action: "CLEAR_HIGHLIGHT",
+      });
+    } catch (error) {
+      console.debug("Clear highlight failed:", error);
+    }
+  }
 }
 
 function getDictMatch(word) {
