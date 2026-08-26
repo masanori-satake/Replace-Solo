@@ -27,7 +27,7 @@ test("should NOT pre-fill replacement if a dictionary entry is only a substring 
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "0.16.0" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {
@@ -97,7 +97,7 @@ test("should pre-fill replacement if a dictionary entry is an exact match", asyn
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "0.16.0" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {

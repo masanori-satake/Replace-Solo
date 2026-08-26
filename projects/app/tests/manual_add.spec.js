@@ -29,7 +29,7 @@ test("should not automatically check dictionary registration for manually added 
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "0.14.0" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {
