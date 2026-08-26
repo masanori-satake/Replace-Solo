@@ -64,9 +64,11 @@ test("should trigger HIGHLIGHT_WORD on mouseenter and CLEAR_HIGHLIGHT on mousele
   await row.hover();
 
   // Check sent message for HIGHLIGHT_WORD
-  await page.waitForFunction(() => window.sentMessages.some(m => m.action === "HIGHLIGHT_WORD"));
+  await page.waitForFunction(() =>
+    window.sentMessages.some((m) => m.action === "HIGHLIGHT_WORD"),
+  );
   let messages = await page.evaluate(() => window.sentMessages);
-  const highlightMsg = messages.find(m => m.action === "HIGHLIGHT_WORD");
+  const highlightMsg = messages.find((m) => m.action === "HIGHLIGHT_WORD");
   expect(highlightMsg).toBeTruthy();
   expect(highlightMsg.word).toBe("テスト単語");
 
@@ -74,8 +76,10 @@ test("should trigger HIGHLIGHT_WORD on mouseenter and CLEAR_HIGHLIGHT on mousele
   await page.hover("#extract-btn");
 
   // Check sent message for CLEAR_HIGHLIGHT
-  await page.waitForFunction(() => window.sentMessages.some(m => m.action === "CLEAR_HIGHLIGHT"));
+  await page.waitForFunction(() =>
+    window.sentMessages.some((m) => m.action === "CLEAR_HIGHLIGHT"),
+  );
   messages = await page.evaluate(() => window.sentMessages);
-  const clearMsg = messages.find(m => m.action === "CLEAR_HIGHLIGHT");
+  const clearMsg = messages.find((m) => m.action === "CLEAR_HIGHLIGHT");
   expect(clearMsg).toBeTruthy();
 });
