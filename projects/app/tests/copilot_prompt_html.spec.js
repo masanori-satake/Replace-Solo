@@ -30,7 +30,7 @@ test("Copilot prompt generation should support both Plain Text and HTML", async 
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "1.0.0" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {

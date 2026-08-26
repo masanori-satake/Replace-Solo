@@ -19,6 +19,7 @@ let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
 let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定結果
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
+let highlightGeneration = 0; // ハイライト状態の世代管理用カウンター
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(["代名詞", "非自立"]);
@@ -857,7 +858,12 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
  * Loopページ上の単語をハイライト表示させる
  */
 async function highlightPageWord(word) {
+  const generation = ++highlightGeneration;
   const tab = await getActiveTab();
+  if (generation !== highlightGeneration) {
+    // 別のホバー操作が発生したため、このリクエストは古い
+    return;
+  }
   if (tab && tab.id) {
     try {
       await sendMessageToTab(tab.id, {
@@ -874,7 +880,12 @@ async function highlightPageWord(word) {
  * Loopページ上のハイライト表示を解除させる
  */
 async function clearPageHighlight() {
+  const generation = ++highlightGeneration;
   const tab = await getActiveTab();
+  if (generation !== highlightGeneration) {
+    // 別のホバー操作が発生したため、このリクエストは古い
+    return;
+  }
   if (tab && tab.id) {
     try {
       await sendMessageToTab(tab.id, {

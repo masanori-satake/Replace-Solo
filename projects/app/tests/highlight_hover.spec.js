@@ -30,7 +30,7 @@ test("should trigger HIGHLIGHT_WORD on mouseenter and CLEAR_HIGHLIGHT on mousele
       },
       runtime: {
         getURL: (path) => path,
-        getManifest: () => ({ version: "1.0.1" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {

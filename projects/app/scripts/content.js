@@ -85,17 +85,104 @@ function highlightWord(targetText) {
 
       range.surroundContents(highlightSpan);
     } catch (e) {
-      // rangeが複数親ノードに跨る場合は extractContents と appendChild で対応
+      // rangeが複数親ノードに跨る場合、非破壊的にハイライトを適用する
+      // 各テキストノードに個別のハイライトspanを適用することで、DOM構造を保持する
       try {
-        const contents = range.extractContents();
-        const highlightSpan = document.createElement("span");
-        highlightSpan.className = "replace-solo-highlight";
-        highlightSpan.style.backgroundColor = "#ccff90";
-        highlightSpan.style.color = "#000000";
-        highlightSpan.style.borderRadius = "2px";
-        highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
-        highlightSpan.appendChild(contents);
-        range.insertNode(highlightSpan);
+        const startContainer = range.startContainer;
+        const endContainer = range.endContainer;
+        const startOffset = range.startOffset;
+        const endOffset = range.endOffset;
+
+        // 単一テキストノード内の場合
+        if (
+          startContainer === endContainer &&
+          startContainer.nodeType === Node.TEXT_NODE
+        ) {
+          const textNode = startContainer;
+          const text = textNode.nodeValue;
+          const before = text.substring(0, startOffset);
+          const highlighted = text.substring(startOffset, endOffset);
+          const after = text.substring(endOffset);
+
+          const highlightSpan = document.createElement("span");
+          highlightSpan.className = "replace-solo-highlight";
+          highlightSpan.style.backgroundColor = "#ccff90";
+          highlightSpan.style.color = "#000000";
+          highlightSpan.style.borderRadius = "2px";
+          highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
+          highlightSpan.textContent = highlighted;
+
+          const parent = textNode.parentNode;
+          const fragment = document.createDocumentFragment();
+          if (before) fragment.appendChild(document.createTextNode(before));
+          fragment.appendChild(highlightSpan);
+          if (after) fragment.appendChild(document.createTextNode(after));
+          parent.replaceChild(fragment, textNode);
+        } else {
+          // 複数ノードに跨る場合、各テキストノードに個別にspanを適用
+          const walker = document.createTreeWalker(
+            range.commonAncestorContainer,
+            NodeFilter.SHOW_TEXT,
+            {
+              acceptNode: (node) => {
+                if (range.intersectsNode(node)) {
+                  return NodeFilter.FILTER_ACCEPT;
+                }
+                return NodeFilter.FILTER_REJECT;
+              },
+            },
+            false,
+          );
+
+          const nodesToHighlight = [];
+          let node;
+          while ((node = walker.nextNode())) {
+            if (range.intersectsNode(node)) {
+              nodesToHighlight.push(node);
+            }
+          }
+
+          // 後ろから処理してインデックスのずれを防ぐ
+          for (let i = nodesToHighlight.length - 1; i >= 0; i--) {
+            const textNode = nodesToHighlight[i];
+            if (!textNode.parentNode) continue;
+
+            const text = textNode.nodeValue;
+            let start = 0;
+            let end = text.length;
+
+            // 開始ノードの場合、startOffsetを適用
+            if (textNode === startContainer) {
+              start = startOffset;
+            }
+
+            // 終了ノードの場合、endOffsetを適用
+            if (textNode === endContainer) {
+              end = endOffset;
+            }
+
+            if (start >= end) continue;
+
+            const before = text.substring(0, start);
+            const highlighted = text.substring(start, end);
+            const after = text.substring(end);
+
+            const highlightSpan = document.createElement("span");
+            highlightSpan.className = "replace-solo-highlight";
+            highlightSpan.style.backgroundColor = "#ccff90";
+            highlightSpan.style.color = "#000000";
+            highlightSpan.style.borderRadius = "2px";
+            highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
+            highlightSpan.textContent = highlighted;
+
+            const parent = textNode.parentNode;
+            const fragment = document.createDocumentFragment();
+            if (before) fragment.appendChild(document.createTextNode(before));
+            fragment.appendChild(highlightSpan);
+            if (after) fragment.appendChild(document.createTextNode(after));
+            parent.replaceChild(fragment, textNode);
+          }
+        }
       } catch (err) {
         console.warn("Replace-Solo: Failed to highlight range", err);
       }

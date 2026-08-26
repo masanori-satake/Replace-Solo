@@ -27,7 +27,7 @@ test("should add manually added target words to the top of the table", async ({
       },
       runtime: {
         getURL: (p) => p,
-        getManifest: () => ({ version: "1.0.1" }),
+        getManifest: () => ({ version: "1.1.0" }),
         lastError: null,
       },
       tabs: {
