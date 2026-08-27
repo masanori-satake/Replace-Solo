@@ -20,6 +20,7 @@ let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定�
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
 let highlightGeneration = 0; // ハイライト状態の世代管理用カウンター
+let highlightEnabled = false; // ハイライト機能のON/OFF状態（デフォルト: OFF）
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(["代名詞", "非自立"]);
@@ -81,11 +82,14 @@ function updateDictCache() {
   }
 }
 
-// 初期データの読み込みと辞書更新の購読
-async function loadDictionary() {
+// 初期設定とデータの読み込み
+async function loadSettingsAndDictionary() {
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
     try {
-      const result = await chrome.storage.local.get(["dictionary"]);
+      const result = await chrome.storage.local.get([
+        "dictionary",
+        "highlightEnabled",
+      ]);
       if (result.dictionary) {
         localDictionary = result.dictionary;
         console.debug("Replace-Solo: Local dictionary loaded");
@@ -93,18 +97,52 @@ async function loadDictionary() {
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
+      if (typeof result.highlightEnabled === "boolean") {
+        highlightEnabled = result.highlightEnabled;
+      } else {
+        highlightEnabled = false;
+        await chrome.storage.local.set({ highlightEnabled: false });
+      }
     } catch (error) {
-      console.error("Replace-Solo: Failed to load dictionary:", error);
+      console.error("Replace-Solo: Failed to load settings/dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
+      highlightEnabled = false;
     }
     updateDictCache();
   } else {
     localDictionary = DEFAULT_DICTIONARY;
+    highlightEnabled = false;
     updateDictCache();
+  }
+
+  const toggle = document.getElementById("highlight-toggle");
+  if (toggle) {
+    toggle.checked = highlightEnabled;
   }
 }
 
-loadDictionary();
+loadSettingsAndDictionary();
+
+const highlightToggle = document.getElementById("highlight-toggle");
+if (highlightToggle) {
+  highlightToggle.addEventListener("change", async () => {
+    highlightEnabled = highlightToggle.checked;
+    if (
+      typeof chrome !== "undefined" &&
+      chrome.storage &&
+      chrome.storage.local
+    ) {
+      try {
+        await chrome.storage.local.set({ highlightEnabled });
+      } catch (error) {
+        console.error("Replace-Solo: Failed to save highlight setting:", error);
+      }
+    }
+    if (!highlightEnabled) {
+      clearPageHighlight();
+    }
+  });
+}
 
 // バージョン情報の読み込み
 function loadVersion() {
@@ -858,6 +896,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
  * Loopページ上の単語をハイライト表示させる
  */
 async function highlightPageWord(word) {
+  if (!highlightEnabled) return;
   const generation = ++highlightGeneration;
   const tab = await getActiveTab();
   if (generation !== highlightGeneration) {
@@ -934,6 +973,7 @@ function executeReplacement(origin, target) {
 }
 
 async function executeMultipleReplacements(replacements) {
+  clearPageHighlight();
   const mode = "emulation";
   const tab = await getActiveTab();
   if (tab && tab.id) {
