@@ -59,6 +59,22 @@ function setupMessageListener() {
 }
 
 /**
+ * CSS Custom Highlight API用のスタイルを注入する
+ */
+function ensureHighlightStyle() {
+  if (document.getElementById("replace-solo-highlight-style")) return;
+  const style = document.createElement("style");
+  style.id = "replace-solo-highlight-style";
+  style.textContent = `
+    ::highlight(replace-solo-target) {
+      background-color: #ccff90;
+      color: #000000;
+    }
+  `;
+  (document.head || document.documentElement).appendChild(style);
+}
+
+/**
  * Loopページ内の該当文字列をハイライト表示する
  */
 function highlightWord(targetText) {
@@ -68,125 +84,22 @@ function highlightWord(targetText) {
   const root = getTargetRoot();
   const ranges = findRangesAcrossNodes(root, [{ origin: targetText }]);
 
-  // 後ろから順にハイライト処理を行うことでノードのインデックスズレを防止
-  for (let i = ranges.length - 1; i >= 0; i--) {
-    const { range } = ranges[i];
-    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
-      continue;
+  if (ranges.length === 0) return;
+
+  if (typeof CSS !== "undefined" && CSS.highlights) {
+    ensureHighlightStyle();
+    const validRanges = ranges
+      .map((item) => item.range)
+      .filter(
+        (r) => r.startContainer.isConnected && r.endContainer.isConnected,
+      );
+    if (validRanges.length > 0) {
+      const highlight = new Highlight(...validRanges);
+      CSS.highlights.set("replace-solo-target", highlight);
     }
-
-    try {
-      const highlightSpan = document.createElement("span");
-      highlightSpan.className = "replace-solo-highlight";
-      highlightSpan.style.backgroundColor = "#ccff90"; // M3 fluorescent light green
-      highlightSpan.style.color = "#000000";
-      highlightSpan.style.borderRadius = "2px";
-      highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
-
-      range.surroundContents(highlightSpan);
-    } catch (e) {
-      // rangeが複数親ノードに跨る場合、非破壊的にハイライトを適用する
-      // 各テキストノードに個別のハイライトspanを適用することで、DOM構造を保持する
-      try {
-        const startContainer = range.startContainer;
-        const endContainer = range.endContainer;
-        const startOffset = range.startOffset;
-        const endOffset = range.endOffset;
-
-        // 単一テキストノード内の場合
-        if (
-          startContainer === endContainer &&
-          startContainer.nodeType === Node.TEXT_NODE
-        ) {
-          const textNode = startContainer;
-          const text = textNode.nodeValue;
-          const before = text.substring(0, startOffset);
-          const highlighted = text.substring(startOffset, endOffset);
-          const after = text.substring(endOffset);
-
-          const highlightSpan = document.createElement("span");
-          highlightSpan.className = "replace-solo-highlight";
-          highlightSpan.style.backgroundColor = "#ccff90";
-          highlightSpan.style.color = "#000000";
-          highlightSpan.style.borderRadius = "2px";
-          highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
-          highlightSpan.textContent = highlighted;
-
-          const parent = textNode.parentNode;
-          const fragment = document.createDocumentFragment();
-          if (before) fragment.appendChild(document.createTextNode(before));
-          fragment.appendChild(highlightSpan);
-          if (after) fragment.appendChild(document.createTextNode(after));
-          parent.replaceChild(fragment, textNode);
-        } else {
-          // 複数ノードに跨る場合、各テキストノードに個別にspanを適用
-          const walker = document.createTreeWalker(
-            range.commonAncestorContainer,
-            NodeFilter.SHOW_TEXT,
-            {
-              acceptNode: (node) => {
-                if (range.intersectsNode(node)) {
-                  return NodeFilter.FILTER_ACCEPT;
-                }
-                return NodeFilter.FILTER_REJECT;
-              },
-            },
-            false,
-          );
-
-          const nodesToHighlight = [];
-          let node;
-          while ((node = walker.nextNode())) {
-            if (range.intersectsNode(node)) {
-              nodesToHighlight.push(node);
-            }
-          }
-
-          // 後ろから処理してインデックスのずれを防ぐ
-          for (let i = nodesToHighlight.length - 1; i >= 0; i--) {
-            const textNode = nodesToHighlight[i];
-            if (!textNode.parentNode) continue;
-
-            const text = textNode.nodeValue;
-            let start = 0;
-            let end = text.length;
-
-            // 開始ノードの場合、startOffsetを適用
-            if (textNode === startContainer) {
-              start = startOffset;
-            }
-
-            // 終了ノードの場合、endOffsetを適用
-            if (textNode === endContainer) {
-              end = endOffset;
-            }
-
-            if (start >= end) continue;
-
-            const before = text.substring(0, start);
-            const highlighted = text.substring(start, end);
-            const after = text.substring(end);
-
-            const highlightSpan = document.createElement("span");
-            highlightSpan.className = "replace-solo-highlight";
-            highlightSpan.style.backgroundColor = "#ccff90";
-            highlightSpan.style.color = "#000000";
-            highlightSpan.style.borderRadius = "2px";
-            highlightSpan.style.boxShadow = "0 0 0 1px rgba(0,0,0,0.1)";
-            highlightSpan.textContent = highlighted;
-
-            const parent = textNode.parentNode;
-            const fragment = document.createDocumentFragment();
-            if (before) fragment.appendChild(document.createTextNode(before));
-            fragment.appendChild(highlightSpan);
-            if (after) fragment.appendChild(document.createTextNode(after));
-            parent.replaceChild(fragment, textNode);
-          }
-        }
-      } catch (err) {
-        console.warn("Replace-Solo: Failed to highlight range", err);
-      }
-    }
+  } else {
+    // CSS Custom Highlight API非対応ブラウザへのフォールバック（DOM直接変更は避け安全にスキップ）
+    console.warn("Replace-Solo: CSS Custom Highlight API is not supported.");
   }
 }
 
@@ -194,6 +107,11 @@ function highlightWord(targetText) {
  * Loopページ内のハイライト表示を解除する
  */
 function clearHighlight() {
+  if (typeof CSS !== "undefined" && CSS.highlights) {
+    CSS.highlights.delete("replace-solo-target");
+  }
+
+  // 旧方式で生成された要素が万が一残っている場合のフォールバック掃除
   const highlights = document.querySelectorAll(".replace-solo-highlight");
   highlights.forEach((span) => {
     const parent = span.parentNode;
