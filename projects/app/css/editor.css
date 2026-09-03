@@ -120,6 +120,18 @@ body {
   justify-content: center;
   border: none;
   transition: background-color 0.2s;
+  position: relative;
+}
+
+.m3-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  min-width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
 }
 
 .m3-button-filled {
@@ -139,6 +151,18 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
+  position: relative;
+}
+
+.m3-icon-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
 }
 
 .error-text {
@@ -259,8 +283,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.tag-remove::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
 }
 
