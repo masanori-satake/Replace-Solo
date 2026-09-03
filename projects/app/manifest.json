@@ -9,13 +9,7 @@
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "permissions": [
-    "sidePanel",
-    "storage",
-    "scripting",
-    "activeTab",
-    "tabs"
-  ],
+  "permissions": ["sidePanel", "storage", "scripting", "activeTab", "tabs"],
   "host_permissions": [
     "https://loop.microsoft.com/*",
     "https://loop.cloud.microsoft/*"
@@ -37,9 +31,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": [
-        "lib/kuromoji/*"
-      ],
+      "resources": ["lib/kuromoji/*"],
       "matches": [
         "https://loop.microsoft.com/*",
         "https://loop.cloud.microsoft/*"
