@@ -253,7 +253,7 @@ body {
 
 .m3-text-field.compact input {
   height: 40px;
-  font-size: 14px;
+  font-size: 16px;
 }
 
 .m3-text-field input:focus {
@@ -308,7 +308,7 @@ body {
 
 .word-row .m3-text-field input {
   height: 32px;
-  font-size: 13px;
+  font-size: 16px;
   padding: 4px 8px;
 }
 
@@ -362,6 +362,70 @@ body {
   .tab-panel {
     padding: 12px;
     max-height: calc(100dvh - 120px);
+  }
+}
+
+/* Responsive adjustments for narrow sidepanels (320px - 360px) */
+@media (max-width: 360px) {
+  .m3-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .action-row {
+    gap: 4px;
+  }
+
+  .primary-action {
+    padding: 0 4px;
+    font-size: 13px;
+  }
+
+  .m3-table th {
+    padding: 6px 2px;
+    font-size: 10px;
+  }
+
+  .m3-table td {
+    padding: 6px 2px;
+    font-size: 13px;
+  }
+
+  .m3-table th:nth-child(1),
+  .m3-table td:nth-child(1) {
+    width: 28px;
+    padding: 6px 0;
+    text-align: center;
+  }
+
+  .m3-table th:nth-child(2),
+  .m3-table td:nth-child(2) {
+    min-width: 60px;
+  }
+
+  .m3-table th:nth-child(4),
+  .m3-table td:nth-child(4) {
+    width: 28px;
+    padding: 6px 0;
+    text-align: center;
+  }
+
+  .m3-table th:nth-child(5),
+  .m3-table td:nth-child(5) {
+    width: 28px;
+    padding: 6px 0;
+    text-align: center;
+  }
+
+  .word-origin {
+    word-break: break-all;
+    display: inline-block;
+    max-width: 75px;
+  }
+
+  .word-row .m3-text-field input {
+    font-size: 16px;
+    padding: 2px 4px;
   }
 }
 
