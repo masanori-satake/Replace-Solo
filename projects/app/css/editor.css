@@ -22,12 +22,17 @@ body {
     "Roboto",
     system-ui,
     -apple-system,
+    "Segoe UI Emoji",
+    "Noto Color Emoji",
+    "Apple Color Emoji",
+    "Android Emoji",
     sans-serif;
   background-color: var(--m3-sys-light-surface);
   color: var(--m3-sys-light-on-surface);
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 .m3-header {
@@ -116,15 +121,23 @@ body {
   justify-content: center;
   border: none;
   transition: background-color 0.2s;
+  position: relative;
+}
+
+.m3-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100%;
+  min-width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
 }
 
 .m3-button-filled {
   background-color: var(--m3-sys-light-primary);
   color: var(--m3-sys-light-on-primary);
-}
-
-.m3-button-filled:hover {
-  background-color: #1d4ed8;
 }
 
 .m3-icon-button {
@@ -139,18 +152,73 @@ body {
   align-items: center;
   justify-content: center;
   transition: background-color 0.2s;
+  position: relative;
 }
 
-.m3-icon-button:hover {
-  background-color: rgba(0, 0, 0, 0.08);
-}
-
-.m3-icon-button.error-text:hover {
-  background-color: rgba(179, 38, 30, 0.08);
+.m3-icon-button::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 48px;
+  height: 48px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
 }
 
 .error-text {
   color: var(--m3-sys-light-error);
+}
+
+/* Hover styles for desktop / mouse pointer */
+@media (hover: hover) {
+  .m3-button-filled:hover {
+    background-color: #1d4ed8;
+  }
+
+  .m3-button-text:hover {
+    background-color: rgba(37, 99, 235, 0.08);
+  }
+
+  .m3-icon-button:hover {
+    background-color: rgba(0, 0, 0, 0.08);
+  }
+
+  .m3-icon-button.error-text:hover {
+    background-color: rgba(179, 38, 30, 0.08);
+  }
+
+  .tag-remove:hover {
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+}
+
+/* Active / Press feedback for touch and click */
+.m3-button-filled:active {
+  background-color: #1e40af;
+}
+
+.m3-button-text:active {
+  background-color: rgba(37, 99, 235, 0.16);
+}
+
+.m3-icon-button:active {
+  background-color: rgba(0, 0, 0, 0.16);
+}
+
+.m3-icon-button.error-text:active {
+  background-color: rgba(179, 38, 30, 0.16);
+}
+
+.tag-remove:active {
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Focus indicator for accessibility */
+.m3-button:focus-visible,
+.m3-icon-button:focus-visible {
+  outline: 2px solid var(--m3-sys-light-primary);
+  outline-offset: 2px;
 }
 
 /* Input Field Styles */
@@ -216,8 +284,20 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  position: relative;
+}
+
+.tag-remove::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 36px;
+  height: 36px;
+  transform: translate(-50%, -50%);
   border-radius: 50%;
 }
 
@@ -253,6 +333,8 @@ body {
 .modal-content {
   width: 90%;
   max-width: 320px;
+  max-height: 90vh;
+  max-height: 90dvh;
   background-color: var(--m3-sys-light-surface-container-high);
   border-radius: 28px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -263,6 +345,32 @@ body {
 
 .modal-content.confirm-modal {
   max-width: 280px;
+}
+
+.modal-body {
+  overflow-y: auto;
+  max-height: calc(90dvh - 120px);
+}
+
+@media (max-height: 500px) {
+  .modal-content {
+    max-height: 96vh;
+    max-height: 96dvh;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 12px 16px 8px;
+  }
+
+  .modal-body {
+    padding: 0 16px 8px !important;
+    max-height: calc(96dvh - 100px);
+  }
+
+  .modal-footer {
+    padding: 4px 12px 12px !important;
+  }
 }
 
 .modal-header {
@@ -281,10 +389,6 @@ body {
   background-color: transparent;
   color: var(--m3-sys-light-primary);
   padding: 0 12px;
-}
-
-.m3-button-text:hover {
-  background-color: rgba(37, 99, 235, 0.08);
 }
 
 .m3-body-medium {
