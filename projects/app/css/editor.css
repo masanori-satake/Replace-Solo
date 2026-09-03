@@ -32,6 +32,7 @@ body {
   display: flex;
   flex-direction: column;
   height: 100vh;
+  height: 100dvh;
 }
 
 .m3-header {
@@ -332,6 +333,8 @@ body {
 .modal-content {
   width: 90%;
   max-width: 320px;
+  max-height: 90vh;
+  max-height: 90dvh;
   background-color: var(--m3-sys-light-surface-container-high);
   border-radius: 28px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
@@ -342,6 +345,32 @@ body {
 
 .modal-content.confirm-modal {
   max-width: 280px;
+}
+
+.modal-body {
+  overflow-y: auto;
+  max-height: calc(90dvh - 120px);
+}
+
+@media (max-height: 500px) {
+  .modal-content {
+    max-height: 96vh;
+    max-height: 96dvh;
+    border-radius: 16px;
+  }
+
+  .modal-header {
+    padding: 12px 16px 8px;
+  }
+
+  .modal-body {
+    padding: 0 16px 8px !important;
+    max-height: calc(96dvh - 100px);
+  }
+
+  .modal-footer {
+    padding: 4px 12px 12px !important;
+  }
 }
 
 .modal-header {
