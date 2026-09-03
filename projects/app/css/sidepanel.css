@@ -359,10 +359,6 @@ body {
     padding: 10px 16px 4px 16px;
   }
 
-  .tab-panel {
-    padding: 12px;
-    max-height: calc(100dvh - 120px);
-  }
 }
 
 /* Responsive adjustments for narrow sidepanels (320px - 360px) */
@@ -476,6 +472,13 @@ body {
   padding-top: 16px;
   max-height: 400px;
   overflow-y: auto;
+}
+
+@media (max-height: 500px) {
+  .tab-panel {
+    padding: 12px;
+    max-height: calc(100dvh - 120px);
+  }
 }
 
 .tab-panel.active {
