@@ -6,6 +6,7 @@ ALLOWED_ROOT_ITEMS = {
     ".git",
     ".github",
     ".gitignore",
+    ".jules",
     ".pre-commit-config.yaml",
     "AGENTS.md",
     "LICENSE",
