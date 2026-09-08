@@ -19,7 +19,8 @@ async function loadDictionary() {
       if (result.dictionary) {
         localDictionary = result.dictionary;
         // Ensure system deletion entry exists
-        if (!localDictionary.hasOwnProperty("")) {
+        // Security: Use Object.prototype.hasOwnProperty.call to safely check property existence and prevent prototype pollution / method shadowing issues
+        if (!Object.prototype.hasOwnProperty.call(localDictionary, "")) {
           localDictionary[""] = [];
           await saveToStorage();
         }
@@ -144,7 +145,8 @@ function addRow(targetText = "", origins = []) {
     const newTarget = targetInput.value;
     const oldTarget = targetInput.oldValue;
     if (newTarget !== oldTarget) {
-      if (localDictionary.hasOwnProperty(newTarget)) {
+      // Security: Safe property lookup to avoid prototype pollution/shadowing issues with user-controlled input
+      if (Object.prototype.hasOwnProperty.call(localDictionary, newTarget)) {
         showAlert("同じ置換文字列が既に存在します。");
         targetInput.value = oldTarget;
         return;
@@ -336,7 +338,8 @@ function showPrompt(title, message, onOk) {
       showAlert("置換後の文字列を入力してください。");
       return;
     }
-    if (localDictionary.hasOwnProperty(value)) {
+    // Security: Safe property lookup to avoid prototype pollution/shadowing issues with user-controlled input
+    if (Object.prototype.hasOwnProperty.call(localDictionary, value)) {
       showAlert("同じ置換文字列が既に存在します。");
       return;
     }
@@ -381,7 +384,8 @@ function setupEventListeners() {
       if (area === "local" && changes.dictionary) {
         const newDict = changes.dictionary.newValue || {};
         // Enforce system deletion entry existence even when updated from other tabs
-        if (!newDict.hasOwnProperty("")) {
+        // Security: Safe property lookup to avoid method shadowing
+        if (!Object.prototype.hasOwnProperty.call(newDict, "")) {
           newDict[""] = [];
         }
         localDictionary = newDict;
