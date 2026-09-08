@@ -1,5 +1,5 @@
 ## 2025-05-18 - Safe Property Lookup for User-Controlled Dictionary Keys
 
-**Vulnerability:** Calling `obj.hasOwnProperty(key)` directly on JavaScript objects containing user-controlled string keys (such as dictionary replacement targets) presents a property shadowing or prototype pollution lookup risk if `key` is `"hasOwnProperty"`.
-**Learning:** When user input or dynamic keys are checked against plain JavaScript objects, calling `.hasOwnProperty(...)` directly can crash or behave unexpectedly if the object has a property named `hasOwnProperty`.
-**Prevention:** Always use `Object.prototype.hasOwnProperty.call(obj, key)` or `Object.hasOwn(obj, key)` when checking properties on objects with arbitrary dynamic keys.
+**Vulnerability:** Calling `obj.hasOwnProperty(key)` directly on JavaScript objects containing user-controlled string keys (such as dictionary replacement targets) allows a property named `"hasOwnProperty"` to shadow the method and can cause a `TypeError`. This is distinct from prototype pollution, which can occur when assigning a user-controlled `"__proto__"` key to a plain object.
+**Learning:** `Object.prototype.hasOwnProperty.call(obj, key)` and `Object.hasOwn(obj, key)` provide safe own-property checks and address method shadowing, but they do not prevent `"__proto__"` assignments from changing an object's prototype.
+**Prevention:** Use one of these safe own-property checks for arbitrary dynamic keys, and explicitly reject `"__proto__"` before assigning user-controlled keys to plain objects.
