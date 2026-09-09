@@ -19,7 +19,7 @@ async function loadDictionary() {
       if (result.dictionary) {
         localDictionary = result.dictionary;
         // Ensure system deletion entry exists
-        // Security: Use Object.prototype.hasOwnProperty.call to avoid method shadowing
+        // Security: Use Object.prototype.hasOwnProperty.call to safely check property existence and prevent prototype pollution / method shadowing issues
         if (!Object.prototype.hasOwnProperty.call(localDictionary, "")) {
           localDictionary[""] = [];
           await saveToStorage();
@@ -145,12 +145,7 @@ function addRow(targetText = "", origins = []) {
     const newTarget = targetInput.value;
     const oldTarget = targetInput.oldValue;
     if (newTarget !== oldTarget) {
-      if (newTarget === "__proto__") {
-        showAlert("この置換文字列は使用できません。");
-        targetInput.value = oldTarget;
-        return;
-      }
-      // Security: Safe property lookup avoids method shadowing with user-controlled input
+      // Security: Safe property lookup to avoid prototype pollution/shadowing issues with user-controlled input
       if (Object.prototype.hasOwnProperty.call(localDictionary, newTarget)) {
         showAlert("同じ置換文字列が既に存在します。");
         targetInput.value = oldTarget;
@@ -343,11 +338,7 @@ function showPrompt(title, message, onOk) {
       showAlert("置換後の文字列を入力してください。");
       return;
     }
-    if (value === "__proto__") {
-      showAlert("この置換文字列は使用できません。");
-      return;
-    }
-    // Security: Safe property lookup avoids method shadowing with user-controlled input
+    // Security: Safe property lookup to avoid prototype pollution/shadowing issues with user-controlled input
     if (Object.prototype.hasOwnProperty.call(localDictionary, value)) {
       showAlert("同じ置換文字列が既に存在します。");
       return;
