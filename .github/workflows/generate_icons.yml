@@ -3,7 +3,7 @@ name: Generate PNG Icons
 on:
   pull_request:
     paths:
-      - 'projects/app/assets/icons/icon.png'
+      - "projects/app/assets/icons/icon.png"
 
 jobs:
   generate-icons:
@@ -20,7 +20,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.x'
+          python-version: "3.x"
 
       - name: Install dependencies
         run: |
@@ -34,4 +34,4 @@ jobs:
         uses: stefanzweifel/git-auto-commit-action@v5
         with:
           commit_message: "chore: auto-generate PNG icons from SVG"
-          file_pattern: 'projects/app/assets/icons/*.png'
+          file_pattern: "projects/app/assets/icons/*.png"
