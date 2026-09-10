@@ -13,13 +13,19 @@
         <div class="m3-switch-field">
           <span class="m3-switch-label">日本語のみ</span>
           <label class="m3-switch">
-            <input type="checkbox" id="japanese-only-toggle" checked />
+            <input
+              type="checkbox"
+              id="japanese-only-toggle"
+              aria-label="日本語のみ"
+              checked
+            />
             <span class="m3-switch-slider"></span>
           </label>
         </div>
         <button
           id="copy-copilot-prompt-btn"
           class="m3-icon-button"
+          aria-label="Copilot用プロンプトをコピー"
           title="Copilot用プロンプトをコピー"
         >
           <svg
@@ -34,7 +40,12 @@
             />
           </svg>
         </button>
-        <button id="settings-open-btn" class="m3-icon-button" title="設定">
+        <button
+          id="settings-open-btn"
+          class="m3-icon-button"
+          aria-label="設定"
+          title="設定"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             height="24px"
@@ -64,7 +75,12 @@
         >
           選択項目を一括置換
         </button>
-        <button id="clear-btn" class="m3-icon-button" title="クリア">
+        <button
+          id="clear-btn"
+          class="m3-icon-button"
+          aria-label="クリア"
+          title="クリア"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             height="24px"
@@ -77,7 +93,12 @@
             />
           </svg>
         </button>
-        <button id="reset-btn" class="m3-icon-button" title="リセット">
+        <button
+          id="reset-btn"
+          class="m3-icon-button"
+          aria-label="リセット"
+          title="リセット"
+        >
           <svg
             xmlns="http://www.w3.org/2000/svg"
             height="24px"
@@ -94,7 +115,12 @@
 
       <section id="manual-add" class="m3-section">
         <div class="m3-text-field compact">
-          <input type="text" id="manual-word" placeholder="対象を追加" />
+          <input
+            type="text"
+            id="manual-word"
+            placeholder="対象を追加"
+            aria-label="対象を追加"
+          />
           <button id="add-word-btn" class="m3-button m3-button-text">
             追加
           </button>
@@ -123,7 +149,12 @@
       <div class="modal-content">
         <div class="modal-header">
           <h2 class="m3-headline-small">設定</h2>
-          <button id="settings-close-btn" class="m3-icon-button">
+          <button
+            id="settings-close-btn"
+            class="m3-icon-button"
+            aria-label="閉じる"
+            title="閉じる"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
@@ -138,7 +169,12 @@
           </button>
         </div>
         <div class="modal-tabs">
-          <button class="tab-btn active" data-tab="dictionary" title="辞書">
+          <button
+            class="tab-btn active"
+            data-tab="dictionary"
+            aria-label="辞書"
+            title="辞書"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
@@ -151,7 +187,12 @@
               />
             </svg>
           </button>
-          <button class="tab-btn" data-tab="about" title="About">
+          <button
+            class="tab-btn"
+            data-tab="about"
+            aria-label="About"
+            title="About"
+          >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               height="24px"
@@ -168,6 +209,7 @@
             id="debug-tab-btn"
             class="tab-btn"
             data-tab="debug"
+            aria-label="Debug"
             title="Debug"
             style="display: none"
           >
