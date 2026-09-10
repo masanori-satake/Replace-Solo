@@ -70,9 +70,10 @@ function updateDictCache() {
   reverseDictionary = {};
 
   for (const [target, origins] of Object.entries(localDictionary)) {
+    if (!Array.isArray(origins)) continue;
     origins.forEach((origin) => {
       dictOrigins.add(origin);
-      if (!reverseDictionary[origin]) {
+      if (!Object.prototype.hasOwnProperty.call(reverseDictionary, origin)) {
         reverseDictionary[origin] = [];
       }
       if (!reverseDictionary[origin].includes(target)) {
@@ -566,7 +567,8 @@ document.getElementById("import-json").addEventListener("click", () => {
           localDictionary = imported;
         } else {
           for (const [target, origins] of Object.entries(imported)) {
-            if (localDictionary[target]) {
+            if (!Array.isArray(origins)) continue;
+            if (Object.prototype.hasOwnProperty.call(localDictionary, target)) {
               localDictionary[target] = [
                 ...new Set([...localDictionary[target], ...origins]),
               ];
@@ -941,7 +943,12 @@ function getDictMatch(word) {
 
   const result = (() => {
     // 完全一致のみを検索
-    const exactMatches = reverseDictionary[word];
+    const exactMatches = Object.prototype.hasOwnProperty.call(
+      reverseDictionary,
+      word,
+    )
+      ? reverseDictionary[word]
+      : null;
     if (exactMatches && exactMatches.length > 0) {
       return { target: exactMatches[0], candidates: exactMatches };
     }
@@ -954,7 +961,7 @@ function getDictMatch(word) {
 }
 
 async function saveToDictionary(origin, target) {
-  if (!localDictionary[target]) {
+  if (!Object.prototype.hasOwnProperty.call(localDictionary, target)) {
     localDictionary[target] = [];
   }
   if (!localDictionary[target].includes(origin)) {

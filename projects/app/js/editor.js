@@ -151,7 +151,12 @@ function addRow(targetText = "", origins = []) {
         targetInput.value = oldTarget;
         return;
       }
-      const originsValue = localDictionary[oldTarget] || [];
+      const originsValue = Object.prototype.hasOwnProperty.call(
+        localDictionary,
+        oldTarget,
+      )
+        ? localDictionary[oldTarget]
+        : [];
       delete localDictionary[oldTarget];
       localDictionary[newTarget] = originsValue;
       targetInput.oldValue = newTarget;
