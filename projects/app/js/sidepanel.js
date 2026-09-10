@@ -74,7 +74,12 @@ function updateDictCache() {
     origins.forEach((origin) => {
       dictOrigins.add(origin);
       if (!Object.prototype.hasOwnProperty.call(reverseDictionary, origin)) {
-        reverseDictionary[origin] = [];
+        Object.defineProperty(reverseDictionary, origin, {
+          value: [],
+          writable: true,
+          enumerable: true,
+          configurable: true,
+        });
       }
       if (!reverseDictionary[origin].includes(target)) {
         reverseDictionary[origin].push(target);
@@ -573,7 +578,12 @@ document.getElementById("import-json").addEventListener("click", () => {
                 ...new Set([...localDictionary[target], ...origins]),
               ];
             } else {
-              localDictionary[target] = [...origins];
+              Object.defineProperty(localDictionary, target, {
+                value: [...origins],
+                writable: true,
+                enumerable: true,
+                configurable: true,
+              });
             }
           }
         }
@@ -962,7 +972,12 @@ function getDictMatch(word) {
 
 async function saveToDictionary(origin, target) {
   if (!Object.prototype.hasOwnProperty.call(localDictionary, target)) {
-    localDictionary[target] = [];
+    Object.defineProperty(localDictionary, target, {
+      value: [],
+      writable: true,
+      enumerable: true,
+      configurable: true,
+    });
   }
   if (!localDictionary[target].includes(origin)) {
     localDictionary[target].push(origin);
