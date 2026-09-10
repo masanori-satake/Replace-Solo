@@ -60,6 +60,10 @@ test("should not automatically check dictionary registration for manually added 
 
   // Check the dictionary registration checkbox
   const dictCheck = row.locator(".dict-check");
+  await expect(dictCheck).toHaveAttribute(
+    "aria-label",
+    "「テスト単語」の置換設定を辞書に登録",
+  );
 
   // We expect it NOT to be checked by default for manually added words
   // Use state check that works even if the element is visually hidden (but present in DOM)

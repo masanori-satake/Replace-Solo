@@ -827,7 +827,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const dictCheck = document.createElement("input");
   dictCheck.type = "checkbox";
   dictCheck.className = "m3-checkbox dict-check";
-  dictCheck.setAttribute("aria-label", `「${word}」の設定を辞書登録`);
+  dictCheck.setAttribute("aria-label", `「${word}」の置換設定を辞書に登録`);
   tdDict.appendChild(dictCheck);
   row.appendChild(tdDict);
 
