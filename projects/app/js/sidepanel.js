@@ -783,6 +783,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const applyCheck = document.createElement("input");
   applyCheck.type = "checkbox";
   applyCheck.className = "m3-checkbox apply-check";
+  applyCheck.setAttribute("aria-label", `「${word}」を置換対象として選択`);
   if (dictMatch) applyCheck.checked = true;
   tdCheck.appendChild(applyCheck);
   row.appendChild(tdCheck);
@@ -802,6 +803,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const replaceInput = document.createElement("input");
   replaceInput.type = "text";
   replaceInput.className = "replace-input";
+  replaceInput.setAttribute("aria-label", `「${word}」の置換文字列`);
   replaceInput.value = dictMatch ? dictMatch.target : "";
   replaceInput.setAttribute("list", `dict-${rowId}`);
 
@@ -825,6 +827,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const dictCheck = document.createElement("input");
   dictCheck.type = "checkbox";
   dictCheck.className = "m3-checkbox dict-check";
+  dictCheck.setAttribute("aria-label", `「${word}」の置換設定を辞書に登録`);
   tdDict.appendChild(dictCheck);
   row.appendChild(tdDict);
 
@@ -833,6 +836,7 @@ function createWordRow(word, isManual = false, isJapaneseOnly = null) {
   const btnExec = document.createElement("button");
   btnExec.className = "m3-icon-button single-exec";
   btnExec.title = "置換";
+  btnExec.setAttribute("aria-label", `「${word}」を個別置換`);
 
   const svgExec = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svgExec.setAttribute("height", "24px");
