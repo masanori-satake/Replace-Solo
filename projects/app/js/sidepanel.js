@@ -568,9 +568,7 @@ document.getElementById("import-json").addEventListener("click", () => {
         } else {
           for (const [target, origins] of Object.entries(imported)) {
             if (!Array.isArray(origins)) continue;
-            if (
-              Object.prototype.hasOwnProperty.call(localDictionary, target)
-            ) {
+            if (Object.prototype.hasOwnProperty.call(localDictionary, target)) {
               localDictionary[target] = [
                 ...new Set([...localDictionary[target], ...origins]),
               ];
