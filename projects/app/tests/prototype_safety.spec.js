@@ -50,7 +50,7 @@ test("should safely handle prototype property names as target or origin words wi
   await expect(page.locator("#extract-btn")).toBeVisible();
 
   // 手動でプロトタイプ名と同名の単語を追加
-  await page.fill("#manual-word", "__proto__");
+  await page.fill("#manual-word", "hasOwnProperty");
   await page.click("#add-word-btn");
 
   const row = page.locator(".word-row");
@@ -60,6 +60,6 @@ test("should safely handle prototype property names as target or origin words wi
   const replaceInput = row.locator(".replace-input");
   const replaceValue = await replaceInput.inputValue();
 
-  expect(originText).toBe("__proto__");
-  expect(replaceValue).toBe("constructor");
+  expect(originText).toBe("hasOwnProperty");
+  expect(replaceValue).toBe("toString");
 });

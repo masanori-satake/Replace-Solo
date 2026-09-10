@@ -158,12 +158,7 @@ function addRow(targetText = "", origins = []) {
         ? localDictionary[oldTarget]
         : [];
       delete localDictionary[oldTarget];
-      Object.defineProperty(localDictionary, newTarget, {
-        value: originsValue,
-        writable: true,
-        enumerable: true,
-        configurable: true,
-      });
+      localDictionary[newTarget] = originsValue;
       targetInput.oldValue = newTarget;
       saveToStorage();
     }
