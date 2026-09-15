@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 
-test("should add manually added target words to the top of the table", async ({
+test("should add manually added target words to the top of the table and handle IME composition", async ({
   page,
 }) => {
   const filePath =
@@ -45,11 +45,37 @@ test("should add manually added target words to the top of the table", async ({
   await page.goto(filePath);
   await expect(page.locator("#extract-btn")).toBeVisible();
 
-  // Add first word
+  // Stub scrollTo on table-container
+  await page.evaluate(() => {
+    window.scrollToCalls = [];
+    const container = document.querySelector(".table-container");
+    if (container) {
+      container.scrollTo = (options) => {
+        window.scrollToCalls.push(options);
+      };
+    }
+  });
+
+  // Test IME composition Enter event (should NOT add word)
+  await page.fill("#manual-word", "変換中の単語");
+  await page.dispatchEvent("#manual-word", "keydown", {
+    key: "Enter",
+    isComposing: true,
+  });
+
+  const originsComposing = page.locator(".word-origin");
+  await expect(originsComposing).toHaveCount(0);
+
+  // Add first word via button click
   await page.fill("#manual-word", "最初の単語");
   await page.click("#add-word-btn");
 
-  // Add second word using Enter key
+  // Verify scrollTo stub calls
+  await page.waitForFunction(() => window.scrollToCalls.length > 0);
+  const calls = await page.evaluate(() => window.scrollToCalls);
+  expect(calls[0]).toEqual({ top: 0, behavior: "smooth" });
+
+  // Add second word using non-composing Enter key
   await page.fill("#manual-word", "２番目の単語");
   await page.press("#manual-word", "Enter");
 
