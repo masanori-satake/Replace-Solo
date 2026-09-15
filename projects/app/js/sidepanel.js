@@ -305,15 +305,42 @@ document.getElementById("extract-btn").addEventListener("click", async () => {
   }
 });
 
-document.getElementById("add-word-btn").addEventListener("click", () => {
-  const manualWord = document.getElementById("manual-word").value.trim();
+function handleAddManualWord() {
+  const inputElem = document.getElementById("manual-word");
+  const manualWord = inputElem.value.trim();
   if (manualWord) {
-    if (!allExtractedWords.includes(manualWord)) {
-      allExtractedWords.push(manualWord);
+    if (currentWords.has(manualWord)) {
+      const rows = document.querySelectorAll(".word-row");
+      for (const row of rows) {
+        const originElem = row.querySelector(".word-origin");
+        if (originElem && originElem.textContent === manualWord) {
+          row.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          break;
+        }
+      }
+    } else {
+      if (!allExtractedWords.includes(manualWord)) {
+        allExtractedWords.push(manualWord);
+      }
+      manualWords.add(manualWord);
+      addWordToList(manualWord, true);
+      const tableContainer = document.querySelector(".table-container");
+      if (tableContainer) {
+        tableContainer.scrollTo({ top: 0, behavior: "smooth" });
+      }
     }
-    manualWords.add(manualWord);
-    addWordToList(manualWord, true);
-    document.getElementById("manual-word").value = "";
+    inputElem.value = "";
+  }
+}
+
+document.getElementById("add-word-btn").addEventListener("click", () => {
+  handleAddManualWord();
+});
+
+document.getElementById("manual-word").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing) {
+    e.preventDefault();
+    handleAddManualWord();
   }
 });
 
@@ -748,7 +775,9 @@ function addWordToList(word, isManual = false) {
   const row = createWordRow(word, isManual, null);
   if (row) {
     wordList.prepend(row);
+    return row;
   }
+  return null;
 }
 
 /**
