@@ -114,6 +114,14 @@ test("should handle duplicate manual word additions and trigger scrolling", asyn
   const origins = page.locator(".word-origin");
   await expect(origins).toHaveCount(1);
 
+  await origins.nth(0).evaluate((origin) => {
+    const row = origin.closest(".word-row");
+    window.scrollIntoViewCalls = [];
+    row.scrollIntoView = (options) => {
+      window.scrollIntoViewCalls.push(options);
+    };
+  });
+
   // Try adding duplicate word
   await page.fill("#manual-word", "重複テスト");
   await page.click("#add-word-btn");
@@ -121,4 +129,7 @@ test("should handle duplicate manual word additions and trigger scrolling", asyn
   // Count should still be 1
   await expect(origins).toHaveCount(1);
   await expect(page.locator("#manual-word")).toHaveValue("");
+  await expect
+    .poll(() => page.evaluate(() => window.scrollIntoViewCalls))
+    .toEqual([{ behavior: "smooth", block: "nearest" }]);
 });
