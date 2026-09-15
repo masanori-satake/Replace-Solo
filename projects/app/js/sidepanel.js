@@ -338,7 +338,7 @@ document.getElementById("add-word-btn").addEventListener("click", () => {
 });
 
 document.getElementById("manual-word").addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.isComposing) {
+  if (e.key === "Enter") {
     e.preventDefault();
     handleAddManualWord();
   }
