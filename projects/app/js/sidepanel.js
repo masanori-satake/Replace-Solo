@@ -34,6 +34,7 @@ const TRIM_SYMBOLS_REGEX = new RegExp(
   `^${TRIM_SYMBOLS_SET}+|${TRIM_SYMBOLS_SET}+$`,
   "g",
 );
+const JA_COLLATOR = new Intl.Collator("ja");
 
 /**
  * HTML文字列をエスケープする
@@ -709,13 +710,13 @@ async function extractAndDisplay(text) {
     }
   }
 
-  const collator = new Intl.Collator("ja");
   const nounsWithMetadata = Array.from(nouns).map((word) => ({
     word,
     hasMatch: !!getDictMatch(word),
     hasJapanese: JAPANESE_CHAR_REGEX.test(word),
   }));
 
+  // 再利用可能なモジュールレベルの Collator インスタンスでソートし、効率化を図る
   nounsWithMetadata.sort((a, b) => {
     // 辞書にヒットするものを優先
     if (a.hasMatch && !b.hasMatch) return -1;
@@ -724,7 +725,7 @@ async function extractAndDisplay(text) {
     if (a.hasJapanese && !b.hasJapanese) return -1;
     if (!a.hasJapanese && b.hasJapanese) return 1;
 
-    return collator.compare(a.word, b.word);
+    return JA_COLLATOR.compare(a.word, b.word);
   });
 
   allExtractedWords = nounsWithMetadata.map((item) => item.word);
