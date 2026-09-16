@@ -627,6 +627,11 @@ document.getElementById("import-json").addEventListener("click", () => {
   input.click();
 });
 
+/**
+ * テキストを解析して抽出した名詞を並べ替え、画面に表示する
+ * @param {string} text - 解析対象のテキスト
+ * @returns {Promise<void>}
+ */
 async function extractAndDisplay(text) {
   const tokens = tokenizer.tokenize(text);
 
