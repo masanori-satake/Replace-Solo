@@ -73,6 +73,7 @@ function updateDictCache() {
   for (const [target, origins] of Object.entries(localDictionary)) {
     if (!Array.isArray(origins)) continue;
     origins.forEach((origin) => {
+      if (typeof origin !== "string") return;
       dictOrigins.add(origin);
       if (!Object.prototype.hasOwnProperty.call(reverseDictionary, origin)) {
         reverseDictionary[origin] = [];
@@ -588,6 +589,11 @@ document.getElementById("import-json").addEventListener("click", () => {
         for (const [key, value] of Object.entries(imported)) {
           if (!Array.isArray(value)) {
             throw new Error(`キー "${key}" の値が配列ではありません。`);
+          }
+          if (!value.every((item) => typeof item === "string")) {
+            throw new Error(
+              `キー "${key}" の配列要素はすべて文字列である必要があります。`,
+            );
           }
         }
 
