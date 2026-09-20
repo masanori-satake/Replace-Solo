@@ -14,7 +14,7 @@ test("should safely handle non-string items in dictionary origins during cache u
           get: (keys, cb) => {
             const result = {
               dictionary: {
-                "置換後": ["置換前", 12345, null, { key: "val" }],
+                置換後: ["置換前", 12345, null, { key: "val" }],
               },
               highlightEnabled: false,
             };
