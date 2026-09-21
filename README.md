@@ -1,34 +1,45 @@
-# Replace-Solo
+# Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換
 
-![version](https://img.shields.io/badge/version-1.2.2-blue)
+![version](https://img.shields.io/badge/version-1.2.3-blue)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/masanori-satake/Replace-Solo/main.svg)](https://results.pre-commit.ci/latest/github/masanori-satake/Replace-Solo/main)
+[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Replace--Solo-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb?authuser=0&hl=ja)
+![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
+![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25_Local-green)
 
 〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜
 
 ## プロジェクト概要
 
-Replace-Soloは、プライバシーを最優先に設計された、ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツールです。Loop上で議事録の特定の単語や語句を抽出し、一括置換することを目的としています。
+Replace-Solo は、Microsoft Loop（`microsoft-loop`）上でテキストの一括置換（`text-replace`）を実現するプライバシー重視の Chrome 拡張機能（`chrome-extension`）です。標準機能では文字置換が行えない Microsoft Loop ページの議事録やドキュメント作成において、特定単語の更新作業を効率化し、生産性向上を支援するプロダクティビティツール（`productivity-tools`）です。
 
-## 特徴
+## 主な機能 (Key Features)
 
-- **Microsoft Loop特化**: 標準機能で置換が提供されていないMicrosoft Loopに最適化されています。
-- **完全ローカル実行**: 形態素解析を含め、すべての処理をブラウザ内で行います。データが外部サーバーに送信されることはありません。
-- **Material 3 デザイン**: Google Material 3 (M3) をベースとした、清潔感のある直感的なUI。
-- **高精度な置換**: キー入力エミュレーションにより、エディタの内部状態を壊すことなく安全に置換を行います。
-- **辞書管理**: 独自の置換辞書をローカルに保存し、JSON形式でインポート/エクスポートが可能。
-- **Copilot用プロンプト生成**: 蓄積された辞書データを活用し、Microsoft 365 Copilot（@facilitator）に聞き間違いの修正を指示するためのプロンプトをワンクリックで生成します。
+- **Microsoft Loop（`microsoft-loop`）専用設計**: 標準機能でテキスト置換が提供されていない Microsoft Loop に完全対応し、ワンクリックで一括置換（`text-replace`）を行います。
+- **完全ローカル処理で安全**: 形態素解析を含め、すべてのテキスト処理をブラウザ内で完結。外部サーバーへデータが送信される心配がありません。
+- **軽量かつ高精度な置換**: キー入力エミュレーション技術により、Microsoft Loop エディタの内部状態や取り消し履歴を壊さずに安全に文字を置き換えます。
+- **柔軟な辞書・単語管理**: カスタム置換辞書をローカルに保持し、JSON 形式でのインポート/エクスポートに対応。
+- **Copilot 連携プロンプト生成**: 登録された辞書データを活用し、Microsoft 365 Copilot に文字起こしの誤り修正を指示するためのプロンプトをワンクリック生成します。
+- **Material 3 デザイン**: 直感的で洗練された Google Material 3 (M3) 準拠のサイドパネル UI。
+
+## 🔒 Privacy & Security
+
+Replace-Solo は、企業の機密情報や個人情報を扱う業務ドキュメントでも安心して利用できるよう、セキュリティとプライバシーを最優先に開発された Chrome 拡張機能（`chrome-extension`）です。
+
+- **完全ローカル実行**: 形態素解析やテキスト検索・置換を含む全処理は、すべてユーザーのブラウザ（ローカル）上で実行されます。外部 API や外部サーバーとの通信は一切ありません。
+- **外部通信なし（同梱ライブラリでローカル完結）**: 追跡スクリプトや外部通信を排除し、同梱の kuromoji.js を含むすべての処理をブラウザ内で完結させています。
+- **ユーザーデータの収集ゼロ**: 閲覧履歴、入力テキスト、辞書データなどのユーザーデータを収集・追跡・送信することは一切ありません。
 
 ## インストール方法
 
-1. このリポジトリからリリースパッケージをダウンロードまたはクローンします。
-2. リリースパッケージを解凍します。
-3. Chromeの拡張機能管理ページ (`chrome://extensions/`) を開きます。
-4. 「デベロッパーモード」をONにします。
-5. 「パッケージ化されていない拡張機能を読み込む」をクリックし、解凍したリリースパッケージのフォルダを選択します。
+1. [Chrome Web Store](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb?authuser=0&hl=ja) からインストールするか、本リポジトリからリリースパッケージをダウンロード/クローンして手動読み込みを行います。
+2. リリースパッケージを手動読み込みする場合:
+   1. Chromeの拡張機能管理ページ (`chrome://extensions/`) を開きます。
+   2. 「デベロッパーモード」をONにします。
+   3. 「パッケージ化されていない拡張機能を読み込む」をクリックし、ZIP 展開後に `manifest.json` が直接存在するフォルダを選択します。
 
 ## 使い方
 
-1. 置換を行いたいページ（Microsoft Loopのページ(`/p/`パス)等）を開きます。
+1. 置換を行いたい Microsoft Loop ページ（`/p/` パス等）を開きます。
 2. 拡張機能アイコンをクリックしてサイドパネルを開きます。
 3. 「対象抽出」ボタンを押すと、ページ内の単語が抽出されます。
 4. 置換文字列を入力し、「選択」にチェックを入れて「選択項目を一括置換」または行ごとの「置換」ボタンを押します。
