@@ -1,15 +1,21 @@
 {
   "manifest_version": 3,
-  "name": "Replace-Solo",
-  "version": "1.2.2",
-  "description": "〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜",
+  "name": "Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換",
+  "version": "1.2.3",
+  "description": "Microsoft Loop ページ内のテキストをワンクリックで一括検索・置換。標準機能では手間がかかる表記揺れの統一や大量の文字置換を爆速化する軽量Chrome拡張機能です。",
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "permissions": ["sidePanel", "storage", "scripting", "activeTab", "tabs"],
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "scripting",
+    "activeTab",
+    "tabs"
+  ],
   "host_permissions": [
     "https://loop.microsoft.com/*",
     "https://loop.cloud.microsoft/*"
@@ -31,7 +37,9 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/kuromoji/*"],
+      "resources": [
+        "lib/kuromoji/*"
+      ],
       "matches": [
         "https://loop.microsoft.com/*",
         "https://loop.cloud.microsoft/*"
