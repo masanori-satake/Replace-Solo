@@ -16,7 +16,10 @@ jobs:
     uses: masanori-satake/common-workflows/.github/workflows/base-release.yml@v1
     permissions:
       contents: write
-    # npm run build (= check_version.py → projects/app を zip) が releases/*.zip を生成。
-    # アイコンはコミット済みPNGを同梱するため、リリース時の再生成は行わない。
-    # （Replace のアイコン生成は PNG からのクロップ/角丸/グレースケール処理という固有仕様のため、
-    #   共通 generate-icons action(SVG入力・単一バリアント)は使用せず generate_icons.yml で管理する。）
+    with:
+      # リリース ZIP は base-release 側で {リポジトリ名}-v{version}.zip に統一生成する（方式A）。
+      # 従来のバージョン無しファイル名（Replace-Solo-Chrome.zip）から Replace-Solo-v{version}.zip に統一。
+      package_source_dir: 'projects/app'
+    # npm run build (= check_version.py) はリリース前のバージョン整合性検証のみを行う。
+    # マニフェストは projects/app/manifest.json のためリネーム不要。
+    # アイコンはコミット済みPNGを同梱（PNGクロップ/角丸/グレースケールの固有処理は generate_icons.yml で管理）。
