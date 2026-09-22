@@ -1,0 +1,16 @@
+name: 'バージョン更新確認 (Version Bump Check)'
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'projects/app/**'
+
+permissions:
+  contents: read
+
+jobs:
+  version-bump:
+    name: '共通バージョン確認実行 (Execute Base Version Bump)'
+    uses: masanori-satake/common-workflows/.github/workflows/base-version-bump.yml@v1
+    # 判定対象（projects/app/manifest.json）は base 側のデフォルトに閉じ込め済み。

@@ -1,0 +1,22 @@
+name: 'リリースパッケージ公開 (Release Package)'
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: '共通リリース処理実行 (Execute Base Release)'
+    uses: masanori-satake/common-workflows/.github/workflows/base-release.yml@v1
+    permissions:
+      contents: write
+    # npm run build (= check_version.py → projects/app を zip) が releases/*.zip を生成。
+    # アイコンはコミット済みPNGを同梱するため、リリース時の再生成は行わない。
+    # （Replace のアイコン生成は PNG からのクロップ/角丸/グレースケール処理という固有仕様のため、
+    #   共通 generate-icons action(SVG入力・単一バリアント)は使用せず generate_icons.yml で管理する。）
