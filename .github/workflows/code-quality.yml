@@ -1,0 +1,28 @@
+name: 'コード品質検証 (Code Quality)'
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  ci:
+    name: '共通品質チェック実行 (Execute Base CI)'
+    uses: masanori-satake/common-workflows/.github/workflows/base-ci.yml@v1
+    with:
+      # Vanilla JS プロジェクトのため型チェックは不要
+      run_typecheck: false
+      # test は Playwright E2E (npx playwright test) でブラウザの事前導入が必要なため、
+      # base CI では実行しない。E2E は今後専用ワークフローで対応する。
+      run_test: false
+    # 統一パラメータ（Node=lts/*, Python=3.12, npm ci, scripts/ci_checks.py 実行）は
+    # base 側のデフォルトに閉じ込められているため、その他の with: は不要。
