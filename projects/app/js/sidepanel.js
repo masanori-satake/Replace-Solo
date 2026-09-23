@@ -1002,11 +1002,21 @@ function getDictMatch(word) {
 
 async function saveToDictionary(origin, target) {
   // Security: Reject dangerous prototype properties to strictly prevent prototype pollution
-  if (target === "__proto__" || target === "constructor" || target === "prototype") {
-    console.warn("Replace-Solo: Rejected saving reserved property key to dictionary:", target);
+  if (
+    target === "__proto__" ||
+    target === "constructor" ||
+    target === "prototype"
+  ) {
+    console.warn(
+      "Replace-Solo: Rejected saving reserved property key to dictionary:",
+      target,
+    );
     return;
   }
-  if (!Object.prototype.hasOwnProperty.call(localDictionary, target) || !Array.isArray(localDictionary[target])) {
+  if (
+    !Object.prototype.hasOwnProperty.call(localDictionary, target) ||
+    !Array.isArray(localDictionary[target])
+  ) {
     localDictionary[target] = [];
   }
   if (!localDictionary[target].includes(origin)) {

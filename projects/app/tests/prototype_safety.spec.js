@@ -78,6 +78,10 @@ test("saveToDictionary should reject dangerous prototype property keys as target
   });
 
   const savedDict = await page.evaluate(() => localDictionary);
-  expect(Object.prototype.hasOwnProperty.call(savedDict, "__proto__")).toBe(false);
-  expect(Object.prototype.hasOwnProperty.call(savedDict, "constructor")).toBe(false);
+  expect(Object.prototype.hasOwnProperty.call(savedDict, "__proto__")).toBe(
+    false,
+  );
+  expect(Object.prototype.hasOwnProperty.call(savedDict, "constructor")).toBe(
+    false,
+  );
 });
