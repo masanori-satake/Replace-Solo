@@ -64,9 +64,11 @@ test("should safely handle prototype property names as target or origin words wi
   expect(replaceValue).toBe("toString");
 });
 
-test("saveToDictionary should reject dangerous prototype property keys as targets", async ({
-  page,
-}) => {
+/**
+ * Verifies that reserved prototype property names cannot become dictionary keys.
+ * @param {{page: import("@playwright/test").Page}} fixtures Playwright fixtures.
+ */
+async function verifyReservedTargetNamesAreRejected({ page }) {
   const filePath =
     "file://" + path.resolve("projects/app/pages/sidepanel.html");
 
@@ -84,4 +86,9 @@ test("saveToDictionary should reject dangerous prototype property keys as target
   expect(Object.prototype.hasOwnProperty.call(savedDict, "constructor")).toBe(
     false,
   );
-});
+}
+
+test(
+  "saveToDictionary should reject dangerous prototype property keys as targets",
+  verifyReservedTargetNamesAreRejected,
+);

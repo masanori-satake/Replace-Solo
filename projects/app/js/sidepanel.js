@@ -1000,6 +1000,12 @@ function getDictMatch(word) {
   return result;
 }
 
+/**
+ * 辞書に置換元と置換先の組み合わせを保存する
+ * @param {string} origin 置換元の単語
+ * @param {string} target 置換先の単語
+ * @returns {Promise<void>} 保存処理の完了を示すPromise
+ */
 async function saveToDictionary(origin, target) {
   // Security: Reject dangerous prototype properties to strictly prevent prototype pollution
   if (
