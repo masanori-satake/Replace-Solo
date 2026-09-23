@@ -6,7 +6,7 @@
 [![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen)](#-privacy--security)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/app/manifest.json)
 [![Tests](https://img.shields.io/github/actions/workflow/status/masanori-satake/Replace-Solo/code-quality.yml?branch=main&label=Tests)](https://github.com/masanori-satake/Replace-Solo/actions/workflows/code-quality.yml)
-[![Pure Vanilla JS](https://img.shields.io/badge/Pure%20Vanilla%20JS-Zero%20Dependencies-informational?logo=javascript&logoColor=white)](#-privacy--security)
+[![Vanilla JS + kuromoji.js](https://img.shields.io/badge/Vanilla%20JS%20%2B%20kuromoji.js-informational?logo=javascript&amp;logoColor=white)](#-privacy--security)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/masanori-satake/Replace-Solo/main.svg)](https://results.pre-commit.ci/latest/github/masanori-satake/Replace-Solo/main)
 
 〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜
