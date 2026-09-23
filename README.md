@@ -1,7 +1,7 @@
 # Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iblfnonogpkajjfjfljngdaclhdinlfb?logo=google-chrome&logoColor=white&label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb)
-[![version](https://img.shields.io/badge/version-1.2.3-blue)](projects/app/manifest.json)
+[![version](https://img.shields.io/badge/version-1.2.4-blue)](projects/app/manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen)](#-privacy--security)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/app/manifest.json)

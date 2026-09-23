@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "description": "Microsoft Loop ページ内のテキストをワンクリックで一括検索・置換。標準機能では手間がかかる表記揺れの統一や大量の文字置換を爆速化する軽量Chrome拡張機能です。",
   "icons": {
     "16": "assets/icons/icon16.png",
