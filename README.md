@@ -1,10 +1,13 @@
 # Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換
 
-![version](https://img.shields.io/badge/version-1.2.3-blue)
+[![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iblfnonogpkajjfjfljngdaclhdinlfb?logo=google-chrome&logoColor=white&label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb)
+[![version](https://img.shields.io/badge/version-1.2.3-blue)](projects/app/manifest.json)
+[![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
+[![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen)](#-privacy--security)
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/app/manifest.json)
+[![Tests](https://img.shields.io/github/actions/workflow/status/masanori-satake/Replace-Solo/code-quality.yml?branch=main&label=Tests)](https://github.com/masanori-satake/Replace-Solo/actions/workflows/code-quality.yml)
+[![Pure Vanilla JS](https://img.shields.io/badge/Pure%20Vanilla%20JS-Zero%20Dependencies-informational?logo=javascript&logoColor=white)](#-privacy--security)
 [![pre-commit.ci status](https://results.pre-commit.ci/badge/github/masanori-satake/Replace-Solo/main.svg)](https://results.pre-commit.ci/latest/github/masanori-satake/Replace-Solo/main)
-[![Chrome Web Store](https://img.shields.io/badge/Chrome_Web_Store-Replace--Solo-blue?logo=googlechrome)](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb?authuser=0&hl=ja)
-![Manifest V3](https://img.shields.io/badge/Manifest-V3-blue)
-![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25_Local-green)
 
 〜ブラウザ内で処理が完結するMicrosoft Loop専用の置換ツール〜
 
