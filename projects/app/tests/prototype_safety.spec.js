@@ -63,3 +63,21 @@ test("should safely handle prototype property names as target or origin words wi
   expect(originText).toBe("hasOwnProperty");
   expect(replaceValue).toBe("toString");
 });
+
+test("saveToDictionary should reject dangerous prototype property keys as targets", async ({
+  page,
+}) => {
+  const filePath =
+    "file://" + path.resolve("projects/app/pages/sidepanel.html");
+
+  await page.goto(filePath);
+
+  await page.evaluate(async () => {
+    await saveToDictionary("testOrigin", "__proto__");
+    await saveToDictionary("testOrigin2", "constructor");
+  });
+
+  const savedDict = await page.evaluate(() => localDictionary);
+  expect(Object.prototype.hasOwnProperty.call(savedDict, "__proto__")).toBe(false);
+  expect(Object.prototype.hasOwnProperty.call(savedDict, "constructor")).toBe(false);
+});
