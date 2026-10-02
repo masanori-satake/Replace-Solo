@@ -49,7 +49,21 @@ body {
   display: flex;
   justify-content: flex-end;
   align-items: center;
-  gap: 16px;
+  gap: 8px;
+}
+
+.toggle-btn {
+  height: 32px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: 16px;
+}
+
+.toggle-btn-highlight.active {
+  background-color: #ccff90;
+  color: #1d1b20;
+  border: 1px solid #99e633;
+  font-weight: 600;
 }
 
 .m3-headline-small {
@@ -272,6 +286,7 @@ body {
 
 .m3-table {
   width: 100%;
+  table-layout: fixed;
   border-collapse: separate; /* Required for sticky header border */
   border-spacing: 0;
 }
@@ -285,31 +300,76 @@ body {
 
 .m3-table th {
   text-align: left;
-  padding: 10px 8px;
+  padding: 8px 4px;
   font-size: 11px;
   font-weight: 500;
   color: var(--m3-sys-light-on-surface-variant);
   border-bottom: 1px solid var(--m3-sys-light-outline);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .m3-table td {
-  padding: 10px 8px;
-  font-size: 14px;
+  padding: 6px 4px;
+  font-size: 13px;
   border-bottom: 1px solid var(--m3-sys-light-surface-variant);
   vertical-align: middle;
+  overflow: hidden;
 }
 
-.m3-table td:first-child,
-.m3-table td:nth-child(4) {
+.m3-table th:nth-child(1),
+.m3-table td:nth-child(1) {
+  width: 36px;
   text-align: center;
-  min-width: 48px;
+  padding: 6px 0;
+}
+
+.m3-table th:nth-child(2),
+.m3-table td:nth-child(2) {
+  width: 28%;
+}
+
+.m3-table th:nth-child(3),
+.m3-table td:nth-child(3) {
+  width: auto;
+}
+
+.m3-table th:nth-child(4),
+.m3-table td:nth-child(4) {
+  width: 44px;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.m3-table th:nth-child(5),
+.m3-table td:nth-child(5) {
+  width: 36px;
+  text-align: center;
+  padding: 6px 0;
+}
+
+.word-origin {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.word-row .m3-text-field {
+  width: 100%;
 }
 
 .word-row .m3-text-field input {
+  width: 100%;
+  box-sizing: border-box;
   height: 32px;
-  font-size: 16px;
-  padding: 4px 8px;
+  font-size: 13px;
+  padding: 4px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .m3-checkbox {
@@ -368,8 +428,8 @@ body {
 /* Responsive adjustments for narrow sidepanels (320px - 360px) */
 @media (max-width: 360px) {
   .m3-main {
-    padding: 12px;
-    gap: 12px;
+    padding: 8px;
+    gap: 8px;
   }
 
   .action-row {
@@ -378,7 +438,7 @@ body {
 
   .primary-action {
     padding: 0 4px;
-    font-size: 13px;
+    font-size: 12px;
   }
 
   .m3-table th {
@@ -387,44 +447,32 @@ body {
   }
 
   .m3-table td {
-    padding: 6px 2px;
-    font-size: 13px;
+    padding: 4px 2px;
+    font-size: 12px;
   }
 
   .m3-table th:nth-child(1),
   .m3-table td:nth-child(1) {
-    width: 28px;
-    padding: 6px 0;
-    text-align: center;
+    width: 32px;
   }
 
   .m3-table th:nth-child(2),
   .m3-table td:nth-child(2) {
-    min-width: 60px;
+    width: 26%;
   }
 
   .m3-table th:nth-child(4),
   .m3-table td:nth-child(4) {
-    width: 28px;
-    padding: 6px 0;
-    text-align: center;
+    width: 40px;
   }
 
   .m3-table th:nth-child(5),
   .m3-table td:nth-child(5) {
-    width: 28px;
-    padding: 6px 0;
-    text-align: center;
-  }
-
-  .word-origin {
-    word-break: break-all;
-    display: inline-block;
-    max-width: 75px;
+    width: 32px;
   }
 
   .word-row .m3-text-field input {
-    font-size: 16px;
+    font-size: 12px;
     padding: 2px 4px;
   }
 }
@@ -474,8 +522,9 @@ body {
   display: none;
   padding: 24px;
   padding-top: 16px;
-  max-height: 400px;
+  height: 240px;
   overflow-y: auto;
+  box-sizing: border-box;
 }
 
 .tab-panel.active {
