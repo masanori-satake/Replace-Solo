@@ -21,6 +21,8 @@ let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2"
 let rowCounter = 0;
 let highlightGeneration = 0; // ハイライト状態の世代管理用カウンター
 let highlightEnabled = false; // ハイライト機能のON/OFF状態（デフォルト: OFF）
+let preferJapanese = true; // 日本語置換を優先の設定（デフォルト: ON）
+let isJapaneseOnly = true; // サイドパネルヘッダーの「日本語のみ」ボタン状態
 
 // 定数定義
 const EXCLUDED_NOUN_TYPES = new Set(["代名詞", "非自立"]);
@@ -92,6 +94,7 @@ async function loadSettingsAndDictionary() {
       const result = await chrome.storage.local.get([
         "dictionary",
         "highlightEnabled",
+        "preferJapanese",
       ]);
       if (result.dictionary) {
         localDictionary = result.dictionary;
@@ -106,30 +109,62 @@ async function loadSettingsAndDictionary() {
         highlightEnabled = false;
         await chrome.storage.local.set({ highlightEnabled: false });
       }
+      if (typeof result.preferJapanese === "boolean") {
+        preferJapanese = result.preferJapanese;
+      } else {
+        preferJapanese = true;
+        await chrome.storage.local.set({ preferJapanese: true });
+      }
     } catch (error) {
       console.error("Replace-Solo: Failed to load settings/dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
       highlightEnabled = false;
+      preferJapanese = true;
     }
     updateDictCache();
   } else {
     localDictionary = DEFAULT_DICTIONARY;
     highlightEnabled = false;
+    preferJapanese = true;
     updateDictCache();
   }
 
-  const toggle = document.getElementById("highlight-toggle");
-  if (toggle) {
-    toggle.checked = highlightEnabled;
+  isJapaneseOnly = preferJapanese;
+
+  const preferJapaneseToggle = document.getElementById("prefer-japanese-toggle");
+  if (preferJapaneseToggle) {
+    preferJapaneseToggle.checked = preferJapanese;
   }
+
+  updateHeaderToggleButtonsUI();
 }
 
 loadSettingsAndDictionary();
 
-const highlightToggle = document.getElementById("highlight-toggle");
-if (highlightToggle) {
-  highlightToggle.addEventListener("change", async () => {
-    highlightEnabled = highlightToggle.checked;
+function updateHeaderToggleButtonsUI() {
+  const highlightBtn = document.getElementById("highlight-toggle-btn");
+  if (highlightBtn) {
+    if (highlightEnabled) {
+      highlightBtn.className = "m3-button toggle-btn toggle-btn-highlight active";
+    } else {
+      highlightBtn.className = "m3-button m3-button-outlined toggle-btn";
+    }
+  }
+
+  const jaOnlyBtn = document.getElementById("japanese-only-toggle-btn");
+  if (jaOnlyBtn) {
+    if (isJapaneseOnly) {
+      jaOnlyBtn.className = "m3-button m3-button-filled toggle-btn";
+    } else {
+      jaOnlyBtn.className = "m3-button m3-button-outlined toggle-btn";
+    }
+  }
+}
+
+const highlightToggleBtn = document.getElementById("highlight-toggle-btn");
+if (highlightToggleBtn) {
+  highlightToggleBtn.addEventListener("click", async () => {
+    highlightEnabled = !highlightEnabled;
     if (
       typeof chrome !== "undefined" &&
       chrome.storage &&
@@ -143,6 +178,34 @@ if (highlightToggle) {
     }
     if (!highlightEnabled) {
       clearPageHighlight();
+    }
+    updateHeaderToggleButtonsUI();
+  });
+}
+
+const japaneseOnlyToggleBtn = document.getElementById("japanese-only-toggle-btn");
+if (japaneseOnlyToggleBtn) {
+  japaneseOnlyToggleBtn.addEventListener("click", () => {
+    isJapaneseOnly = !isJapaneseOnly;
+    updateHeaderToggleButtonsUI();
+    renderWordList();
+  });
+}
+
+const preferJapaneseToggle = document.getElementById("prefer-japanese-toggle");
+if (preferJapaneseToggle) {
+  preferJapaneseToggle.addEventListener("change", async () => {
+    preferJapanese = preferJapaneseToggle.checked;
+    if (
+      typeof chrome !== "undefined" &&
+      chrome.storage &&
+      chrome.storage.local
+    ) {
+      try {
+        await chrome.storage.local.set({ preferJapanese });
+      } catch (error) {
+        console.error("Replace-Solo: Failed to save preferJapanese setting:", error);
+      }
     }
   });
 }
@@ -286,8 +349,8 @@ document.getElementById("extract-btn").addEventListener("click", async () => {
     return;
   }
 
-  const toggle = document.getElementById("japanese-only-toggle");
-  if (toggle) toggle.checked = true;
+  isJapaneseOnly = preferJapanese;
+  updateHeaderToggleButtonsUI();
 
   const tab = await getActiveTab();
   if (tab && tab.id) {
@@ -372,8 +435,8 @@ document.getElementById("replace-all-btn").addEventListener("click", () => {
 
 document.getElementById("clear-btn").addEventListener("click", () => {
   clearPageHighlight();
-  const toggle = document.getElementById("japanese-only-toggle");
-  if (toggle) toggle.checked = true;
+  isJapaneseOnly = preferJapanese;
+  updateHeaderToggleButtonsUI();
   const wordList = document.getElementById("word-list");
   wordList.textContent = "";
   allExtractedWords = [];
@@ -383,8 +446,8 @@ document.getElementById("clear-btn").addEventListener("click", () => {
 
 document.getElementById("reset-btn").addEventListener("click", () => {
   clearPageHighlight();
-  const toggle = document.getElementById("japanese-only-toggle");
-  if (toggle) toggle.checked = true;
+  isJapaneseOnly = preferJapanese;
+  updateHeaderToggleButtonsUI();
   const wordList = document.getElementById("word-list");
   wordList.textContent = "";
   allExtractedWords = [];
@@ -396,12 +459,6 @@ document.getElementById("reset-btn").addEventListener("click", () => {
 // テーブルからマウスが離れた際にもハイライトを解除
 document.getElementById("word-list").addEventListener("mouseleave", () => {
   clearPageHighlight();
-});
-
-// Japanese Only Toggle logic
-const japaneseOnlyToggle = document.getElementById("japanese-only-toggle");
-japaneseOnlyToggle.addEventListener("change", () => {
-  renderWordList();
 });
 
 // Settings Modal Logic
@@ -739,6 +796,11 @@ async function extractAndDisplay(text) {
   lastExtractedData.extractedWords = [...allExtractedWords];
 
   await renderWordList();
+
+  const tableContainer = document.querySelector(".table-container");
+  if (tableContainer) {
+    tableContainer.scrollTo({ top: 0, behavior: "smooth" });
+  }
 }
 
 /**
@@ -750,9 +812,6 @@ async function renderWordList() {
   wordList.textContent = "";
   currentWords.clear();
   rowCounter = 0;
-
-  const toggle = document.getElementById("japanese-only-toggle");
-  const isJapaneseOnly = toggle ? toggle.checked : false;
 
   const BATCH_SIZE = 50;
   for (let i = 0; i < allExtractedWords.length; i += BATCH_SIZE) {
@@ -790,19 +849,16 @@ function addWordToList(word, isManual = false) {
 /**
  * 単語行の要素を作成する
  */
-function createWordRow(word, isManual = false, isJapaneseOnly = null) {
+function createWordRow(word, isManual = false, isJaOnly = null) {
   if (currentWords.has(word)) return null;
 
-  if (isJapaneseOnly === null) {
-    const toggle = document.getElementById("japanese-only-toggle");
-    isJapaneseOnly = toggle ? toggle.checked : false;
-  }
+  const checkJapaneseOnly = isJaOnly !== null ? isJaOnly : isJapaneseOnly;
 
   const hasJapanese = JAPANESE_CHAR_REGEX.test(word);
   const isDictMatch = dictOrigins.has(word);
   const isManualInternal = isManual || manualWords.has(word);
 
-  if (isJapaneseOnly && !hasJapanese && !isDictMatch && !isManualInternal) {
+  if (checkJapaneseOnly && !hasJapanese && !isDictMatch && !isManualInternal) {
     // 辞書外の英単語等はスキップ。ただし手動追加は常に表示
     return null;
   }

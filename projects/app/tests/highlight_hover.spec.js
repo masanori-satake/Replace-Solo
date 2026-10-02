@@ -134,9 +134,9 @@ test("should default highlight toggle to OFF and respect toggle changes", async 
   await page.goto(filePath);
   await expect(page.locator("#extract-btn")).toBeVisible();
 
-  // Check default switch state (OFF)
-  const toggle = page.locator("#highlight-toggle");
-  await expect(toggle).not.toBeChecked();
+  // Check default button state (OFF -> not active)
+  const toggleBtn = page.locator("#highlight-toggle-btn");
+  await expect(toggleBtn).not.toHaveClass(/active/);
 
   // Add word & hover while OFF
   await page.fill("#manual-word", "テスト2");
@@ -149,19 +149,9 @@ test("should default highlight toggle to OFF and respect toggle changes", async 
   let sent = await page.evaluate(() => window.sentMessages);
   expect(sent.some((m) => m.action === "HIGHLIGHT_WORD")).toBe(false);
 
-  // Open settings modal to access toggle switch
-  await page.click("#settings-open-btn");
-  await expect(page.locator("#settings-modal")).toBeVisible();
-
-  // Turn ON toggle via JS evaluate since checkbox is opacity:0 inside custom switch
-  await page.evaluate(() => {
-    const toggle = document.getElementById("highlight-toggle");
-    toggle.checked = true;
-    toggle.dispatchEvent(new Event("change"));
-  });
-
-  // Close settings modal
-  await page.click("#settings-close-btn");
+  // Click toggle button to turn ON
+  await toggleBtn.click();
+  await expect(toggleBtn).toHaveClass(/active/);
 
   // Hover again
   await page.hover("#extract-btn");
