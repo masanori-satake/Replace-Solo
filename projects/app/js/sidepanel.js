@@ -131,7 +131,9 @@ async function loadSettingsAndDictionary() {
 
   isJapaneseOnly = preferJapanese;
 
-  const preferJapaneseToggle = document.getElementById("prefer-japanese-toggle");
+  const preferJapaneseToggle = document.getElementById(
+    "prefer-japanese-toggle",
+  );
   if (preferJapaneseToggle) {
     preferJapaneseToggle.checked = preferJapanese;
   }
@@ -145,7 +147,8 @@ function updateHeaderToggleButtonsUI() {
   const highlightBtn = document.getElementById("highlight-toggle-btn");
   if (highlightBtn) {
     if (highlightEnabled) {
-      highlightBtn.className = "m3-button toggle-btn toggle-btn-highlight active";
+      highlightBtn.className =
+        "m3-button toggle-btn toggle-btn-highlight active";
       highlightBtn.setAttribute("aria-pressed", "true");
     } else {
       highlightBtn.className = "m3-button m3-button-outlined toggle-btn";
@@ -187,7 +190,9 @@ if (highlightToggleBtn) {
   });
 }
 
-const japaneseOnlyToggleBtn = document.getElementById("japanese-only-toggle-btn");
+const japaneseOnlyToggleBtn = document.getElementById(
+  "japanese-only-toggle-btn",
+);
 if (japaneseOnlyToggleBtn) {
   japaneseOnlyToggleBtn.addEventListener("click", () => {
     isJapaneseOnly = !isJapaneseOnly;
@@ -208,7 +213,10 @@ if (preferJapaneseToggle) {
       try {
         await chrome.storage.local.set({ preferJapanese });
       } catch (error) {
-        console.error("Replace-Solo: Failed to save preferJapanese setting:", error);
+        console.error(
+          "Replace-Solo: Failed to save preferJapanese setting:",
+          error,
+        );
       }
     }
   });
