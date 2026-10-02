@@ -131,9 +131,7 @@ async function loadSettingsAndDictionary() {
 
   isJapaneseOnly = preferJapanese;
 
-  const preferJapaneseToggle = document.getElementById(
-    "prefer-japanese-toggle",
-  );
+  const preferJapaneseToggle = document.getElementById("prefer-japanese-toggle");
   if (preferJapaneseToggle) {
     preferJapaneseToggle.checked = preferJapanese;
   }
@@ -147,10 +145,11 @@ function updateHeaderToggleButtonsUI() {
   const highlightBtn = document.getElementById("highlight-toggle-btn");
   if (highlightBtn) {
     if (highlightEnabled) {
-      highlightBtn.className =
-        "m3-button toggle-btn toggle-btn-highlight active";
+      highlightBtn.className = "m3-button toggle-btn toggle-btn-highlight active";
+      highlightBtn.setAttribute("aria-pressed", "true");
     } else {
       highlightBtn.className = "m3-button m3-button-outlined toggle-btn";
+      highlightBtn.setAttribute("aria-pressed", "false");
     }
   }
 
@@ -158,8 +157,10 @@ function updateHeaderToggleButtonsUI() {
   if (jaOnlyBtn) {
     if (isJapaneseOnly) {
       jaOnlyBtn.className = "m3-button m3-button-filled toggle-btn";
+      jaOnlyBtn.setAttribute("aria-pressed", "true");
     } else {
       jaOnlyBtn.className = "m3-button m3-button-outlined toggle-btn";
+      jaOnlyBtn.setAttribute("aria-pressed", "false");
     }
   }
 }
@@ -186,9 +187,7 @@ if (highlightToggleBtn) {
   });
 }
 
-const japaneseOnlyToggleBtn = document.getElementById(
-  "japanese-only-toggle-btn",
-);
+const japaneseOnlyToggleBtn = document.getElementById("japanese-only-toggle-btn");
 if (japaneseOnlyToggleBtn) {
   japaneseOnlyToggleBtn.addEventListener("click", () => {
     isJapaneseOnly = !isJapaneseOnly;
@@ -209,10 +208,7 @@ if (preferJapaneseToggle) {
       try {
         await chrome.storage.local.set({ preferJapanese });
       } catch (error) {
-        console.error(
-          "Replace-Solo: Failed to save preferJapanese setting:",
-          error,
-        );
+        console.error("Replace-Solo: Failed to save preferJapanese setting:", error);
       }
     }
   });
@@ -496,10 +492,14 @@ tabBtns.forEach((btn) => {
   btn.addEventListener("click", () => {
     const targetTab = btn.getAttribute("data-tab");
 
-    tabBtns.forEach((b) => b.classList.remove("active"));
+    tabBtns.forEach((b) => {
+      b.classList.remove("active");
+      b.setAttribute("aria-selected", "false");
+    });
     tabPanels.forEach((p) => p.classList.remove("active"));
 
     btn.classList.add("active");
+    btn.setAttribute("aria-selected", "true");
     const tabPanel = document.getElementById(`tab-${targetTab}`);
     if (tabPanel) {
       tabPanel.classList.add("active");

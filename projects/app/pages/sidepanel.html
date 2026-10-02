@@ -14,6 +14,7 @@
           id="highlight-toggle-btn"
           class="m3-button m3-button-outlined toggle-btn"
           aria-label="ハイライト"
+          aria-pressed="false"
           title="ハイライト"
         >
           ハイライト
@@ -22,6 +23,7 @@
           id="japanese-only-toggle-btn"
           class="m3-button m3-button-filled toggle-btn"
           aria-label="日本語のみ"
+          aria-pressed="true"
           title="日本語のみ"
         >
           日本語のみ
@@ -172,10 +174,13 @@
             </svg>
           </button>
         </div>
-        <div class="modal-tabs">
+        <div class="modal-tabs" role="tablist">
           <button
             class="tab-btn active"
             data-tab="general"
+            role="tab"
+            aria-selected="true"
+            aria-controls="tab-general"
             aria-label="一般"
             title="一般"
           >
@@ -194,6 +199,9 @@
           <button
             class="tab-btn"
             data-tab="dictionary"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-dictionary"
             aria-label="辞書"
             title="辞書"
           >
@@ -212,6 +220,9 @@
           <button
             class="tab-btn"
             data-tab="about"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-about"
             aria-label="About"
             title="About"
           >
@@ -231,6 +242,9 @@
             id="debug-tab-btn"
             class="tab-btn"
             data-tab="debug"
+            role="tab"
+            aria-selected="false"
+            aria-controls="tab-debug"
             aria-label="Debug"
             title="Debug"
             style="display: none"
@@ -248,7 +262,7 @@
             </svg>
           </button>
         </div>
-        <div id="tab-general" class="tab-panel active">
+        <div id="tab-general" class="tab-panel active" role="tabpanel">
           <div class="m3-section">
             <div class="settings-actions" style="margin-bottom: 12px">
               <div
@@ -276,7 +290,7 @@
             </div>
           </div>
         </div>
-        <div id="tab-dictionary" class="tab-panel">
+        <div id="tab-dictionary" class="tab-panel" role="tabpanel">
           <div class="m3-section">
             <div class="settings-actions">
               <button
@@ -307,7 +321,7 @@
             </div>
           </div>
         </div>
-        <div id="tab-about" class="tab-panel">
+        <div id="tab-about" class="tab-panel" role="tabpanel">
           <div class="about-content">
             <section>
               <p class="about-label">バージョン</p>
@@ -332,7 +346,7 @@
             </section>
           </div>
         </div>
-        <div id="tab-debug" class="tab-panel">
+        <div id="tab-debug" class="tab-panel" role="tabpanel">
           <div class="about-content">
             <section>
               <p class="about-label">開発用デバッグ機能</p>
