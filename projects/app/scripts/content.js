@@ -295,8 +295,7 @@ function findRangesAcrossNodes(root, replacements) {
   const allReplacementRanges = [];
 
   replacements.forEach(({ origin, target }) => {
-    if (typeof origin !== "string" || typeof target !== "string") return;
-    if (!origin) return;
+    if (typeof origin !== "string" || !origin) return;
 
     // スペースや改行、タブなどの空白文字の連続を考慮した正規表現を作成
     // origin の構成文字を1文字ずつ分割し、その間に空白許容パターンを入れる。
@@ -396,7 +395,15 @@ function replaceByEmulationBatch(replacements) {
     originalSelection.rangeCount > 0 ? originalSelection.getRangeAt(0) : null;
 
   const root = getTargetRoot();
-  const allReplacementRanges = findRangesAcrossNodes(root, replacements);
+  const validReplacements = Array.isArray(replacements)
+    ? replacements.filter(
+        (replacement) =>
+          replacement !== null &&
+          typeof replacement === "object" &&
+          typeof replacement.target === "string",
+      )
+    : [];
+  const allReplacementRanges = findRangesAcrossNodes(root, validReplacements);
 
   // 収集した Range を後ろから順に置換（ドキュメント構造の変化による影響を最小化）
   // 注意: 同一ノード内の複数置換も後ろから行えば位置ズレを防げる
@@ -406,6 +413,8 @@ function replaceByEmulationBatch(replacements) {
   // 原則として後ろから実行する。
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
+
+    if (typeof target !== "string") continue;
 
     // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
     if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
