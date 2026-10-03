@@ -1,7 +1,9 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 
-test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected nodes", async ({ page }) => {
+test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected nodes", async ({
+  page,
+}) => {
   await page.setContent(`
     <!DOCTYPE html>
     <html>
@@ -51,7 +53,9 @@ test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected node
   expect(extractedText).not.toContain("カスタムチップ");
 });
 
-test("findRangesAcrossNodes skips target matches inside unsafe nodes", async ({ page }) => {
+test("findRangesAcrossNodes skips target matches inside unsafe nodes", async ({
+  page,
+}) => {
   await page.setContent(`
     <!DOCTYPE html>
     <html>
