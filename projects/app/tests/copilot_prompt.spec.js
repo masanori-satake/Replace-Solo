@@ -43,17 +43,12 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
       },
     };
 
-    // Mock navigator.clipboard.write
-    window.lastClipboardData = [];
-    window.ClipboardItem = class ClipboardItem {
-      constructor(data) {
-        this.data = data;
-        window.lastClipboardData.push(data);
-      }
-    };
+    // Mock navigator.clipboard.writeText
+    window.lastClipboardText = "";
     Object.defineProperty(navigator, "clipboard", {
       value: {
-        write: async (items) => {
+        writeText: async (text) => {
+          window.lastClipboardText = text;
           return Promise.resolve();
         },
       },
@@ -66,16 +61,6 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
   const insertBtn = page.locator("#btn-insert-copilot-prompt");
   await expect(insertBtn).toBeVisible();
 
-  // Mock message listener for content script insertion
-  let lastSentMessage = null;
-  await page.evaluate(() => {
-    window.chrome.tabs.sendMessage = (tabId, message, cb) => {
-      window.lastMessage = message;
-      if (cb) cb({ success: true });
-      return Promise.resolve({ success: true });
-    };
-  });
-
   // Click the button
   await insertBtn.click();
 
@@ -84,15 +69,14 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
   const currentPath = await insertBtn.locator("path").getAttribute("d");
   expect(currentPath).toBe(checkMarkPath);
 
-  // Verify message content
-  const sentMessage = await page.evaluate(() => window.lastMessage);
-  expect(sentMessage).toBeTruthy();
-  expect(sentMessage.action).toBe("INSERT_COPILOT_PROMPT_TO_LOOP");
-  expect(sentMessage.promptText).toContain("> 【AIメモ作成用ガイドライン】");
-  expect(sentMessage.promptText).toContain("1. 不要語句（フィラー）の除外");
-  expect(sentMessage.promptText).toContain("- 対象: `えー`");
-  expect(sentMessage.promptText).toContain("2. 用語の統一・表記補正");
-  expect(sentMessage.promptText).toContain(
+  // Verify clipboard content
+  const clipboardText = await page.evaluate(() => window.lastClipboardText);
+  expect(clipboardText).toBeTruthy();
+  expect(clipboardText).toContain("> 【AIメモ作成用ガイドライン】");
+  expect(clipboardText).toContain("1. 不要語句（フィラー）の除外");
+  expect(clipboardText).toContain("- 対象: `えー`");
+  expect(clipboardText).toContain("2. 用語の統一・表記補正");
+  expect(clipboardText).toContain(
     "- `誤り1`, `誤り2` → 「正しい」に統一",
   );
 });
