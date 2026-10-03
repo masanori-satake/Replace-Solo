@@ -515,58 +515,85 @@ tabBtns.forEach((btn) => {
   });
 });
 
-document
-  .getElementById("copy-copilot-prompt-btn")
-  .addEventListener("click", async () => {
-    const btn = document.getElementById("copy-copilot-prompt-btn");
-    const originalSvg = btn.innerHTML;
+/**
+ * 置換辞書データからCopilot用プロンプトテキストを動的に生成する
+ */
+function buildCopilotPrompt(dictionary) {
+  const dict = dictionary || {};
+  let fillers = [];
+  if (
+    Object.prototype.hasOwnProperty.call(dict, "") &&
+    Array.isArray(dict[""])
+  ) {
+    fillers = dict[""].filter((f) => typeof f === "string" && f.length > 0);
+  }
+
+  let fillerText = "「えー」「あのー」「そのー」など";
+  if (fillers.length > 0) {
+    fillerText = fillers.map((f) => `「${f}」`).join("") + "など";
+  }
+
+  const mappingLines = [];
+  for (const [target, origins] of Object.entries(dict)) {
+    if (target === "") continue;
+    if (!Array.isArray(origins) || origins.length === 0) continue;
+    const originsText = origins.map((o) => `「${o}」`).join("");
+    mappingLines.push(`・${originsText} → 「${target}」`);
+  }
+
+  const mappingsText =
+    mappingLines.length > 0 ? mappingLines.join("\n") : "（指定なし）";
+
+  return `🔽 【Facilitatorへの指示・用語定義】
+Copilot / Facilitator は、本ページの会議メモを作成する際、以下の書き起こし補正・用語定義ガイドラインを遵守してください。
+
+■ 1. 記載内容の精錬（言い淀みの省略）
+会話の本質的な要約・アクションアイテムのみを抽出し、発話内の言い淀み（${fillerText}）や無意味な繋ぎ文字は一切省略して簡潔に記録してください。
+
+■ 2. 用語統一・表記補正
+以下の表記揺れ・誤認識は、右記の指定用語に統一して記録してください：
+${mappingsText}`;
+}
+
+const insertCopilotBtn = document.getElementById("btn-insert-copilot-prompt");
+if (insertCopilotBtn) {
+  insertCopilotBtn.addEventListener("click", async () => {
+    const originalSvg = insertCopilotBtn.innerHTML;
     const checkSvg =
       '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>';
 
-    const dictionary = localDictionary;
-    let deletionInstructions = "";
-    if (dictionary[""] && dictionary[""].length > 0) {
-      deletionInstructions = `（空キーの語句は削除）`;
-    }
+    const promptText = buildCopilotPrompt(localDictionary);
+    const markdownPrompt = promptText
+      .split("\n")
+      .map((line) => `> ${line}`)
+      .join("\n");
 
-    const instruction = `💡 AI補正データ (@facilitator 用)
-以下のJSONに基づき、"values"を"key"の語句に置換してください。${deletionInstructions}`;
+    const tab = await getActiveTab();
+    if (tab && tab.id) {
+      try {
+        const response = await sendMessageToTab(tab.id, {
+          action: "INSERT_COPILOT_PROMPT_TOGGLE",
+          promptText,
+          markdownPrompt,
+        });
 
-    const jsonString = JSON.stringify(dictionary, null, 2);
+        if (!response || !response.success) {
+          throw new Error("プロンプトの挿入に失敗しました。");
+        }
 
-    // プレーンテキスト版
-    const plainText = `${instruction}\n\n\`\`\`json\n${jsonString}\n\`\`\`\n`;
-
-    // HTML版 (Teams向け)
-    const escapedInstruction = escapeHtml(instruction).replace(/\n/g, "<br>");
-    const escapedJson = escapeHtml(jsonString);
-    const htmlContent =
-      '<div style="font-family: sans-serif;">' +
-      `<p>${escapedInstruction}</p>` +
-      '<pre style="background-color: #f3f2f1; padding: 8px; border-radius: 4px; border: 1px solid #edebe9; white-space: pre-wrap; word-break: break-all;">' +
-      `<code>${escapedJson}</code>` +
-      "</pre>" +
-      '<p style="font-size: 0.1em; color: transparent;">.</p>' +
-      "</div>";
-
-    try {
-      const blobPlain = new Blob([plainText], { type: "text/plain" });
-      const blobHtml = new Blob([htmlContent], { type: "text/html" });
-      const clipboardItem = new ClipboardItem({
-        "text/plain": blobPlain,
-        "text/html": blobHtml,
-      });
-      await navigator.clipboard.write([clipboardItem]);
-
-      btn.innerHTML = checkSvg;
-      setTimeout(() => {
-        btn.innerHTML = originalSvg;
-      }, 2000);
-    } catch (err) {
-      console.error("Failed to copy prompt:", err);
-      alert("プロンプトのコピーに失敗しました。");
+        insertCopilotBtn.innerHTML = checkSvg;
+        setTimeout(() => {
+          insertCopilotBtn.innerHTML = originalSvg;
+        }, 2000);
+      } catch (err) {
+        console.error("Failed to insert prompt toggle:", err);
+        alert(err.message || "プロンプトの挿入に失敗しました。");
+      }
+    } else {
+      alert("操作対象のタブが見つかりません。");
     }
   });
+}
 
 document.getElementById("export-json").addEventListener("click", () => {
   const blob = new Blob([JSON.stringify(localDictionary, null, 2)], {

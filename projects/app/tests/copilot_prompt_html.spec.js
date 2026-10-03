@@ -1,109 +1,106 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 
-test("Copilot prompt generation should support both Plain Text and HTML", async ({
+test("Content script insertCopilotPromptToggle should insert toggle block after title or as details element", async ({
   page,
 }) => {
-  const filePath =
-    "file://" + path.resolve("projects/app/pages/sidepanel.html");
+  await page.setContent(`
+    <!DOCTYPE html>
+    <html>
+      <body>
+        <div class="scriptor-canvas scriptor-canvas-grid-layout">
+          <h1 data-data-id="page-title" contenteditable="true">会議メモ</h1>
+          <div class="lc-canvas-body">
+            <p class="scriptor-paragraph" contenteditable="true">本文の第一ブロック</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `);
 
-  // Mock chrome API and clipboard
-  await page.addInitScript(() => {
-    window.chrome = {
-      storage: {
-        local: {
-          get: (keys, cb) => {
-            const result = {
-              dictionary: { 正しい: ["誤り1", "誤り2"], "": ["えー"] },
-            };
-            if (cb) cb(result);
-            return Promise.resolve(result);
-          },
-          set: (data, cb) => {
-            if (cb) cb();
-            return Promise.resolve();
-          },
-          onChanged: {
-            addListener: () => {},
-          },
-        },
-      },
-      runtime: {
-        getURL: (path) => path,
-        getManifest: () => ({ version: "1.1.0" }),
-        lastError: null,
-      },
-      tabs: {
-        query: (query, cb) => {
-          if (cb) cb([]);
-          return Promise.resolve([]);
-        },
-      },
-      sidePanel: {
-        setPanelBehavior: () => {},
-      },
-    };
-
-    // Mock navigator.clipboard.write
-    window.lastClipboardData = [];
-    window.ClipboardItem = class ClipboardItem {
-      constructor(data) {
-        this.data = data;
-        window.lastClipboardData.push(data);
-      }
-    };
-    Object.defineProperty(navigator, "clipboard", {
-      value: {
-        write: async (items) => {
-          return Promise.resolve();
-        },
-      },
-      configurable: true,
-    });
+  await page.addScriptTag({
+    path: path.resolve("projects/app/scripts/content.js"),
   });
 
-  await page.goto(filePath);
+  expect(
+    await page.evaluate(
+      () =>
+        findTargetBlockAfterTitle().targetBlock ===
+        document.querySelector(".scriptor-paragraph"),
+    ),
+  ).toBe(true);
 
-  const copyBtn = page.locator("#copy-copilot-prompt-btn");
-  await expect(copyBtn).toBeVisible();
+  const markdownPrompt = "> 🔽 【Facilitatorへの指示・用語定義】\n> 指示内容";
+  const promptText = "🔽 【Facilitatorへの指示・用語定義】\n指示内容";
 
-  // Click the button
-  await copyBtn.click();
-
-  // Verify visual feedback (icon change to check mark)
-  const checkMarkPath = "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z";
-  const currentPath = await copyBtn.locator("path").getAttribute("d");
-  expect(currentPath).toBe(checkMarkPath);
-
-  // Verify clipboard content
-  const clipboardData = await page.evaluate(async () => {
-    const results = {};
-    const items = window.lastClipboardData;
-    if (items.length > 0) {
-      const data = items[0];
-      for (const type of Object.keys(data)) {
-        results[type] = await data[type].text();
-      }
-    }
-    return results;
-  });
-
-  // Verify Plain Text
-  expect(clipboardData["text/plain"]).toContain(
-    "💡 AI補正データ (@facilitator 用)",
+  const result = await page.evaluate(
+    ({ markdownPrompt, promptText }) => {
+      return insertCopilotPromptToggle(markdownPrompt, promptText);
+    },
+    { markdownPrompt, promptText },
   );
-  expect(clipboardData["text/plain"]).toContain("```json");
-  expect(clipboardData["text/plain"]).toContain('"正しい": [');
-  expect(clipboardData["text/plain"]).toContain("（空キーの語句は削除）");
 
-  // Verify HTML
-  expect(clipboardData["text/html"]).toContain(
-    '<div style="font-family: sans-serif;">',
-  );
-  expect(clipboardData["text/html"]).toContain(
-    '<pre style="background-color: #f3f2f1;',
-  );
-  expect(clipboardData["text/html"]).toContain("<code>");
-  expect(clipboardData["text/html"]).toContain("&quot;正しい&quot;:");
-  expect(clipboardData["text/html"]).toContain("<br>");
+  expect(result).toBe(true);
+
+  // Check contenteditable paragraph received input
+  const paragraphText = await page.locator(".scriptor-paragraph").textContent();
+  expect(paragraphText).toContain("> 🔽 【Facilitatorへの指示・用語定義】");
 });
+
+for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
+  for (const useDomFallback of [false, true]) {
+    test(`Empty page (${bodyClass || "no body container"}) inserts outside the title via ${useDomFallback ? "DOM fallback" : "input emulation"}`, async ({
+      page,
+    }) => {
+      // Exercise Loop's canvas root rather than the document.body fallback.
+      await page.route("https://loop.microsoft.com/p/test", (route) =>
+        route.fulfill({ body: "<html><body></body></html>" }),
+      );
+      await page.goto("https://loop.microsoft.com/p/test");
+      await page.setContent(`
+        <div class="scriptor-canvas scriptor-canvas-grid-layout">
+          <div class="lc-titleEditor">
+            <h1 data-data-id="page-title" contenteditable="true">会議メモ</h1>
+          </div>
+          ${bodyClass ? `<div class="${bodyClass}"></div>` : ""}
+        </div>
+      `);
+      await page.addScriptTag({
+        path: path.resolve("projects/app/scripts/content.js"),
+      });
+
+      const result = await page.evaluate(
+        ({ bodyClass, useDomFallback }) => {
+          if (useDomFallback) document.execCommand = () => false;
+          const success = insertCopilotPromptToggle(
+            "> Prompt heading\n> Prompt body",
+            "Prompt heading\nPrompt body",
+          );
+          const title = document.querySelector('[data-data-id="page-title"]');
+          const body = document.querySelector(
+            bodyClass ? `.${bodyClass}` : ".scriptor-canvas",
+          );
+          const target = findTargetBlockAfterTitle().targetBlock;
+          return {
+            success,
+            titleText: title.textContent,
+            bodyText: body.textContent,
+            targetInBody: body.contains(target),
+            targetOutsideTitle:
+              !!target && !title.contains(target) && !target.contains(title),
+            toggleInBody: !!body.querySelector("details"),
+          };
+        },
+        { bodyClass, useDomFallback },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.titleText).toBe("会議メモ");
+      expect(result.bodyText).toContain("Prompt heading");
+      expect(result.bodyText).toContain("Prompt body");
+      expect(result.targetInBody).toBe(true);
+      expect(result.targetOutsideTitle).toBe(true);
+      expect(result.toggleInBody).toBe(useDomFallback);
+    });
+  }
+}

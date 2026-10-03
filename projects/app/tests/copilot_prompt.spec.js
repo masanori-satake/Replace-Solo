@@ -33,8 +33,9 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
       },
       tabs: {
         query: (query, cb) => {
-          if (cb) cb([]);
-          return Promise.resolve([]);
+          const tabs = [{ id: 1, active: true }];
+          if (cb) cb(tabs);
+          return Promise.resolve(tabs);
         },
       },
       sidePanel: {
@@ -62,33 +63,37 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
 
   await page.goto(filePath);
 
-  const copyBtn = page.locator("#copy-copilot-prompt-btn");
-  await expect(copyBtn).toBeVisible();
+  const insertBtn = page.locator("#btn-insert-copilot-prompt");
+  await expect(insertBtn).toBeVisible();
+
+  // Mock message listener for content script insertion
+  let lastSentMessage = null;
+  await page.evaluate(() => {
+    window.chrome.tabs.sendMessage = (tabId, message, cb) => {
+      window.lastMessage = message;
+      if (cb) cb({ success: true });
+      return Promise.resolve({ success: true });
+    };
+  });
 
   // Click the button
-  await copyBtn.click();
+  await insertBtn.click();
 
   // Verify visual feedback (icon change to check mark)
   const checkMarkPath = "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z";
-  const currentPath = await copyBtn.locator("path").getAttribute("d");
+  const currentPath = await insertBtn.locator("path").getAttribute("d");
   expect(currentPath).toBe(checkMarkPath);
 
-  // Verify clipboard content
-  const clipboardContent = await page.evaluate(async () => {
-    const items = window.lastClipboardData;
-    if (items.length > 0) {
-      const data = items[0];
-      if (data["text/plain"]) {
-        return await data["text/plain"].text();
-      }
-    }
-    return "";
-  });
-
-  expect(clipboardContent).toContain("💡 AI補正データ (@facilitator 用)");
-  expect(clipboardContent).toContain('"正しい": [');
-  expect(clipboardContent).toContain('"誤り1"');
-  expect(clipboardContent).toContain("（空キーの語句は削除）");
-  expect(clipboardContent).not.toContain("<details>");
-  expect(clipboardContent).toContain("```json");
+  // Verify message content
+  const sentMessage = await page.evaluate(() => window.lastMessage);
+  expect(sentMessage).toBeTruthy();
+  expect(sentMessage.action).toBe("INSERT_COPILOT_PROMPT_TOGGLE");
+  expect(sentMessage.promptText).toContain(
+    "🔽 【Facilitatorへの指示・用語定義】",
+  );
+  expect(sentMessage.promptText).toContain("言い淀み（「えー」など）");
+  expect(sentMessage.promptText).toContain("・「誤り1」「誤り2」 → 「正しい」");
+  expect(sentMessage.markdownPrompt).toContain(
+    "> 🔽 【Facilitatorへの指示・用語定義】",
+  );
 });
