@@ -52,6 +52,12 @@ body {
   align-items: center;
 }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .m3-headline-small {
   margin: 0;
   font-size: 24px;
@@ -140,6 +146,11 @@ body {
   color: var(--m3-sys-light-on-primary);
 }
 
+.m3-button-filled.error-action {
+  background-color: var(--m3-sys-light-error);
+  color: var(--m3-sys-light-on-error);
+}
+
 .m3-icon-button {
   width: 40px;
   height: 40px;
@@ -176,6 +187,10 @@ body {
     background-color: #1d4ed8;
   }
 
+  .m3-button-filled.error-action:hover {
+    background-color: #991b1b;
+  }
+
   .m3-button-text:hover {
     background-color: rgba(37, 99, 235, 0.08);
   }
@@ -196,6 +211,10 @@ body {
 /* Active / Press feedback for touch and click */
 .m3-button-filled:active {
   background-color: #1e40af;
+}
+
+.m3-button-filled.error-action:active {
+  background-color: #7f1d1d;
 }
 
 .m3-button-text:active {

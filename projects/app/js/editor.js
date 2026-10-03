@@ -379,6 +379,17 @@ function setupEventListeners() {
     );
   });
 
+  const clearBtn = document.getElementById("clear-dictionary");
+  if (clearBtn) {
+    clearBtn.addEventListener("click", () => {
+      showConfirm("辞書をクリアして初期状態に戻しますか？", async () => {
+        localDictionary = JSON.parse(JSON.stringify(DEFAULT_DICTIONARY));
+        renderDictionary();
+        await saveToStorage();
+      });
+    });
+  }
+
   // Listen for storage changes to sync across tabs if needed
   if (
     typeof chrome !== "undefined" &&

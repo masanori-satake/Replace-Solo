@@ -598,32 +598,6 @@ document.getElementById("download-debug-info").addEventListener("click", () => {
   URL.revokeObjectURL(url);
 });
 
-const confirmDialog = document.getElementById("confirm-dialog");
-const confirmOkBtn = document.getElementById("confirm-ok");
-const confirmCancelBtn = document.getElementById("confirm-cancel");
-
-document.getElementById("clear-dictionary").addEventListener("click", () => {
-  confirmDialog.style.display = "flex";
-});
-
-confirmCancelBtn.addEventListener("click", () => {
-  confirmDialog.style.display = "none";
-});
-
-confirmOkBtn.addEventListener("click", async () => {
-  try {
-    localDictionary = DEFAULT_DICTIONARY;
-    await chrome.storage.local.set({ dictionary: localDictionary });
-    updateDictCache();
-    const extractBtn = document.getElementById("extract-btn");
-    if (extractBtn) extractBtn.click();
-  } catch (error) {
-    console.error("Replace-Solo: Failed to clear dictionary:", error);
-  } finally {
-    confirmDialog.style.display = "none";
-  }
-});
-
 document.getElementById("open-editor").addEventListener("click", async () => {
   try {
     const editorUrl = chrome.runtime.getURL("pages/editor.html");
