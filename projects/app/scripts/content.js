@@ -124,7 +124,19 @@ function findTargetBlockAfterTitle() {
     }
   }
 
-  return { titleElem, targetBlock: isOutsideTitle(root) ? root : null };
+  let targetBlock = root;
+  if (!isOutsideTitle(root)) {
+    // 本文ブロックがない場合は、タイトルを含まない挿入先を作成する
+    const bodyContainer =
+      Array.from(
+        root.querySelectorAll(".lc-canvas-body, .scriptor-pageBody"),
+      ).find(isOutsideTitle) || root;
+    targetBlock = document.createElement("div");
+    targetBlock.contentEditable = "true";
+    bodyContainer.appendChild(targetBlock);
+  }
+
+  return { titleElem, targetBlock };
 }
 
 /**
