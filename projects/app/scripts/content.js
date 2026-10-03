@@ -89,6 +89,11 @@ function findTargetBlockAfterTitle() {
     }
   }
 
+  const isOutsideTitle = (el) => {
+    if (!el || !titleElem) return true;
+    return !titleElem.contains(el) && !el.contains(titleElem);
+  };
+
   if (titleElem) {
     // タイトル要素の親コンテナまたはタイトル自体の次の兄弟・子要素から本文ブロックを探す
     let container = titleElem.closest(
@@ -97,21 +102,29 @@ function findTargetBlockAfterTitle() {
     if (!container) container = root;
 
     // タイトル直後の最初のブロック要素
-    const firstBodyBlock = container.querySelector(
+    const candidateBlocks = container.querySelectorAll(
       '.lc-canvas-body > :first-child, .scriptor-pageBody > :first-child, .scriptor-paragraph, [contenteditable="true"]:not([data-data-id="page-title"]):not(h1)',
     );
 
-    if (firstBodyBlock) {
-      return { titleElem, targetBlock: firstBodyBlock };
+    for (const block of candidateBlocks) {
+      if (isOutsideTitle(block)) {
+        return { titleElem, targetBlock: block };
+      }
     }
   }
 
-  // フォールバック: ページ内の最初の編集可能ブロック
-  const editableBlock = root.querySelector(
+  // フォールバック: ページ内の最初の編集可能ブロック（タイトルを除く）
+  const fallbackCandidates = root.querySelectorAll(
     '.scriptor-paragraph, .scriptor-pageBody > div, [contenteditable="true"]',
   );
 
-  return { titleElem, targetBlock: editableBlock || root };
+  for (const block of fallbackCandidates) {
+    if (isOutsideTitle(block)) {
+      return { titleElem, targetBlock: block };
+    }
+  }
+
+  return { titleElem, targetBlock: isOutsideTitle(root) ? root : null };
 }
 
 /**
@@ -130,8 +143,7 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
   // クリップボード/模擬入力による挿入（推奨アルゴリズム）
   let editableElem = targetBlock;
   if (!editableElem.isContentEditable) {
-    editableElem =
-      targetBlock.querySelector('[contenteditable="true"]') ||
+    editableElem = targetBlock.querySelector('[contenteditable="true"]') ||
       targetBlock.closest('[contenteditable="true"]');
   }
 
@@ -174,16 +186,11 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
       editableElem.dispatchEvent(inputEvent);
 
       if (execSuccess) {
-        console.debug(
-          "Replace-Solo: Successfully inserted prompt via input emulation.",
-        );
+        console.debug("Replace-Solo: Successfully inserted prompt via input emulation.");
         return true;
       }
     } catch (e) {
-      console.warn(
-        "Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.",
-        e,
-      );
+      console.warn("Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.", e);
     }
   }
 
@@ -221,9 +228,7 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
       targetBlock.appendChild(details);
     }
 
-    console.debug(
-      "Replace-Solo: Successfully inserted prompt via direct DOM fallback.",
-    );
+    console.debug("Replace-Solo: Successfully inserted prompt via direct DOM fallback.");
     return true;
   } catch (domErr) {
     console.error("Replace-Solo: Direct DOM insertion failed.", domErr);

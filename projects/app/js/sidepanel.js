@@ -525,7 +525,9 @@ function buildCopilotPrompt(dictionary) {
     Object.prototype.hasOwnProperty.call(dict, "") &&
     Array.isArray(dict[""])
   ) {
-    fillers = dict[""].filter((f) => typeof f === "string" && f.length > 0);
+    fillers = dict[""].filter(
+      (f) => typeof f === "string" && f.length > 0,
+    );
   }
 
   let fillerText = "「えー」「あのー」「そのー」など";
@@ -571,11 +573,15 @@ if (insertCopilotBtn) {
     const tab = await getActiveTab();
     if (tab && tab.id) {
       try {
-        await sendMessageToTab(tab.id, {
+        const response = await sendMessageToTab(tab.id, {
           action: "INSERT_COPILOT_PROMPT_TOGGLE",
           promptText,
           markdownPrompt,
         });
+
+        if (!response || !response.success) {
+          throw new Error("プロンプトの挿入に失敗しました。");
+        }
 
         insertCopilotBtn.innerHTML = checkSvg;
         setTimeout(() => {
