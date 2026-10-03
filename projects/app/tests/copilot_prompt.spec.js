@@ -76,7 +76,5 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
   expect(clipboardText).toContain("1. 不要語句（フィラー）の除外");
   expect(clipboardText).toContain("- 対象: `えー`");
   expect(clipboardText).toContain("2. 用語の統一・表記補正");
-  expect(clipboardText).toContain(
-    "- `誤り1`, `誤り2` → 「正しい」に統一",
-  );
+  expect(clipboardText).toContain("- `誤り1`, `誤り2` → 「正しい」に統一");
 });

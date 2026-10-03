@@ -55,7 +55,6 @@ function setupMessageListener() {
       sendResponse({ success: true });
       return true;
     }
-
   });
 }
 
