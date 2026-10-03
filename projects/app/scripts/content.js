@@ -406,6 +406,8 @@ function replaceByEmulationBatch(replacements) {
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
 
+    if (typeof target !== "string") continue;
+
     // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
     if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
       continue;
