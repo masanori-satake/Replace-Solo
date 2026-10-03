@@ -143,7 +143,8 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
   // クリップボード/模擬入力による挿入（推奨アルゴリズム）
   let editableElem = targetBlock;
   if (!editableElem.isContentEditable) {
-    editableElem = targetBlock.querySelector('[contenteditable="true"]') ||
+    editableElem =
+      targetBlock.querySelector('[contenteditable="true"]') ||
       targetBlock.closest('[contenteditable="true"]');
   }
 
@@ -186,11 +187,16 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
       editableElem.dispatchEvent(inputEvent);
 
       if (execSuccess) {
-        console.debug("Replace-Solo: Successfully inserted prompt via input emulation.");
+        console.debug(
+          "Replace-Solo: Successfully inserted prompt via input emulation.",
+        );
         return true;
       }
     } catch (e) {
-      console.warn("Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.", e);
+      console.warn(
+        "Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.",
+        e,
+      );
     }
   }
 
@@ -228,7 +234,9 @@ function insertCopilotPromptToggle(markdownPrompt, promptText) {
       targetBlock.appendChild(details);
     }
 
-    console.debug("Replace-Solo: Successfully inserted prompt via direct DOM fallback.");
+    console.debug(
+      "Replace-Solo: Successfully inserted prompt via direct DOM fallback.",
+    );
     return true;
   } catch (domErr) {
     console.error("Replace-Solo: Direct DOM insertion failed.", domErr);
