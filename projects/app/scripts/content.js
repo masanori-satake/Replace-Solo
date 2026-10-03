@@ -60,7 +60,8 @@ function setupMessageListener() {
       request.action === "INSERT_COPILOT_PROMPT_TO_LOOP" ||
       request.action === "INSERT_COPILOT_PROMPT_TOGGLE"
     ) {
-      const promptText = request.promptText || request.markdownPrompt || "";
+      const promptText =
+        request.promptText || request.markdownPrompt || "";
       const success = insertPromptToLoop(promptText);
       sendResponse({ success });
       return true;
