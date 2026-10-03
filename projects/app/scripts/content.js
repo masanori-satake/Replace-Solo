@@ -157,6 +157,82 @@ function getTargetRoot() {
   return document.body;
 }
 
+const ENTITY_DATA_ATTRIBUTES = [
+  "data-entity-id",
+  "data-mention-id",
+  "data-user-id",
+  "data-tag-id",
+  "data-component-type",
+];
+
+/**
+ * テキストノードが安全なプレーンテキストノードかどうか判定する
+ */
+function isSafeTextNode(node, editorRoot) {
+  if (!node || node.nodeType !== Node.TEXT_NODE) return false;
+  if (!node.nodeValue || node.nodeValue.trim() === "") return false;
+
+  let current = node.parentElement;
+
+  while (current && current !== editorRoot && current !== document.body) {
+    // 条件1: contenteditable="false" のアトミックノード配下
+    if (current.getAttribute("contenteditable") === "false") {
+      return false;
+    }
+
+    // 条件2: 特定のエンティティ専用データ属性を保持しているか
+    const hasEntityAttribute = ENTITY_DATA_ATTRIBUTES.some((attr) =>
+      current.hasAttribute(attr),
+    );
+    if (hasEntityAttribute) {
+      return false;
+    }
+
+    // 条件3: ボタンやバッジとして動作するARIA/Role属性
+    const role = current.getAttribute("role");
+    if (role && ["button", "option", "combobox", "dialog"].includes(role)) {
+      return false;
+    }
+
+    // 条件4: カスタムエレメント（タグ名にハイフン含む）
+    if (current.tagName && current.tagName.includes("-")) {
+      return false;
+    }
+
+    current = current.parentElement;
+  }
+
+  return true;
+}
+
+/**
+ * 安全なテキストノードを収集する
+ */
+function getSafeTextNodes(root) {
+  if (!root) return [];
+  const safeNodes = [];
+  const walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    {
+      acceptNode: (node) => {
+        if (isNodeEditable(node) && isSafeTextNode(node, root)) {
+          return NodeFilter.FILTER_ACCEPT;
+        }
+        return NodeFilter.FILTER_REJECT;
+      },
+    },
+    false,
+  );
+
+  let node;
+  while ((node = walker.nextNode())) {
+    safeNodes.push(node);
+  }
+
+  return safeNodes;
+}
+
 /**
  * ノードが編集可能（ユーザーが入力を想定している箇所）かどうかを判定する
  */
@@ -176,52 +252,37 @@ function isNodeEditable(node) {
 }
 
 /**
- * 編集可能な要素からのみテキストを抽出する
+ * 編集可能かつ安全なノードからのみテキストを抽出する
  */
 function getEditableInnerText(root) {
-  // root自身が編集可能な場合
-  const rootIsEditable =
-    root.isContentEditable ||
-    (root.closest && root.closest('[role="textbox"]'));
-  if (rootIsEditable) {
-    if (!isLoopUIElement(root)) {
-      return root.innerText;
-    }
-  }
+  const safeNodes = getSafeTextNodes(root);
+  if (safeNodes.length === 0) return "";
 
-  // 編集可能な属性を持つ要素を探す
-  const editables = Array.from(
-    root.querySelectorAll('[contenteditable], [role="textbox"]'),
-  );
-  if (editables.length === 0) {
-    // 編集可能なエリアが一つも見つからない場合は、指示に基づき制限をかけるため空を返す。
-    return "";
-  }
+  const chunks = [];
+  let lastContainer = null;
+  let lastParent = null;
 
-  const result = [];
-  editables.forEach((el) => {
-    // 実際に編集可能かチェック（contenteditable="false"などを除外）
-    const isActuallyEditable =
-      el.isContentEditable || el.getAttribute("role") === "textbox";
-    if (!isActuallyEditable || isLoopUIElement(el)) return;
-
-    // 入れ子になっている場合は、親だけを対象にする（innerTextに含まれるため）
-    let isNested = false;
-    let p = el.parentElement;
-    while (p && p !== root) {
-      if (p.isContentEditable || p.getAttribute("role") === "textbox") {
-        isNested = true;
-        break;
+  safeNodes.forEach((node) => {
+    const parent = node.parentElement;
+    let currentContainer = lastContainer;
+    if (parent !== lastParent) {
+      currentContainer = parent?.closest(
+        '[contenteditable="true"], [role="textbox"]',
+      );
+      if (
+        lastContainer &&
+        currentContainer &&
+        currentContainer !== lastContainer
+      ) {
+        chunks.push("\n");
       }
-      p = p.parentElement;
+      lastParent = parent;
+      lastContainer = currentContainer;
     }
-
-    if (!isNested) {
-      result.push(el.innerText);
-    }
+    chunks.push(node.nodeValue);
   });
 
-  return result.join("\n");
+  return chunks.join("");
 }
 
 /**
@@ -243,7 +304,7 @@ function findRangesAcrossNodes(root, replacements) {
     NodeFilter.SHOW_TEXT,
     {
       acceptNode: (node) => {
-        if (isNodeEditable(node)) {
+        if (isNodeEditable(node) && isSafeTextNode(node, root)) {
           return NodeFilter.FILTER_ACCEPT;
         }
         return NodeFilter.FILTER_REJECT;
