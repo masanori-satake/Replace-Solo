@@ -1,16 +1,14 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 
-test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected nodes", async ({
-  page,
-}) => {
+test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected nodes and preserve whitespace", async ({ page }) => {
   await page.setContent(`
     <!DOCTYPE html>
     <html>
       <body>
         <div id="editor" contenteditable="true" class="scriptor-pageBody">
           <div class="scriptor-paragraph">
-            <span class="scriptor-textRun scriptor-inline">プロジェクトの進捗報告</span>
+            <span class="scriptor-textRun scriptor-inline">プロジェクトの進捗報告</span> <span>（補足情報）</span>
             <br class="scriptor-EOP" />
           </div>
           <!-- contenteditable="false" block -->
@@ -47,7 +45,7 @@ test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected node
 
   console.log("Extracted text:\n", extractedText);
 
-  expect(extractedText).toContain("プロジェクトの進捗報告");
+  expect(extractedText).toContain("プロジェクトの進捗報告 （補足情報）");
   expect(extractedText).toContain("件名：開発スケジュールについて");
   expect(extractedText).toContain("重要課題");
 
@@ -62,9 +60,7 @@ test("isSafeTextNode and getSafeTextNodes correctly filter unsafe/protected node
   expect(extractedText).not.toContain("カスタムチップ");
 });
 
-test("findRangesAcrossNodes skips target matches inside unsafe nodes and treats scriptor-paragraph as container boundary", async ({
-  page,
-}) => {
+test("findRangesAcrossNodes skips target matches inside unsafe nodes and treats scriptor-paragraph as container boundary", async ({ page }) => {
   await page.setContent(`
     <!DOCTYPE html>
     <html>

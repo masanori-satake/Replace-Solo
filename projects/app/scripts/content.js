@@ -170,7 +170,7 @@ const ENTITY_DATA_ATTRIBUTES = [
  */
 function isSafeTextNode(node, editorRoot) {
   if (!node || node.nodeType !== Node.TEXT_NODE) return false;
-  if (!node.nodeValue || node.nodeValue.trim() === "") return false;
+  if (!node.nodeValue) return false;
 
   let current = node.parentElement;
 
