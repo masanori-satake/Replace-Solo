@@ -396,7 +396,12 @@ function replaceByEmulationBatch(replacements) {
 
   const root = getTargetRoot();
   const validReplacements = Array.isArray(replacements)
-    ? replacements.filter(({ target }) => typeof target === "string")
+    ? replacements.filter(
+        (replacement) =>
+          replacement !== null &&
+          typeof replacement === "object" &&
+          typeof replacement.target === "string",
+      )
     : [];
   const allReplacementRanges = findRangesAcrossNodes(root, validReplacements);
 
