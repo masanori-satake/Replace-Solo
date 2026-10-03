@@ -263,7 +263,7 @@ function insertPromptToLoop(promptText) {
       } catch (e) {}
 
       if (!inserted && editableArea.isContentEditable) {
-        editableArea.textContent = promptText;
+        editableArea.appendChild(document.createTextNode(promptText));
       }
     }
     return true;
