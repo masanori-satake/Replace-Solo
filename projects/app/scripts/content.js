@@ -188,9 +188,21 @@ function isSafeTextNode(node, editorRoot) {
       return false;
     }
 
-    // 条件3: ボタンやバッジとして動作するARIA/Role属性
+    // 条件3: ボタンやバッジとして動作するARIA/Role属性、またはボタン・UI要素
     const role = current.getAttribute("role");
     if (role && ["button", "option", "combobox", "dialog"].includes(role)) {
+      return false;
+    }
+
+    if (
+      current.tagName === "BUTTON" ||
+      current.hasAttribute("aria-label") ||
+      (current.tagName === "BR" && current.classList.contains("scriptor-EOP"))
+    ) {
+      return false;
+    }
+
+    if (isLoopUIElement(current)) {
       return false;
     }
 
@@ -267,7 +279,7 @@ function getEditableInnerText(root) {
     let currentContainer = lastContainer;
     if (parent !== lastParent) {
       currentContainer = parent?.closest(
-        '[contenteditable="true"], [role="textbox"]',
+        '.scriptor-paragraph, .scriptor-pageBody > div, [contenteditable="true"], [role="textbox"]',
       );
       if (
         lastContainer &&
@@ -291,7 +303,7 @@ function getEditableInnerText(root) {
 function isLoopUIElement(el) {
   if (!el || !el.closest) return false;
   return !!el.closest(
-    ".scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition",
+    ".scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition, button, [aria-label]",
   );
 }
 
@@ -331,7 +343,7 @@ function findRangesAcrossNodes(root, replacements) {
     let currentContainer = lastContainer;
     if (parent !== lastParent) {
       currentContainer = parent?.closest(
-        '[contenteditable="true"], [role="textbox"]',
+        '.scriptor-paragraph, .scriptor-pageBody > div, [contenteditable="true"], [role="textbox"]',
       );
       if (
         lastContainer &&
