@@ -525,9 +525,7 @@ function buildCopilotPrompt(dictionary) {
     Object.prototype.hasOwnProperty.call(dict, "") &&
     Array.isArray(dict[""])
   ) {
-    fillers = dict[""].filter(
-      (f) => typeof f === "string" && f.length > 0,
-    );
+    fillers = dict[""].filter((f) => typeof f === "string" && f.length > 0);
   }
 
   let fillerText = "「えー」「あのー」「そのー」など";
