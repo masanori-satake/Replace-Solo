@@ -295,8 +295,7 @@ function findRangesAcrossNodes(root, replacements) {
   const allReplacementRanges = [];
 
   replacements.forEach(({ origin, target }) => {
-    if (typeof origin !== "string" || typeof target !== "string") return;
-    if (!origin) return;
+    if (typeof origin !== "string" || !origin) return;
 
     // スペースや改行、タブなどの空白文字の連続を考慮した正規表現を作成
     // origin の構成文字を1文字ずつ分割し、その間に空白許容パターンを入れる。
