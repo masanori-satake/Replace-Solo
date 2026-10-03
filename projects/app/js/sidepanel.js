@@ -528,30 +528,30 @@ function buildCopilotPrompt(dictionary) {
     fillers = dict[""].filter((f) => typeof f === "string" && f.length > 0);
   }
 
-  let fillerText = "「えー」「あのー」「そのー」など";
-  if (fillers.length > 0) {
-    fillerText = fillers.map((f) => `「${f}」`).join("") + "など";
+  if (fillers.length === 0) {
+    fillers = ["えー", "えーっと", "あのー", "そのー"];
   }
+
+  const fillerCodeChips = fillers.map((f) => `\`${f}\``).join(", ");
 
   const mappingLines = [];
   for (const [target, origins] of Object.entries(dict)) {
     if (target === "") continue;
     if (!Array.isArray(origins) || origins.length === 0) continue;
-    const originsText = origins.map((o) => `「${o}」`).join("");
-    mappingLines.push(`・${originsText} → 「${target}」`);
+    const originsCodeChips = origins.map((o) => `\`${o}\``).join(", ");
+    mappingLines.push(`- ${originsCodeChips} → 「${target}」に統一`);
   }
 
   const mappingsText =
-    mappingLines.length > 0 ? mappingLines.join("\n") : "（指定なし）";
+    mappingLines.length > 0 ? mappingLines.join("\n") : "- （指定なし）";
 
-  return `🔽 【Facilitatorへの指示・用語定義】
-Copilot / Facilitator は、本ページの会議メモを作成する際、以下の書き起こし補正・用語定義ガイドラインを遵守してください。
+  return `> 【AIメモ作成用ガイドライン】
+Copilot / Facilitator は、本ページの会議メモ作成時に以下の表記ルールおよび補正を必ず適用してください。
 
-■ 1. 記載内容の精錬（言い淀みの省略）
-会話の本質的な要約・アクションアイテムのみを抽出し、発話内の言い淀み（${fillerText}）や無意味な繋ぎ文字は一切省略して簡潔に記録してください。
+1. 不要語句（フィラー）の除外 以下の発話はメモや要約に含めず、無視してください。
+- 対象: ${fillerCodeChips}
 
-■ 2. 用語統一・表記補正
-以下の表記揺れ・誤認識は、右記の指定用語に統一して記録してください：
+2. 用語の統一・表記補正 以下の表記揺れや誤認識は、指定の用語に統一して記録してください。
 ${mappingsText}`;
 }
 
@@ -563,18 +563,13 @@ if (insertCopilotBtn) {
       '<svg xmlns="http://www.w3.org/2000/svg" height="24px" viewBox="0 -960 960 960" width="24px" fill="currentColor"><path d="M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z"/></svg>';
 
     const promptText = buildCopilotPrompt(localDictionary);
-    const markdownPrompt = promptText
-      .split("\n")
-      .map((line) => `> ${line}`)
-      .join("\n");
 
     const tab = await getActiveTab();
     if (tab && tab.id) {
       try {
         const response = await sendMessageToTab(tab.id, {
-          action: "INSERT_COPILOT_PROMPT_TOGGLE",
+          action: "INSERT_COPILOT_PROMPT_TO_LOOP",
           promptText,
-          markdownPrompt,
         });
 
         if (!response || !response.success) {
