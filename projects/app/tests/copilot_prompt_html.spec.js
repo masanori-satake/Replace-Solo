@@ -1,7 +1,7 @@
 const { test, expect } = require("@playwright/test");
 const path = require("path");
 
-test("Content script insertCopilotPromptToggle should insert toggle block after title or as details element", async ({
+test("Content script insertPromptToLoop should insert prompt after title", async ({
   page,
 }) => {
   await page.setContent(`
@@ -30,21 +30,20 @@ test("Content script insertCopilotPromptToggle should insert toggle block after 
     ),
   ).toBe(true);
 
-  const markdownPrompt = "> 🔽 【Facilitatorへの指示・用語定義】\n> 指示内容";
-  const promptText = "🔽 【Facilitatorへの指示・用語定義】\n指示内容";
+  const promptText = "> 【AIメモ作成用ガイドライン】\n指示内容";
 
   const result = await page.evaluate(
-    ({ markdownPrompt, promptText }) => {
-      return insertCopilotPromptToggle(markdownPrompt, promptText);
+    ({ promptText }) => {
+      return insertPromptToLoop(promptText);
     },
-    { markdownPrompt, promptText },
+    { promptText },
   );
 
   expect(result).toBe(true);
 
   // Check contenteditable paragraph received input
   const paragraphText = await page.locator(".scriptor-paragraph").textContent();
-  expect(paragraphText).toContain("> 🔽 【Facilitatorへの指示・用語定義】");
+  expect(paragraphText).toContain("> 【AIメモ作成用ガイドライン】");
 });
 
 for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
@@ -72,9 +71,8 @@ for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
       const result = await page.evaluate(
         ({ bodyClass, useDomFallback }) => {
           if (useDomFallback) document.execCommand = () => false;
-          const success = insertCopilotPromptToggle(
-            "> Prompt heading\n> Prompt body",
-            "Prompt heading\nPrompt body",
+          const success = insertPromptToLoop(
+            "> Prompt heading\nPrompt body",
           );
           const title = document.querySelector('[data-data-id="page-title"]');
           const body = document.querySelector(
@@ -88,7 +86,6 @@ for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
             targetInBody: body.contains(target),
             targetOutsideTitle:
               !!target && !title.contains(target) && !target.contains(title),
-            toggleInBody: !!body.querySelector("details"),
           };
         },
         { bodyClass, useDomFallback },
@@ -100,7 +97,6 @@ for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
       expect(result.bodyText).toContain("Prompt body");
       expect(result.targetInBody).toBe(true);
       expect(result.targetOutsideTitle).toBe(true);
-      expect(result.toggleInBody).toBe(useDomFallback);
     });
   }
 }

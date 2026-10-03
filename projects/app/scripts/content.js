@@ -56,9 +56,13 @@ function setupMessageListener() {
       return true;
     }
 
-    if (request.action === "INSERT_COPILOT_PROMPT_TOGGLE") {
-      const { markdownPrompt, promptText } = request;
-      const success = insertCopilotPromptToggle(markdownPrompt, promptText);
+    if (
+      request.action === "INSERT_COPILOT_PROMPT_TO_LOOP" ||
+      request.action === "INSERT_COPILOT_PROMPT_TOGGLE"
+    ) {
+      const promptText =
+        request.promptText || request.markdownPrompt || "";
+      const success = insertPromptToLoop(promptText);
       sendResponse({ success });
       return true;
     }
@@ -140,120 +144,141 @@ function findTargetBlockAfterTitle() {
 }
 
 /**
- * Microsoft Loopページのタイトル直下にトグル（折りたたみ）ブロックとしてプロンプトを挿入する
+ * Microsoft Loopページのタイトル直下にプロンプトを挿入する
+ */
+function insertPromptToLoop(promptText) {
+  // 1. タイトル要素の探索
+  const titleEl =
+    document.querySelector('[data-data-id="page-title"]') ||
+    document.querySelector('h1[contenteditable="true"]') ||
+    document.querySelector('.lc-titleEditor [contenteditable="true"]');
+
+  if (!titleEl) {
+    console.error("Replace-Solo: Loop title element not found.");
+    return false;
+  }
+
+  // 2. タイトル直後のエディティブブロックの特定または生成
+  const titleBlock =
+    titleEl.closest(
+      ".element-block-container, [data-block-type], .lc-titleEditor, .scriptor-title",
+    ) || titleEl;
+
+  let targetBlock = titleBlock.nextElementSibling;
+  if (targetBlock) {
+    if (!targetBlock.isContentEditable) {
+      const childEditable = targetBlock.querySelector(
+        '[contenteditable="true"]',
+      );
+      if (childEditable) {
+        targetBlock = childEditable;
+      } else {
+        const newBlock = document.createElement("div");
+        newBlock.contentEditable = "true";
+        targetBlock.appendChild(newBlock);
+        targetBlock = newBlock;
+      }
+    }
+  }
+
+  if (
+    !targetBlock ||
+    targetBlock === titleEl ||
+    titleEl.contains(targetBlock)
+  ) {
+    const firstBodyChild = document.querySelector(
+      ".lc-canvas-body > :first-child, .scriptor-pageBody > :first-child",
+    );
+    if (firstBodyChild && !titleEl.contains(firstBodyChild)) {
+      targetBlock =
+        firstBodyChild.querySelector('[contenteditable="true"]') ||
+        firstBodyChild;
+    }
+  }
+
+  if (
+    !targetBlock ||
+    targetBlock === titleEl ||
+    titleEl.contains(targetBlock)
+  ) {
+    // 存在しない場合はタイトルにフォーカスしてEnterキーを発火させて新行作成
+    titleEl.focus();
+    const enterEvent = new KeyboardEvent("keydown", {
+      key: "Enter",
+      code: "Enter",
+      keyCode: 13,
+      which: 13,
+      bubbles: true,
+    });
+    titleEl.dispatchEvent(enterEvent);
+
+    targetBlock = document.activeElement;
+    if (
+      !targetBlock ||
+      targetBlock === titleEl ||
+      titleEl.contains(targetBlock) ||
+      targetBlock === document.body
+    ) {
+      const parentContainer =
+        document.querySelector(".lc-canvas-body, .scriptor-pageBody") ||
+        titleEl.parentElement ||
+        document.body;
+      targetBlock = document.createElement("div");
+      targetBlock.contentEditable = "true";
+      parentContainer.appendChild(targetBlock);
+    }
+  }
+
+  const editableArea =
+    targetBlock.querySelector?.('[contenteditable="true"]') || targetBlock;
+  editableArea.focus();
+
+  // 3. クリップボードパーストライアル (LoopのネイティブMarkdownパースをキック)
+  try {
+    const clipboardData = new DataTransfer();
+    clipboardData.setData("text/plain", promptText);
+
+    const pasteEvent = new ClipboardEvent("paste", {
+      clipboardData: clipboardData,
+      bubbles: true,
+      cancelable: true,
+    });
+
+    const activeEl = document.activeElement || editableArea;
+    const defaultPrevented = !activeEl.dispatchEvent(pasteEvent);
+
+    // EditorのネイティブイベントハンドラでPreventデフォルトされなかった場合（非Loop環境やテスト環境）、
+    // execCommand によるテキスト挿入を行う
+    if (!defaultPrevented) {
+      let inserted = false;
+      try {
+        const selection = window.getSelection();
+        if (selection) {
+          const range = document.createRange();
+          range.selectNodeContents(editableArea);
+          range.collapse(false);
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        inserted = document.execCommand("insertText", false, promptText);
+      } catch (e) {}
+
+      if (!inserted && editableArea.isContentEditable) {
+        editableArea.textContent = promptText;
+      }
+    }
+    return true;
+  } catch (err) {
+    console.error("Replace-Solo: Failed to dispatch paste event", err);
+    return false;
+  }
+}
+
+/**
+ * 互換性のためのエイリアス
  */
 function insertCopilotPromptToggle(markdownPrompt, promptText) {
-  const { targetBlock } = findTargetBlockAfterTitle();
-
-  if (!targetBlock) {
-    console.error("Replace-Solo: Target block for prompt insertion not found.");
-    return false;
-  }
-
-  window.focus();
-
-  // クリップボード/模擬入力による挿入（推奨アルゴリズム）
-  let editableElem = targetBlock;
-  if (!editableElem.isContentEditable) {
-    editableElem =
-      targetBlock.querySelector('[contenteditable="true"]') ||
-      targetBlock.closest('[contenteditable="true"]');
-  }
-
-  if (editableElem && editableElem.isContentEditable) {
-    try {
-      editableElem.focus({ preventScroll: true });
-
-      // トークン・行末の挿入準備（先頭にカーソルを合わせる）
-      const selection = window.getSelection();
-      const range = document.createRange();
-      range.selectNodeContents(editableElem);
-      range.collapse(true);
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      const beforeInputEvent = new InputEvent("beforeinput", {
-        bubbles: true,
-        cancelable: true,
-        inputType: "insertText",
-        data: markdownPrompt + "\n",
-        composed: true,
-        isComposing: false,
-      });
-      editableElem.dispatchEvent(beforeInputEvent);
-
-      const execSuccess = document.execCommand(
-        "insertText",
-        false,
-        markdownPrompt + "\n",
-      );
-
-      const inputEvent = new InputEvent("input", {
-        bubbles: true,
-        cancelable: true,
-        inputType: "insertText",
-        data: markdownPrompt + "\n",
-        composed: true,
-        isComposing: false,
-      });
-      editableElem.dispatchEvent(inputEvent);
-
-      if (execSuccess) {
-        console.debug(
-          "Replace-Solo: Successfully inserted prompt via input emulation.",
-        );
-        return true;
-      }
-    } catch (e) {
-      console.warn(
-        "Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.",
-        e,
-      );
-    }
-  }
-
-  // フォールバック: 直接 DOM 挿入 (<details><summary> タグ)
-  try {
-    const details = document.createElement("details");
-    details.className = "replace-solo-prompt-toggle";
-    details.style.margin = "12px 0";
-    details.style.padding = "8px 12px";
-    details.style.border = "1px solid #d1d5db";
-    details.style.borderRadius = "6px";
-    details.style.backgroundColor = "#f9fafb";
-
-    const lines = (promptText || "").split("\n");
-    const summaryText = lines[0] || "🔽 【Facilitatorへの指示・用語定義】";
-    const bodyText = lines.slice(1).join("\n");
-
-    const summary = document.createElement("summary");
-    summary.style.fontWeight = "bold";
-    summary.style.cursor = "pointer";
-    summary.textContent = summaryText;
-    details.appendChild(summary);
-
-    const bodyPre = document.createElement("pre");
-    bodyPre.style.whiteSpace = "pre-wrap";
-    bodyPre.style.marginTop = "8px";
-    bodyPre.style.fontFamily = "inherit";
-    bodyPre.style.fontSize = "14px";
-    bodyPre.textContent = bodyText;
-    details.appendChild(bodyPre);
-
-    if (targetBlock.parentNode) {
-      targetBlock.parentNode.insertBefore(details, targetBlock);
-    } else {
-      targetBlock.appendChild(details);
-    }
-
-    console.debug(
-      "Replace-Solo: Successfully inserted prompt via direct DOM fallback.",
-    );
-    return true;
-  } catch (domErr) {
-    console.error("Replace-Solo: Direct DOM insertion failed.", domErr);
-    return false;
-  }
+  return insertPromptToLoop(promptText || markdownPrompt);
 }
 
 /**
