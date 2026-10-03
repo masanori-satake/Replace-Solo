@@ -88,12 +88,8 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
   const sentMessage = await page.evaluate(() => window.lastMessage);
   expect(sentMessage).toBeTruthy();
   expect(sentMessage.action).toBe("INSERT_COPILOT_PROMPT_TOGGLE");
-  expect(sentMessage.promptText).toContain(
-    "🔽 【Facilitatorへの指示・用語定義】",
-  );
+  expect(sentMessage.promptText).toContain("🔽 【Facilitatorへの指示・用語定義】");
   expect(sentMessage.promptText).toContain("言い淀み（「えー」など）");
   expect(sentMessage.promptText).toContain("・「誤り1」「誤り2」 → 「正しい」");
-  expect(sentMessage.markdownPrompt).toContain(
-    "> 🔽 【Facilitatorへの指示・用語定義】",
-  );
+  expect(sentMessage.markdownPrompt).toContain("> 🔽 【Facilitatorへの指示・用語定義】");
 });
