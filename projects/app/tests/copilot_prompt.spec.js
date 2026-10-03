@@ -88,11 +88,11 @@ test("Copilot prompt generation should work correctly", async ({ page }) => {
   const sentMessage = await page.evaluate(() => window.lastMessage);
   expect(sentMessage).toBeTruthy();
   expect(sentMessage.action).toBe("INSERT_COPILOT_PROMPT_TO_LOOP");
-  expect(sentMessage.promptText).toContain(
-    "> 【AIメモ作成用ガイドライン】",
-  );
+  expect(sentMessage.promptText).toContain("> 【AIメモ作成用ガイドライン】");
   expect(sentMessage.promptText).toContain("1. 不要語句（フィラー）の除外");
   expect(sentMessage.promptText).toContain("- 対象: `えー`");
   expect(sentMessage.promptText).toContain("2. 用語の統一・表記補正");
-  expect(sentMessage.promptText).toContain("- `誤り1`, `誤り2` → 「正しい」に統一");
+  expect(sentMessage.promptText).toContain(
+    "- `誤り1`, `誤り2` → 「正しい」に統一",
+  );
 });
