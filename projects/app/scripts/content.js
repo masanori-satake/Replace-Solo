@@ -196,7 +196,6 @@ function isSafeTextNode(node, editorRoot) {
 
     if (
       current.tagName === "BUTTON" ||
-      current.hasAttribute("aria-label") ||
       (current.tagName === "BR" && current.classList.contains("scriptor-EOP"))
     ) {
       return false;
@@ -303,7 +302,7 @@ function getEditableInnerText(root) {
 function isLoopUIElement(el) {
   if (!el || !el.closest) return false;
   return !!el.closest(
-    ".scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition, button, [aria-label]",
+    ".scriptor-blocks-commands-hover, .scriptor-blocks-commands-wrapper, .BlockUI, .ContentAddition",
   );
 }
 
