@@ -395,7 +395,10 @@ function replaceByEmulationBatch(replacements) {
     originalSelection.rangeCount > 0 ? originalSelection.getRangeAt(0) : null;
 
   const root = getTargetRoot();
-  const allReplacementRanges = findRangesAcrossNodes(root, replacements);
+  const validReplacements = Array.isArray(replacements)
+    ? replacements.filter(({ target }) => typeof target === "string")
+    : [];
+  const allReplacementRanges = findRangesAcrossNodes(root, validReplacements);
 
   // 収集した Range を後ろから順に置換（ドキュメント構造の変化による影響を最小化）
   // 注意: 同一ノード内の複数置換も後ろから行えば位置ズレを防げる
