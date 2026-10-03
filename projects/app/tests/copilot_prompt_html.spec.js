@@ -35,8 +35,6 @@ test("Content script insertCopilotPromptToggle should insert toggle block after 
   expect(result).toBe(true);
 
   // Check contenteditable paragraph received input
-  const paragraphText = await page
-    .locator(".scriptor-paragraph")
-    .textContent();
+  const paragraphText = await page.locator(".scriptor-paragraph").textContent();
   expect(paragraphText).toContain("> 🔽 【Facilitatorへの指示・用語定義】");
 });
