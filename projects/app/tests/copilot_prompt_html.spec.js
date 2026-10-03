@@ -71,9 +71,7 @@ for (const bodyClass of ["lc-canvas-body", "scriptor-pageBody", null]) {
       const result = await page.evaluate(
         ({ bodyClass, useDomFallback }) => {
           if (useDomFallback) document.execCommand = () => false;
-          const success = insertPromptToLoop(
-            "> Prompt heading\nPrompt body",
-          );
+          const success = insertPromptToLoop("> Prompt heading\nPrompt body");
           const title = document.querySelector('[data-data-id="page-title"]');
           const body = document.querySelector(
             bodyClass ? `.${bodyClass}` : ".scriptor-canvas",
