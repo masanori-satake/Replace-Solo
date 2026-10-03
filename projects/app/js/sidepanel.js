@@ -564,28 +564,15 @@ if (insertCopilotBtn) {
 
     const promptText = buildCopilotPrompt(localDictionary);
 
-    const tab = await getActiveTab();
-    if (tab && tab.id) {
-      try {
-        const response = await sendMessageToTab(tab.id, {
-          action: "INSERT_COPILOT_PROMPT_TO_LOOP",
-          promptText,
-        });
-
-        if (!response || !response.success) {
-          throw new Error("プロンプトの挿入に失敗しました。");
-        }
-
-        insertCopilotBtn.innerHTML = checkSvg;
-        setTimeout(() => {
-          insertCopilotBtn.innerHTML = originalSvg;
-        }, 2000);
-      } catch (err) {
-        console.error("Failed to insert prompt toggle:", err);
-        alert(err.message || "プロンプトの挿入に失敗しました。");
-      }
-    } else {
-      alert("操作対象のタブが見つかりません。");
+    try {
+      await navigator.clipboard.writeText(promptText);
+      insertCopilotBtn.innerHTML = checkSvg;
+      setTimeout(() => {
+        insertCopilotBtn.innerHTML = originalSvg;
+      }, 2000);
+    } catch (err) {
+      console.error("Failed to copy copilot prompt:", err);
+      alert("プロンプトのコピーに失敗しました。");
     }
   });
 }
