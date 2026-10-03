@@ -64,7 +64,9 @@ test("editor clear dictionary button should be placed in header actions, show co
   // 3. Cancel confirmation
   await page.click("#confirm-cancel");
   await expect(confirmDialog).not.toBeVisible();
-  await expect(page.locator(".tag-pill", { hasText: "customOrigin" })).toBeVisible();
+  await expect(
+    page.locator(".tag-pill", { hasText: "customOrigin" }),
+  ).toBeVisible();
 
   // 4. Confirm clearing dictionary
   await secondBtn.click();
@@ -73,12 +75,12 @@ test("editor clear dictionary button should be placed in header actions, show co
   await expect(confirmDialog).not.toBeVisible();
 
   // Custom dictionary item should be cleared
-  await expect(page.locator(".tag-pill", { hasText: "customOrigin" })).not.toBeVisible();
+  await expect(
+    page.locator(".tag-pill", { hasText: "customOrigin" }),
+  ).not.toBeVisible();
 
   // Saved storage check
-  const lastSavedDict = await page.evaluate(
-    () => window.__lastSavedDictionary,
-  );
+  const lastSavedDict = await page.evaluate(() => window.__lastSavedDictionary);
   expect(lastSavedDict).toEqual({
     "": ["えー", "えーっと", "あのー", "そのー"],
   });
