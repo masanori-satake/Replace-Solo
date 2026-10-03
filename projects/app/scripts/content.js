@@ -55,7 +55,172 @@ function setupMessageListener() {
       sendResponse({ success: true });
       return true;
     }
+
+    if (request.action === "INSERT_COPILOT_PROMPT_TOGGLE") {
+      const { markdownPrompt, promptText } = request;
+      const success = insertCopilotPromptToggle(markdownPrompt, promptText);
+      sendResponse({ success });
+      return true;
+    }
   });
+}
+
+/**
+ * タイトル直下の本文エリアを特定する
+ */
+function findTargetBlockAfterTitle() {
+  const root = getTargetRoot();
+
+  // タイトル要素の候補セレクタ
+  const titleSelectors = [
+    '[data-data-id="page-title"]',
+    'h1[contenteditable="true"]',
+    '.lc-titleEditor [contenteditable="true"]',
+    ".scriptor-pageTitle",
+    ".scriptor-title",
+  ];
+
+  let titleElem = null;
+  for (const sel of titleSelectors) {
+    const el = root.querySelector(sel) || document.querySelector(sel);
+    if (el) {
+      titleElem = el;
+      break;
+    }
+  }
+
+  if (titleElem) {
+    // タイトル要素の親コンテナまたはタイトル自体の次の兄弟・子要素から本文ブロックを探す
+    let container = titleElem.closest(
+      ".scriptor-canvas-grid-layout, .scriptor-canvas, .lc-canvas, body",
+    );
+    if (!container) container = root;
+
+    // タイトル直後の最初のブロック要素
+    const firstBodyBlock = container.querySelector(
+      '.lc-canvas-body > :first-child, .scriptor-pageBody > :first-child, .scriptor-paragraph, [contenteditable="true"]:not([data-data-id="page-title"]):not(h1)',
+    );
+
+    if (firstBodyBlock) {
+      return { titleElem, targetBlock: firstBodyBlock };
+    }
+  }
+
+  // フォールバック: ページ内の最初の編集可能ブロック
+  const editableBlock = root.querySelector(
+    '.scriptor-paragraph, .scriptor-pageBody > div, [contenteditable="true"]',
+  );
+
+  return { titleElem, targetBlock: editableBlock || root };
+}
+
+/**
+ * Microsoft Loopページのタイトル直下にトグル（折りたたみ）ブロックとしてプロンプトを挿入する
+ */
+function insertCopilotPromptToggle(markdownPrompt, promptText) {
+  const { targetBlock } = findTargetBlockAfterTitle();
+
+  if (!targetBlock) {
+    console.error("Replace-Solo: Target block for prompt insertion not found.");
+    return false;
+  }
+
+  window.focus();
+
+  // クリップボード/模擬入力による挿入（推奨アルゴリズム）
+  let editableElem = targetBlock;
+  if (!editableElem.isContentEditable) {
+    editableElem = targetBlock.querySelector('[contenteditable="true"]') ||
+      targetBlock.closest('[contenteditable="true"]');
+  }
+
+  if (editableElem && editableElem.isContentEditable) {
+    try {
+      editableElem.focus({ preventScroll: true });
+
+      // トークン・行末の挿入準備（先頭にカーソルを合わせる）
+      const selection = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(editableElem);
+      range.collapse(true);
+      selection.removeAllRanges();
+      selection.addRange(range);
+
+      const beforeInputEvent = new InputEvent("beforeinput", {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: markdownPrompt + "\n",
+        composed: true,
+        isComposing: false,
+      });
+      editableElem.dispatchEvent(beforeInputEvent);
+
+      const execSuccess = document.execCommand(
+        "insertText",
+        false,
+        markdownPrompt + "\n",
+      );
+
+      const inputEvent = new InputEvent("input", {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: markdownPrompt + "\n",
+        composed: true,
+        isComposing: false,
+      });
+      editableElem.dispatchEvent(inputEvent);
+
+      if (execSuccess) {
+        console.debug("Replace-Solo: Successfully inserted prompt via input emulation.");
+        return true;
+      }
+    } catch (e) {
+      console.warn("Replace-Solo: Input emulation failed for prompt toggle, falling back to direct DOM insertion.", e);
+    }
+  }
+
+  // フォールバック: 直接 DOM 挿入 (<details><summary> タグ)
+  try {
+    const details = document.createElement("details");
+    details.className = "replace-solo-prompt-toggle";
+    details.style.margin = "12px 0";
+    details.style.padding = "8px 12px";
+    details.style.border = "1px solid #d1d5db";
+    details.style.borderRadius = "6px";
+    details.style.backgroundColor = "#f9fafb";
+
+    const lines = (promptText || "").split("\n");
+    const summaryText = lines[0] || "🔽 【Facilitatorへの指示・用語定義】";
+    const bodyText = lines.slice(1).join("\n");
+
+    const summary = document.createElement("summary");
+    summary.style.fontWeight = "bold";
+    summary.style.cursor = "pointer";
+    summary.textContent = summaryText;
+    details.appendChild(summary);
+
+    const bodyPre = document.createElement("pre");
+    bodyPre.style.whiteSpace = "pre-wrap";
+    bodyPre.style.marginTop = "8px";
+    bodyPre.style.fontFamily = "inherit";
+    bodyPre.style.fontSize = "14px";
+    bodyPre.textContent = bodyText;
+    details.appendChild(bodyPre);
+
+    if (targetBlock.parentNode) {
+      targetBlock.parentNode.insertBefore(details, targetBlock);
+    } else {
+      targetBlock.appendChild(details);
+    }
+
+    console.debug("Replace-Solo: Successfully inserted prompt via direct DOM fallback.");
+    return true;
+  } catch (domErr) {
+    console.error("Replace-Solo: Direct DOM insertion failed.", domErr);
+    return false;
+  }
 }
 
 /**
