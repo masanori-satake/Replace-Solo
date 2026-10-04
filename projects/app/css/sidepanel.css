@@ -599,9 +599,7 @@ body {
 .solo-badge-link {
   display: inline-flex;
   text-decoration: none;
-  transition:
-    transform 0.15s ease,
-    opacity 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
 }
 
 .solo-badge-link:hover {
