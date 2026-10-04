@@ -522,8 +522,8 @@ body {
   display: none;
   padding: 24px;
   padding-top: 16px;
-  height: 380px;
-  max-height: 65vh;
+  height: 520px;
+  max-height: 80vh;
   overflow-y: auto;
   box-sizing: border-box;
 }
