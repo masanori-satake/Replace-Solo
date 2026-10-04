@@ -520,10 +520,11 @@ body {
 
 .tab-panel {
   display: none;
-  padding: 24px;
-  padding-top: 16px;
-  height: 520px;
-  max-height: 80vh;
+  padding: 16px;
+  padding-top: 12px;
+  height: auto;
+  min-height: 320px;
+  max-height: 75vh;
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -572,7 +573,7 @@ body {
 }
 
 .solo-category {
-  margin-bottom: 24px;
+  margin-bottom: 12px;
 }
 
 .solo-category:last-child {
@@ -580,20 +581,20 @@ body {
 }
 
 .solo-category-title {
-  margin: 0 0 12px 0;
-  font-size: 13px;
+  margin: 0 0 6px 0;
+  font-size: 12px;
   font-weight: 700;
   color: var(--m3-sys-light-primary);
   text-align: left;
   border-bottom: 1px solid var(--m3-sys-light-surface-variant);
-  padding-bottom: 4px;
+  padding-bottom: 2px;
 }
 
 .solo-badge-group {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
 }
 
 .solo-badge-link {
@@ -611,7 +612,7 @@ body {
 
 .solo-badge-link img {
   display: block;
-  height: 28px;
+  height: 24px;
   width: auto;
 }
 
