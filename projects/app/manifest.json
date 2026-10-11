@@ -1,7 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Replace-Solo - Microsoft Loopの議事録・会議メモを高速修正。一括検索・置換で表記揺れや誤変換をまとめて修正。",
-  "version": "1.9.2",
+  "name": "Replace-Solo - Microsoft Loop議事録・会議メモ一括修正",
+  "short_name": "Replace-Solo",
+  "version": "1.9.3",
   "description": "Microsoft Loop議事録の表記揺れ・誤変換を一括修正",
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -9,7 +10,13 @@
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
   },
-  "permissions": ["sidePanel", "storage", "scripting", "activeTab", "tabs"],
+  "permissions": [
+    "sidePanel",
+    "storage",
+    "scripting",
+    "activeTab",
+    "tabs"
+  ],
   "host_permissions": [
     "https://loop.microsoft.com/*",
     "https://loop.cloud.microsoft/*"
@@ -31,7 +38,9 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["lib/kuromoji/*"],
+      "resources": [
+        "lib/kuromoji/*"
+      ],
       "matches": [
         "https://loop.microsoft.com/*",
         "https://loop.cloud.microsoft/*"
