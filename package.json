@@ -5,7 +5,8 @@
   "scripts": {
     "test": "npx playwright test projects/app/tests --output projects/app/test-results",
     "build": "python3 scripts/check_version.py",
-    "version:bump": "python3 scripts/bump_version.py"
+    "version:bump": "python3 scripts/bump_version.py",
+    "update-version": "python3 scripts/update_version.py"
   },
   "author": "Masanori SATAKE",
   "license": "MIT",

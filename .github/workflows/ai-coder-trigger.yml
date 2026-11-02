@@ -1,0 +1,90 @@
+name: 'Gemini AI コーダー起動 (Trigger Gemini AI Coder)'
+
+# 起動方法 (How to trigger):
+#   - Issue に `ai-task` ラベルを付与する（Issue のタイトル・本文が指示文になる）
+#   - Issue に `/ai <指示>` で始まるコメントを投稿する（OWNER / MEMBER / COLLABORATOR のみ）
+#   - 本文に `Files: src/a.ts, src/b.ts` 行を書くと、そのファイルだけを AI に渡す
+#   - PR に `/ai-fix [指示]` とコメントすると、失敗した CI を AI が修正して PR ブランチに push する
+#   - PR に `/ai-bump patch` / `/ai-bump minor` とコメントすると、バージョンを更新する
+#     （package.json の scripts.update-version が必要）
+#   - Issue / PR に `/ai-help` とコメントすると、使えるコマンドと注意事項を表示する
+#
+# 事前準備 (Setup): Web 画面での詳細手順は導入ガイドを参照
+#   https://github.com/masanori-satake/common-workflows/blob/main/docs/ai-agent-setup.md
+#   - Issues > Labels で `ai-task` ラベルを作成する
+#   - リポジトリの Secrets に GEMINI_API_KEY（Google AI Studio の API キー）を登録する
+#   - Settings > Actions > General で "Allow GitHub Actions to create and approve pull requests" を有効化する
+#
+# concurrency について:
+#   ワークフロー単位の concurrency を置くと、/ai 以外の通常コメントで起動した（if で
+#   スキップされる）実行が、待機中の正規の実行を置き換えてキャンセルしてしまう。
+#   そのため多重実行防止は共通ワークフロー側のジョブ単位（Issue 単位）で行う。
+
+on:
+  issues:
+    types: [labeled]
+  issue_comment:
+    types: [created]
+
+jobs:
+  ai-agent:
+    name: 'Gemini AI エージェント実行 (Execute Gemini AI Agent)'
+    if: >-
+      (github.event_name == 'issues' && github.event.label.name == 'ai-task') ||
+      (github.event_name == 'issue_comment' &&
+        !github.event.issue.pull_request &&
+        startsWith(github.event.comment.body, '/ai') &&
+        !startsWith(github.event.comment.body, '/ai-') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association))
+    uses: masanori-satake/common-workflows/.github/workflows/gemini-ai-agent-template.yml@v1
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    # 統一パラメータ（model=gemini-3.8-flash, test_command='npm test'）は base 側の
+    # デフォルトに閉じ込められているため、原則 with: は不要。必要に応じてのみ上書きする:
+    # with:
+    #   model_name: 'gemini-3.8-flash'
+    #   test_command: 'npm test'
+    #   target_branch: 'main'
+    # 本リポジトリの npm test は Playwright（ブラウザのインストールが必要）のため、
+    # CI（code-quality.yml の run_test: false）と同様に自動テストを無効にする
+    with:
+      test_command: ''
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+  # PR へのコメントで起動: /ai-fix（CI の失敗を修正）/ /ai-bump patch|minor（バージョン更新）
+  ai-pr-fix:
+    name: 'Gemini AI PR 修正実行 (Execute Gemini AI PR Fix)'
+    if: >-
+      github.event_name == 'issue_comment' &&
+      github.event.issue.pull_request &&
+      (startsWith(github.event.comment.body, '/ai-fix') || startsWith(github.event.comment.body, '/ai-bump')) &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    uses: masanori-satake/common-workflows/.github/workflows/gemini-ai-pr-fix-template.yml@v1
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      # 修正の push 後に CI を workflow_dispatch で再実行するため
+      actions: write
+    # test_command の既定値は 'npm test'。必要に応じてのみ上書きする
+    # 本リポジトリでは Playwright のテストを検証に含めない（Lint → ビルドのみで検証する）
+    with:
+      test_command: ''
+    secrets:
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+
+  # Issue / PR へのコメントで起動: /ai-help（ヘルプ）と、解釈できない /ai-xxx への案内。
+  # 有効な PR の /ai-fix・/ai-bump かどうかは共通の定義で判定し、該当する場合は何もしない
+  ai-help:
+    name: 'Gemini AI ヘルプ表示 (Execute Gemini AI Help)'
+    if: >-
+      github.event_name == 'issue_comment' &&
+      startsWith(github.event.comment.body, '/ai-') &&
+      contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)
+    uses: masanori-satake/common-workflows/.github/workflows/gemini-ai-help-template.yml@v1
+    permissions:
+      issues: write
+      pull-requests: write
