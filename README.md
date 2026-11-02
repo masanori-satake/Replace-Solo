@@ -13,7 +13,7 @@
 
 ## プロジェクト概要
 
-Replace-Solo は、Microsoft Loop（`microsoft-loop`）上でテキストの一括置換（`text-replace`）を実現するプライバシー重視の Chrome 拡張機能（`chrome-extension`）です。標準機能では文字置換が行えない Microsoft Loop ページの議事録やドキュメント作成において、特定単語の更新作業を効率化し、生産性向上を支援するプロダクティビティツール（`productivity-tools`）です。
+Replace-Solo は、Microsoft Loop上でテキストの一括置換を実現するプライバシー重視の Chrome 拡張機能です。標準機能にない文字置換を可能にし、ドキュメント作成の効率化を支援します。
 
 ## 主な機能 (Key Features)
 
