@@ -41,10 +41,10 @@ jobs:
       contents: write
       issues: write
       pull-requests: write
-    # 統一パラメータ（model=gemini-3.8-flash, test_command='npm test'）は base 側の
+    # 統一パラメータ（model=gemini-3.5-flash-lite, test_command='npm test'）は base 側の
     # デフォルトに閉じ込められているため、原則 with: は不要。必要に応じてのみ上書きする:
     # with:
-    #   model_name: 'gemini-3.8-flash'
+    #   model_name: 'gemini-3.5-flash-lite'
     #   test_command: 'npm test'
     #   target_branch: 'main'
     # 本リポジトリの npm test は Playwright（ブラウザのインストールが必要）のため、
