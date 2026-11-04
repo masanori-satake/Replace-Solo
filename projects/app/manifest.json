@@ -2,8 +2,8 @@
   "manifest_version": 3,
   "name": "Replace-Solo - Microsoft Loop議事録・会議メモ一括修正",
   "short_name": "Replace-Solo",
-  "version": "1.10.0",
-  "description": "Microsoft Loop議事録の表記揺れ・誤変換を一括修正",
+  "version": "1.11.0",
+  "description": "Microsoft Loop議事録の一括検索・置換。Copilot文字起こしの誤変換や人名・製品名の表記揺れを辞書で一括修正。完全ローカル処理。",
   "icons": {
     "16": "assets/icons/icon16.png",
     "32": "assets/icons/icon32.png",
