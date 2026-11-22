@@ -8,6 +8,7 @@ ALLOWED_ROOT_ITEMS = {
     ".gitignore",
     ".jules",
     ".pre-commit-config.yaml",
+    ".markdownlint.json",
     "AGENTS.md",
     "LICENSE",
     "README.md",
