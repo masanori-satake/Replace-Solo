@@ -29,5 +29,7 @@ jobs:
       stores: ${{ inputs.stores }}
       # Replace-Solo の Chrome Web Store アイテム ID
       chrome_item_id: 'iblfnonogpkajjfjfljngdaclhdinlfb'
+      # 疎通テスト用: アップロードのみで審査には出さない
+      chrome_publish: false
       # 提出 ZIP は release-package と同じく projects/app から base 側で生成する
       package_source_dir: 'projects/app'
