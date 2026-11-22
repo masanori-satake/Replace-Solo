@@ -9427,7 +9427,7 @@
           );
 
           /**
-           * Utility function to load gzipped dictionary
+           * Utility function to load dictionary file (uncompressed .dat)
            * @param {string} url Dictionary URL
            * @param {BrowserDictionaryLoader~onLoad} callback Callback function
            */
@@ -9445,8 +9445,11 @@
               }
               var arraybuffer = this.response;
 
-              var gz = new zlib.Zlib.Gunzip(new Uint8Array(arraybuffer));
-              var typed_array = gz.decompress();
+              // 辞書は無圧縮（.dat）で同梱しているため、解凍せずそのまま渡す。
+              // Microsoft Edge Add-ons のパッケージ検証が、パッケージ内の
+              // 圧縮ファイル（.gz）を許可しないことへの対策（従来は .dat.gz を
+              // Zlib.Gunzip で解凍していた）。
+              var typed_array = new Uint8Array(arraybuffer);
               callback(null, typed_array.buffer);
             };
             xhr.onerror = function (err) {
@@ -9519,12 +9522,15 @@
             var dic_path = this.dic_path;
             var loadArrayBuffer = this.loadArrayBuffer;
 
+            // 辞書ファイル名は無圧縮の .dat を指す。Microsoft Edge Add-ons の
+            // パッケージ検証がパッケージ内の圧縮ファイル（.gz）を許可しない
+            // ため、辞書を無圧縮で同梱する形に変更したもの。
             async.parallel(
               [
                 // Trie
                 function (callback) {
                   async.map(
-                    ["base.dat.gz", "check.dat.gz"],
+                    ["base.dat", "check.dat"],
                     function (filename, _callback) {
                       loadArrayBuffer(
                         path.join(dic_path, filename),
@@ -9551,7 +9557,7 @@
                 // Token info dictionaries
                 function (callback) {
                   async.map(
-                    ["tid.dat.gz", "tid_pos.dat.gz", "tid_map.dat.gz"],
+                    ["tid.dat", "tid_pos.dat", "tid_map.dat"],
                     function (filename, _callback) {
                       loadArrayBuffer(
                         path.join(dic_path, filename),
@@ -9583,7 +9589,7 @@
                 // Connection cost matrix
                 function (callback) {
                   loadArrayBuffer(
-                    path.join(dic_path, "cc.dat.gz"),
+                    path.join(dic_path, "cc.dat"),
                     function (err, buffer) {
                       if (err) {
                         return callback(err);
@@ -9598,12 +9604,12 @@
                 function (callback) {
                   async.map(
                     [
-                      "unk.dat.gz",
-                      "unk_pos.dat.gz",
-                      "unk_map.dat.gz",
-                      "unk_char.dat.gz",
-                      "unk_compat.dat.gz",
-                      "unk_invoke.dat.gz",
+                      "unk.dat",
+                      "unk_pos.dat",
+                      "unk_map.dat",
+                      "unk_char.dat",
+                      "unk_compat.dat",
+                      "unk_invoke.dat",
                     ],
                     function (filename, _callback) {
                       loadArrayBuffer(
