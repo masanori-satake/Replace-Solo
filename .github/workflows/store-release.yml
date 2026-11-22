@@ -29,5 +29,7 @@ jobs:
       stores: ${{ inputs.stores }}
       # Replace-Solo の Chrome Web Store アイテム ID
       chrome_item_id: 'iblfnonogpkajjfjfljngdaclhdinlfb'
+      # Replace-Solo の Edge 製品 ID（Partner Center、初回提出 2026-11-22）
+      edge_product_id: '01482729-35d3-41ab-bfa1-4158da0211fb'
       # 提出 ZIP は release-package と同じく projects/app から base 側で生成する
       package_source_dir: 'projects/app'
