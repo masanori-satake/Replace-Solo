@@ -1,0 +1,8 @@
+{
+  "appName": {
+    "message": "Replace-Solo - Bulk-fix Microsoft Loop minutes & meeting notes"
+  },
+  "appDesc": {
+    "message": "Bulk find & replace in Loop minutes. Fix Copilot transcription errors and name/product variants with a dictionary. Fully local."
+  }
+}
