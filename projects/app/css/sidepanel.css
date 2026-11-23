@@ -637,6 +637,58 @@ body {
   align-items: center;
   gap: 6px;
 }
+/* Solo/Duo ストアアイコン行 */
+.solo-store-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  max-width: 320px;
+  padding: 2px 0;
+  box-sizing: border-box;
+}
+
+.solo-store-name {
+  font-size: 13px;
+  text-align: left;
+}
+
+.solo-store-icons {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.solo-store-icon {
+  display: inline-flex;
+  width: 22px;
+  height: 22px;
+}
+
+.solo-store-icon img {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+a.solo-store-icon {
+  transition: opacity 0.2s ease;
+}
+
+a.solo-store-icon:hover {
+  opacity: 0.8;
+}
+
+.solo-store-icon--unavailable {
+  cursor: default;
+}
+
+.solo-store-icon--unavailable img {
+  filter: grayscale(1);
+  opacity: 0.35;
+}
+
 
 .solo-badge-link {
   display: inline-flex;
