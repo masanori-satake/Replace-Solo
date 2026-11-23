@@ -3,7 +3,7 @@
   "default_locale": "en",
   "name": "__MSG_appName__",
   "short_name": "Replace-Solo",
-  "version": "1.12.0",
+  "version": "1.13.0",
   "description": "__MSG_appDesc__",
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -31,6 +31,20 @@
   "side_panel": {
     "default_path": "pages/sidepanel.html"
   },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://loop.microsoft.com/*",
+        "https://loop.cloud.microsoft/*"
+      ],
+      "js": [
+        "lib/kuromoji/kuromoji.js",
+        "scripts/content.js",
+        "scripts/inpage.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
   "web_accessible_resources": [
     {
       "resources": ["lib/kuromoji/*"],
