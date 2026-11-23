@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" role="img" aria-label="Microsoft Edge Add-ons">
+  <defs>
+    <linearGradient id="edge-g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#37C6F4"/>
+      <stop offset="0.55" stop-color="#0C88A8"/>
+      <stop offset="1" stop-color="#20B26B"/>
+    </linearGradient>
+  </defs>
+  <path fill="url(#edge-g)" d="M21.86 12.06c.05-.6.04-1.2-.02-1.8C21.4 5.9 17.9 2.7 13.5 2.52 8.6 2.32 4.3 5.6 3.03 10.2c-.97 3.54.1 7.3 2.78 9.66 1.72 1.51 3.94 2.28 6.2 2.14 2.14-.13 4.17-1.06 5.7-2.6l-2.47-2.47a5.03 5.03 0 0 1-3.24 1.18 5.05 5.05 0 0 1-4.94-4.06l-.05-.53h14.85v-.46ZM8.6 10.42a5.05 5.05 0 0 1 4.87-3.63c2.4.07 4.42 1.53 5.24 3.63H8.6Z"/>
+</svg>
