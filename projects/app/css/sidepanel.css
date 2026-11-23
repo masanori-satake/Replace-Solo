@@ -125,6 +125,10 @@ body {
   cursor: pointer;
 }
 
+.notice-shortcut {
+  font-weight: 600;
+}
+
 /* Button Styles */
 .m3-button {
   height: 40px;

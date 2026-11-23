@@ -486,7 +486,7 @@ background: #e8f0fe;
     launcherEl = document.createElement("button");
     launcherEl.className = "rs-launcher";
     launcherEl.textContent = "Replace-Solo";
-    launcherEl.title = "Replace-Solo を開く (Alt+Shift+R)";
+    launcherEl.title = "Replace-Solo パネル（Alt+Shift+R）";
     launcherEl.addEventListener("click", () => togglePanel());
     shadow.appendChild(launcherEl);
 
