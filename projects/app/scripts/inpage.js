@@ -44,6 +44,7 @@
   let isJapaneseOnly = true;
   let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
   let manualWords = new Set(); // 手動で追加された単語
+  let lastExtractedWords = []; // 直近に抽出した単語（フィルタ前。「日本語のみ」切替時の再描画用）
 
   // ===== DOM 参照 =====
   let hostEl = null;
@@ -52,6 +53,8 @@
   let listEl = null;
   let statusEl = null;
   let manualInputEl = null;
+  let highlightToggleEl = null;
+  let japaneseOnlyToggleEl = null;
   let panelOpen = false;
 
   // ===== 辞書まわり（js/sidepanel.js から移植） =====
@@ -164,6 +167,7 @@
     }
     isJapaneseOnly = preferJapanese;
     updateDictCache();
+    updateToggleUI();
   }
 
   // ===== kuromoji 初期化 =====
@@ -391,6 +395,32 @@ color: #ffffff;
 opacity: 0.5;
 cursor: default;
 }
+.rs-toggles {
+display: flex;
+gap: 8px;
+padding: 10px 14px 0;
+}
+.rs-toggle {
+flex: 1;
+padding: 6px 10px;
+border-radius: 999px;
+border: 1px solid #747775;
+background: #ffffff;
+color: #444746;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+}
+.rs-toggle.active {
+background: #0b57d0;
+border-color: #0b57d0;
+color: #ffffff;
+}
+.rs-toggle-highlight.active {
+background: #ccff90;
+border-color: #99e633;
+color: #1d1b20;
+}
 .rs-manual {
 display: flex;
 gap: 8px;
@@ -469,6 +499,63 @@ background: #e8f0fe;
     if (statusEl) statusEl.textContent = message;
   }
 
+  // ===== 設定トグル（サイドパネル版と storage キーを共有） =====
+
+  function updateToggleUI() {
+    if (highlightToggleEl) {
+      highlightToggleEl.classList.toggle("active", highlightEnabled);
+      highlightToggleEl.setAttribute(
+        "aria-pressed",
+        highlightEnabled ? "true" : "false",
+      );
+    }
+    if (japaneseOnlyToggleEl) {
+      japaneseOnlyToggleEl.classList.toggle("active", isJapaneseOnly);
+      japaneseOnlyToggleEl.setAttribute(
+        "aria-pressed",
+        isJapaneseOnly ? "true" : "false",
+      );
+    }
+  }
+
+  // ハイライトの ON/OFF（サイドパネル版の highlight-toggle-btn と同じ挙動）
+  async function handleHighlightToggle() {
+    highlightEnabled = !highlightEnabled;
+    try {
+      await chrome.storage.local.set({ highlightEnabled });
+    } catch (error) {
+      console.error("Replace-Solo: Failed to save highlight setting:", error);
+    }
+    // OFF にしたら表示中のハイライトを消す（サイドパネル版と同じ）
+    if (!highlightEnabled) {
+      clearHighlight();
+    }
+    updateToggleUI();
+  }
+
+  // 「日本語のみ」の ON/OFF。
+  // サイドパネル版の japanese-only-toggle-btn と同じく、保持している
+  // 抽出済み単語から再描画する（ページからの再抽出はしない）。
+  // 設定は preferJapanese として保存し、サイドパネル版と共有する。
+  async function handleJapaneseOnlyToggle() {
+    isJapaneseOnly = !isJapaneseOnly;
+    preferJapanese = isJapaneseOnly;
+    try {
+      await chrome.storage.local.set({ preferJapanese });
+    } catch (error) {
+      console.error(
+        "Replace-Solo: Failed to save preferJapanese setting:",
+        error,
+      );
+    }
+    updateToggleUI();
+    clearHighlight();
+    renderRows(lastExtractedWords);
+    if (lastExtractedWords.length > 0) {
+      setStatus(`${currentWords.size} 件の対象を表示しています。`);
+    }
+  }
+
   function createUI() {
     if (hostEl && hostEl.isConnected) return;
 
@@ -499,6 +586,10 @@ background: #e8f0fe;
 <span class="rs-title">Replace-Solo（ページ内パネル）</span>
 <button class="rs-close" aria-label="閉じる">×</button>
 </div>
+<div class="rs-toggles">
+<button class="rs-toggle rs-toggle-highlight" aria-pressed="false" title="ハイライト">ハイライト</button>
+<button class="rs-toggle rs-toggle-jaonly" aria-pressed="true" title="日本語のみ">日本語のみ</button>
+</div>
 <div class="rs-actions">
 <button class="rs-btn rs-extract">対象抽出</button>
 <button class="rs-btn rs-btn-primary rs-replace-all">一括置換</button>
@@ -515,6 +606,11 @@ background: #e8f0fe;
     listEl = panelEl.querySelector(".rs-list");
     statusEl = panelEl.querySelector(".rs-status");
     manualInputEl = panelEl.querySelector(".rs-manual-input");
+    highlightToggleEl = panelEl.querySelector(".rs-toggle-highlight");
+    japaneseOnlyToggleEl = panelEl.querySelector(".rs-toggle-jaonly");
+    highlightToggleEl.addEventListener("click", handleHighlightToggle);
+    japaneseOnlyToggleEl.addEventListener("click", handleJapaneseOnlyToggle);
+    updateToggleUI();
 
     panelEl
       .querySelector(".rs-close")
@@ -553,8 +649,11 @@ background: #e8f0fe;
     listEl = null;
     statusEl = null;
     manualInputEl = null;
+    highlightToggleEl = null;
+    japaneseOnlyToggleEl = null;
     panelOpen = false;
     currentWords.clear();
+    lastExtractedWords = [];
   }
 
   async function togglePanel(force) {
@@ -564,6 +663,11 @@ background: #e8f0fe;
     if (panelOpen) {
       // 開くたびに最新の辞書を読み直す（サイドパネル側の変更を反映するため）
       await loadSettingsAndDictionary();
+      // 一覧が空のときは、開いたタイミングで自動的に対象抽出する。
+      // 一覧があるときは再抽出しない（編集中の置換文字列入力を保持するため）
+      if (currentWords.size === 0) {
+        await handleExtract();
+      }
     }
   }
 
@@ -716,11 +820,13 @@ background: #e8f0fe;
       const root = getTargetRoot();
       const text = getEditableInnerText(root);
       if (!text) {
+        lastExtractedWords = [];
         renderRows([]);
         setStatus("抽出できるテキストが見つかりませんでした。");
         return;
       }
       const words = extractNouns(text);
+      lastExtractedWords = words;
       renderRows(words);
       setStatus(`${currentWords.size} 件の対象を表示しています。`);
     } catch (error) {
@@ -769,6 +875,11 @@ background: #e8f0fe;
       return;
     }
     manualWords.add(word);
+    // 「日本語のみ」切替時の再描画でも残るよう、抽出済み単語にも加える
+    // （サイドパネル版が allExtractedWords へ追加するのと同じ）
+    if (!lastExtractedWords.includes(word)) {
+      lastExtractedWords.push(word);
+    }
     const row = createWordRow(word, true);
     if (row) {
       listEl.prepend(row);
