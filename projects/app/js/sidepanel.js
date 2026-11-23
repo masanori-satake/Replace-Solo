@@ -153,11 +153,7 @@ async function initInpageNotice() {
   if (!noticeEl) return;
 
   let dismissed = false;
-  if (
-    typeof chrome !== "undefined" &&
-    chrome.storage &&
-    chrome.storage.local
-  ) {
+  if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
     try {
       const result = await chrome.storage.local.get(
         INPAGE_NOTICE_DISMISSED_KEY,
@@ -174,9 +170,7 @@ async function initInpageNotice() {
   document
     .getElementById("inpage-notice-close-btn")
     .addEventListener("click", async () => {
-      const dismissCheckbox = document.getElementById(
-        "inpage-notice-dismiss",
-      );
+      const dismissCheckbox = document.getElementById("inpage-notice-dismiss");
       if (
         dismissCheckbox &&
         dismissCheckbox.checked &&
