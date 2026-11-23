@@ -143,6 +143,61 @@ async function loadSettingsAndDictionary() {
 
 loadSettingsAndDictionary();
 
+// 新機能お知らせ（ページ内パネル）の表示制御
+// 「もう表示しない」をチェックして閉じた場合のみフラグを保存し、以後は表示しない。
+// チェックせずに閉じた場合はその回だけ隠し、次回パネルを開いたときに再表示する。
+const INPAGE_NOTICE_DISMISSED_KEY = "notice_inpage_dismissed_v1_13_0";
+
+async function initInpageNotice() {
+  const noticeEl = document.getElementById("inpage-notice");
+  if (!noticeEl) return;
+
+  let dismissed = false;
+  if (
+    typeof chrome !== "undefined" &&
+    chrome.storage &&
+    chrome.storage.local
+  ) {
+    try {
+      const result = await chrome.storage.local.get(
+        INPAGE_NOTICE_DISMISSED_KEY,
+      );
+      dismissed = result[INPAGE_NOTICE_DISMISSED_KEY] === true;
+    } catch (error) {
+      console.error("Replace-Solo: Failed to load notice state:", error);
+    }
+  }
+  if (!dismissed) {
+    noticeEl.hidden = false;
+  }
+
+  document
+    .getElementById("inpage-notice-close-btn")
+    .addEventListener("click", async () => {
+      const dismissCheckbox = document.getElementById(
+        "inpage-notice-dismiss",
+      );
+      if (
+        dismissCheckbox &&
+        dismissCheckbox.checked &&
+        typeof chrome !== "undefined" &&
+        chrome.storage &&
+        chrome.storage.local
+      ) {
+        try {
+          await chrome.storage.local.set({
+            [INPAGE_NOTICE_DISMISSED_KEY]: true,
+          });
+        } catch (error) {
+          console.error("Replace-Solo: Failed to save notice state:", error);
+        }
+      }
+      noticeEl.hidden = true;
+    });
+}
+
+initInpageNotice();
+
 function updateHeaderToggleButtonsUI() {
   const highlightBtn = document.getElementById("highlight-toggle-btn");
   if (highlightBtn) {

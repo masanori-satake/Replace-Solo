@@ -68,6 +68,38 @@
     </header>
 
     <main class="m3-main">
+      <section id="inpage-notice" class="m3-section notice-card" hidden>
+        <div class="notice-body">
+          <p class="notice-text">
+            新機能: Loop
+            をアプリウィンドウで開いているときも使えるようになりました。ページ右下のボタン、または
+            Alt+Shift+R でパネルが開きます。
+          </p>
+          <label class="notice-dismiss">
+            <input type="checkbox" id="inpage-notice-dismiss" />
+            もう表示しない
+          </label>
+        </div>
+        <button
+          id="inpage-notice-close-btn"
+          class="m3-icon-button"
+          aria-label="お知らせを閉じる"
+          title="閉じる"
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            height="24px"
+            viewBox="0 -960 960 960"
+            width="24px"
+            fill="currentColor"
+          >
+            <path
+              d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"
+            />
+          </svg>
+        </button>
+      </section>
+
       <section id="actions" class="m3-section action-row">
         <button
           id="extract-btn"
