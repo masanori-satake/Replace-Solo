@@ -177,6 +177,69 @@ test("replaceAllFindMatches should replace every occurrence", async ({
   expect(text.match(/検証/g)).toHaveLength(3);
 });
 
+test("findInPage should not match text inside display:none elements", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true">
+       <p class="scriptor-paragraph">見えているテストです。</p>
+       <p class="scriptor-paragraph" style="display:none">隠れたテストです。</p>
+     </div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(1);
+});
+
+test("findInPage should not match text inside visibility:hidden elements", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true">
+       <p class="scriptor-paragraph">見えているテストと<span style="visibility:hidden">隠れたテスト</span>です。</p>
+     </div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(1);
+});
+
+test("findInPage should match a child that re-enables visibility inside a hidden parent", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true">
+       <p class="scriptor-paragraph" style="visibility:hidden">隠れた<span style="visibility:visible">テスト</span>です。</p>
+     </div>`,
+  );
+
+  // visibility は子要素が visible を指定すれば再表示されるため、ヒットするのが正しい
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(1);
+});
+
+test("extraction should also exclude invisible text (shared node filter)", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true">
+       <p class="scriptor-paragraph">見えている文章です。</p>
+       <p class="scriptor-paragraph" style="display:none">隠れた文章です。</p>
+     </div>`,
+  );
+
+  const text = await page.evaluate(() => {
+    const root = getTargetRoot();
+    return getEditableInnerText(root);
+  });
+  expect(text).toContain("見えている文章です。");
+  expect(text).not.toContain("隠れた文章です。");
+});
+
 test("clearFindMatches should remove highlights and reset the state", async ({
   page,
 }) => {

@@ -176,9 +176,44 @@ const ENTITY_DATA_ATTRIBUTES = [
 /**
  * テキストノードが安全なプレーンテキストノードかどうか判定する
  */
+/**
+ * テキストノードが画面に表示されるものかどうかを判定する。
+ * - visibility は最も内側の要素の計算値がそのまま実効値になる
+ *   （配下の要素が visible を指定すれば再表示されるため、祖先の値は見ない）
+ * - display:none と content-visibility:hidden は配下全体を不可視にするため、
+ *   祖先をたどって確認する
+ */
+function isTextNodeVisible(node, editorRoot) {
+  const parent = node.parentElement;
+  if (!parent) return false;
+
+  const parentStyle = window.getComputedStyle(parent);
+  if (
+    parentStyle.visibility === "hidden" ||
+    parentStyle.visibility === "collapse"
+  ) {
+    return false;
+  }
+
+  let current = parent;
+  while (current && current !== document.body) {
+    const style =
+      current === parent ? parentStyle : window.getComputedStyle(current);
+    if (style.display === "none" || style.contentVisibility === "hidden") {
+      return false;
+    }
+    if (current === editorRoot) break;
+    current = current.parentElement;
+  }
+  return true;
+}
+
 function isSafeTextNode(node, editorRoot) {
   if (!node || node.nodeType !== Node.TEXT_NODE) return false;
   if (!node.nodeValue) return false;
+
+  // 条件0: 不可視の要素配下の文字列は、検索・抽出・置換の対象にしない
+  if (!isTextNodeVisible(node, editorRoot)) return false;
 
   let current = node.parentElement;
 
