@@ -713,7 +713,10 @@ function applyFindHighlights() {
   }
   const current = findMatches[findCurrentIndex];
   if (current && current.range.startContainer.isConnected) {
-    CSS.highlights.set("replace-solo-find-current", new Highlight(current.range));
+    CSS.highlights.set(
+      "replace-solo-find-current",
+      new Highlight(current.range),
+    );
   } else {
     CSS.highlights.delete("replace-solo-find-current");
   }
@@ -826,8 +829,7 @@ function replaceCurrentFindMatch(replacement) {
  * 表示中の全一致を置換する（後ろから実行し、位置ズレを防ぐ）。
  */
 function replaceAllFindMatches(replacement) {
-  if (findMatches.length === 0)
-    return { replacedCount: 0, ...getFindState() };
+  if (findMatches.length === 0) return { replacedCount: 0, ...getFindState() };
 
   window.focus();
   const affectedContainers = new Set();

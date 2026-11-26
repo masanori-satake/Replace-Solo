@@ -65,9 +65,7 @@ test("navigateFindMatches should move the current match and wrap around", async 
   expect(state.currentIndex).toBe(2);
 });
 
-test("findInPage should respect the caseSensitive option", async ({
-  page,
-}) => {
+test("findInPage should respect the caseSensitive option", async ({ page }) => {
   await setupPage(
     page,
     `<div contenteditable="true"><p class="scriptor-paragraph">Loop loop LOOP</p></div>`,

@@ -1170,10 +1170,7 @@ flex: 0 0 auto;
     const btn = panelEl ? panelEl.querySelector(".rs-find-expand") : null;
     if (btn) {
       btn.textContent = findReplaceExpanded ? "‹" : "›";
-      btn.setAttribute(
-        "aria-expanded",
-        findReplaceExpanded ? "true" : "false",
-      );
+      btn.setAttribute("aria-expanded", findReplaceExpanded ? "true" : "false");
       btn.title = findReplaceExpanded ? "置換を隠す" : "置換を表示";
     }
     if (findReplaceExpanded && findReplaceInputEl) {
