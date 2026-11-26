@@ -750,6 +750,16 @@ function armFindObserver() {
     attributes: true,
     attributeFilter: ["style", "class", "hidden"],
   });
+  // 可視判定はルートの外側の祖先まで見るため、その属性変更も監視する
+  // （解除は disarmFindObserver の disconnect でまとめて行われる）
+  let ancestor = root.parentElement;
+  while (ancestor) {
+    findObserver.observe(ancestor, {
+      attributes: true,
+      attributeFilter: ["style", "class", "hidden"],
+    });
+    ancestor = ancestor.parentElement;
+  }
 }
 
 function disarmFindObserver() {
@@ -885,7 +895,8 @@ function applyFindHighlights() {
  * 見つからなければドキュメントのスクローラを返す。
  */
 function findScrollableAncestor(el) {
-  let current = el ? el.parentElement : null;
+  // 要素自身がスクローラである場合も対象にする（直接テキストを持つ編集要素など）
+  let current = el || null;
   while (current && current !== document.body) {
     const style = window.getComputedStyle(current);
     if (
@@ -1051,15 +1062,35 @@ function refreshFindMatches(preferredIndex) {
 }
 
 /**
+ * 置換直前の再検証。収集時と同じ文字列を指していることと、
+ * 両端のテキストノードが今も編集可能な検索対象であることを確認する。
+ * （検索後に編集不可へ変わった箇所を、フォールバックで書き換えてしまわないため）
+ */
+function isFindMatchStillValid(item) {
+  if (item.range.toString() !== item.text) return false;
+  const root = getTargetRoot();
+  const startNode = item.range.startContainer;
+  const endNode = item.range.endContainer;
+  if (startNode.nodeType !== Node.TEXT_NODE) return false;
+  if (endNode.nodeType !== Node.TEXT_NODE) return false;
+  return (
+    isNodeEditable(startNode) &&
+    isSafeTextNode(startNode, root) &&
+    isNodeEditable(endNode) &&
+    isSafeTextNode(endNode, root)
+  );
+}
+
+/**
  * 現在の一致を1件だけ置換する。置換後は次の一致が同じ位置に繰り上がる。
  */
 function replaceCurrentFindMatch(replacement) {
   const current = findMatches[findCurrentIndex];
   if (!current) return { replaced: false, ...getFindState() };
 
-  // ページ側の変更でライブ Range が別の文字列を指すようになっていたら、
-  // その文字列を置換してしまわないよう、置換せずに再検索して返す。
-  if (current.range.toString() !== current.text) {
+  // ページ側の変更でライブ Range が別の文字列を指すようになっていたり、
+  // 編集可能な対象から外れていたら、置換せずに再検索して返す。
+  if (!isFindMatchStillValid(current)) {
     const state = refreshFindMatches(findCurrentIndex);
     return { replaced: false, ...state };
   }
@@ -1090,8 +1121,9 @@ function replaceAllFindMatches(replacement) {
   const targets = [...findMatches].reverse();
   let replacedCount = 0;
   targets.forEach((item) => {
-    // 収集時と違う文字列を指すようになった Range は置換しない
-    if (item.range.toString() !== item.text) return;
+    // 収集時と違う文字列を指すようになった Range や、
+    // 編集可能な対象から外れた Range は置換しない
+    if (!isFindMatchStillValid(item)) return;
     if (replaceRangeByEmulation(item.range, replacement, affectedContainers)) {
       replacedCount += 1;
     }

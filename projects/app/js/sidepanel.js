@@ -21,6 +21,7 @@ let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2"
 let rowCounter = 0;
 let highlightGeneration = 0; // ハイライト状態の世代管理用カウンター
 let highlightEnabled = true; // ハイライト機能のON/OFF状態（デフォルト: ON）
+let highlightSettingGeneration = 0; // onChanged で新しい値が適用されるたびに進む世代
 let preferJapanese = true; // 日本語置換を優先の設定（デフォルト: ON）
 let isJapaneseOnly = true; // サイドパネルヘッダーの「日本語のみ」ボタン状態
 
@@ -90,6 +91,7 @@ function updateDictCache() {
 // 初期設定とデータの読み込み
 async function loadSettingsAndDictionary() {
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    const generationAtStart = highlightSettingGeneration;
     try {
       const result = await chrome.storage.local.get([
         "dictionary",
@@ -103,7 +105,15 @@ async function loadSettingsAndDictionary() {
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
-      if (typeof result.highlightEnabled === "boolean") {
+      if (highlightSettingGeneration !== generationAtStart) {
+        // 読み込み中に onChanged で新しい値が適用された。
+        // 取得した古い値で上書きせず、最新の値を取り直す。
+        const latest = await chrome.storage.local.get(["highlightEnabled"]);
+        highlightEnabled =
+          typeof latest.highlightEnabled === "boolean"
+            ? latest.highlightEnabled
+            : true;
+      } else if (typeof result.highlightEnabled === "boolean") {
         highlightEnabled = result.highlightEnabled;
       } else {
         highlightEnabled = true;
@@ -251,6 +261,7 @@ if (
     const next = changes.highlightEnabled.newValue;
     if (typeof next !== "boolean" || next === highlightEnabled) return;
     highlightEnabled = next;
+    highlightSettingGeneration += 1;
     if (!highlightEnabled) {
       clearPageHighlight();
     }

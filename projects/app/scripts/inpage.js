@@ -42,6 +42,9 @@
   let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定結果
   let reverseDictionary = {}; // キャッシュ: {"origin": ["target1",...]}
   let highlightEnabled = true;
+  // ハイライト設定の世代。onChanged で新しい値が適用されるたびに進む。
+  // 読み込み中に世代が変わっていたら、取得した古い値で上書きしない。
+  let highlightSettingGeneration = 0;
   let preferJapanese = true;
   let isJapaneseOnly = true;
   let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
@@ -158,6 +161,7 @@
    * サイドパネル版と同じキーを使うため、辞書はそのまま共有される。
    */
   async function loadSettingsAndDictionary() {
+    const generationAtStart = highlightSettingGeneration;
     try {
       const result = await chrome.storage.local.get([
         "dictionary",
@@ -170,10 +174,20 @@
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
-      highlightEnabled =
-        typeof result.highlightEnabled === "boolean"
-          ? result.highlightEnabled
-          : true;
+      if (highlightSettingGeneration !== generationAtStart) {
+        // 読み込み中に onChanged で新しい値が適用された。
+        // 取得した古い値で上書きせず、最新の値を取り直す。
+        const latest = await chrome.storage.local.get(["highlightEnabled"]);
+        highlightEnabled =
+          typeof latest.highlightEnabled === "boolean"
+            ? latest.highlightEnabled
+            : true;
+      } else {
+        highlightEnabled =
+          typeof result.highlightEnabled === "boolean"
+            ? result.highlightEnabled
+            : true;
+      }
       preferJapanese =
         typeof result.preferJapanese === "boolean"
           ? result.preferJapanese
@@ -1364,6 +1378,7 @@ flex: 0 0 auto;
       const next = changes.highlightEnabled.newValue;
       if (typeof next !== "boolean" || next === highlightEnabled) return;
       highlightEnabled = next;
+      highlightSettingGeneration += 1;
       updateToggleUI();
       if (!highlightEnabled) clearHighlight();
     });

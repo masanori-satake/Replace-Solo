@@ -542,3 +542,106 @@ test("replace should be skipped when the matched text changed after the search",
   );
   expect(text).toBe("cut cat");
 });
+
+test("replace should be skipped when the match is no longer editable", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">cat です。</p></div>`,
+  );
+
+  const result = await page.evaluate(() => {
+    findInPage("cat", {});
+    // 検索後に編集不可へ変わった状況を再現
+    document
+      .querySelector("div")
+      .setAttribute("contenteditable", "false");
+    return replaceCurrentFindMatch("X");
+  });
+  expect(result.replaced).toBe(false);
+
+  const text = await page.evaluate(
+    () => document.querySelector("p").textContent,
+  );
+  expect(text).toBe("cat です。");
+});
+
+test("find should follow visibility changes of ancestors above the editor root", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div id="wrap"><div contenteditable="true"><p class="scriptor-paragraph">テスト文章です。</p></div></div>`,
+  );
+
+  await page.evaluate(() => {
+    window.__findStates = [];
+    window.addEventListener("replace-solo:find-state", (e) => {
+      window.__findStates.push(e.detail);
+    });
+    findInPage("テスト", {});
+  });
+
+  // ルートの外側のラッパーを非表示にすると、再検索で0件になる
+  await page.evaluate(() => {
+    document.getElementById("wrap").style.display = "none";
+  });
+  await page.waitForFunction(
+    () => window.__findStates.some((s) => s.count === 0),
+    null,
+    { timeout: 5000 },
+  );
+
+  // 再び表示すると、一致が戻る
+  await page.evaluate(() => {
+    window.__findStates = [];
+    document.getElementById("wrap").style.display = "";
+  });
+  await page.waitForFunction(
+    () => window.__findStates.some((s) => s.count === 1),
+    null,
+    { timeout: 5000 },
+  );
+});
+
+test("navigateFindMatches should scroll the editor element itself when it is the scroller", async ({
+  page,
+}) => {
+  const filler = Array.from({ length: 40 }, (_, i) => `フィラー行${i}`).join(
+    "<br>",
+  );
+  await setupPage(
+    page,
+    `<div id="scroller" contenteditable="true" style="height: 200px; overflow-y: auto;">テスト（先頭）<br>${filler}<br>テスト（末尾）</div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(2);
+
+  await page.evaluate(() => navigateFindMatches(1));
+
+  // 末尾の一致（スクローラ自身の直接のテキスト）が可視領域に入ること
+  await page.waitForFunction(
+    () => {
+      const scroller = document.getElementById("scroller");
+      const s = scroller.getBoundingClientRect();
+      const walker = document.createTreeWalker(
+        scroller,
+        NodeFilter.SHOW_TEXT,
+      );
+      let node;
+      while ((node = walker.nextNode())) {
+        if (node.nodeValue.includes("末尾")) {
+          const range = document.createRange();
+          range.selectNodeContents(node);
+          const r = range.getBoundingClientRect();
+          return r.top >= s.top && r.bottom <= s.bottom;
+        }
+      }
+      return false;
+    },
+    null,
+    { timeout: 3000 },
+  );
+});
