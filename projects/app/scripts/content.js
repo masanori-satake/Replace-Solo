@@ -358,7 +358,12 @@ function isLoopUIElement(el) {
 function buildTextIndex(root) {
   // 除外されるテキストノードも走査対象に含める（採用判定はループ内で行う）。
   // 除外された文字列が間にあることを検出し、検索時のセグメント分割に使うため。
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
+  const walker = document.createTreeWalker(
+    root,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false,
+  );
 
   let combinedText = "";
   const nodeInfo = []; // { start: number, end: number, node: TextNode, container: Element, segment: number }
@@ -813,7 +818,11 @@ function collectFindMatches(root, regex) {
       }
       const startPos = segStart + match.index;
       const endPos = startPos + match[0].length;
-      const startNodeData = findNodeDataForPosition(seg.entries, startPos, false);
+      const startNodeData = findNodeDataForPosition(
+        seg.entries,
+        startPos,
+        false,
+      );
       const endNodeData = findNodeDataForPosition(seg.entries, endPos, true);
 
       // コンテナを跨ぐ一致は構造を壊す恐れがあるため、辞書置換と同じく対象外
@@ -1083,9 +1092,7 @@ function replaceAllFindMatches(replacement) {
   targets.forEach((item) => {
     // 収集時と違う文字列を指すようになった Range は置換しない
     if (item.range.toString() !== item.text) return;
-    if (
-      replaceRangeByEmulation(item.range, replacement, affectedContainers)
-    ) {
+    if (replaceRangeByEmulation(item.range, replacement, affectedContainers)) {
       replacedCount += 1;
     }
   });
