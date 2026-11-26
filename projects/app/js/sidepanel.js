@@ -20,7 +20,8 @@ let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定�
 let reverseDictionary = {}; // キャッシュ: {"origin": ["target1", "target2", ...]}
 let rowCounter = 0;
 let highlightGeneration = 0; // ハイライト状態の世代管理用カウンター
-let highlightEnabled = false; // ハイライト機能のON/OFF状態（デフォルト: OFF）
+let highlightEnabled = true; // ハイライト機能のON/OFF状態（デフォルト: ON）
+let highlightSettingGeneration = 0; // onChanged で新しい値が適用されるたびに進む世代
 let preferJapanese = true; // 日本語置換を優先の設定（デフォルト: ON）
 let isJapaneseOnly = true; // サイドパネルヘッダーの「日本語のみ」ボタン状態
 
@@ -90,6 +91,7 @@ function updateDictCache() {
 // 初期設定とデータの読み込み
 async function loadSettingsAndDictionary() {
   if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.local) {
+    const generationAtStart = highlightSettingGeneration;
     try {
       const result = await chrome.storage.local.get([
         "dictionary",
@@ -103,11 +105,19 @@ async function loadSettingsAndDictionary() {
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
-      if (typeof result.highlightEnabled === "boolean") {
+      if (highlightSettingGeneration !== generationAtStart) {
+        // 読み込み中に onChanged で新しい値が適用された。
+        // 取得した古い値で上書きせず、最新の値を取り直す。
+        const latest = await chrome.storage.local.get(["highlightEnabled"]);
+        highlightEnabled =
+          typeof latest.highlightEnabled === "boolean"
+            ? latest.highlightEnabled
+            : true;
+      } else if (typeof result.highlightEnabled === "boolean") {
         highlightEnabled = result.highlightEnabled;
       } else {
-        highlightEnabled = false;
-        await chrome.storage.local.set({ highlightEnabled: false });
+        highlightEnabled = true;
+        await chrome.storage.local.set({ highlightEnabled: true });
       }
       if (typeof result.preferJapanese === "boolean") {
         preferJapanese = result.preferJapanese;
@@ -118,13 +128,13 @@ async function loadSettingsAndDictionary() {
     } catch (error) {
       console.error("Replace-Solo: Failed to load settings/dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
-      highlightEnabled = false;
+      highlightEnabled = true;
       preferJapanese = true;
     }
     updateDictCache();
   } else {
     localDictionary = DEFAULT_DICTIONARY;
-    highlightEnabled = false;
+    highlightEnabled = true;
     preferJapanese = true;
     updateDictCache();
   }
@@ -232,6 +242,26 @@ if (highlightToggleBtn) {
         console.error("Replace-Solo: Failed to save highlight setting:", error);
       }
     }
+    if (!highlightEnabled) {
+      clearPageHighlight();
+    }
+    updateHeaderToggleButtonsUI();
+  });
+}
+
+// ハイライト設定はページ内パネルと共有キー。あちらで切り替えたら、
+// 開いているこちらの表示にも即座に反映する。
+if (
+  typeof chrome !== "undefined" &&
+  chrome.storage &&
+  chrome.storage.onChanged
+) {
+  chrome.storage.onChanged.addListener((changes, areaName) => {
+    if (areaName !== "local" || !changes.highlightEnabled) return;
+    const next = changes.highlightEnabled.newValue;
+    if (typeof next !== "boolean" || next === highlightEnabled) return;
+    highlightEnabled = next;
+    highlightSettingGeneration += 1;
     if (!highlightEnabled) {
       clearPageHighlight();
     }

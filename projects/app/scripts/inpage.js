@@ -8,7 +8,9 @@
  *
  * scripts/content.js と同じ isolated world で動作するため、
  * getTargetRoot() / getEditableInnerText() / replaceByEmulationBatch() /
- * highlightWord() / clearHighlight() を直接呼び出す。
+ * highlightWord() / clearHighlight() と、検索モード用の
+ * findInPage() / navigateFindMatches() / replaceCurrentFindMatch() /
+ * replaceAllFindMatches() / clearFindMatches() を直接呼び出す。
  * 辞書は chrome.storage.local の "dictionary" をサイドパネル版と共有する。
  */
 
@@ -39,7 +41,10 @@
   let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
   let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定結果
   let reverseDictionary = {}; // キャッシュ: {"origin": ["target1",...]}
-  let highlightEnabled = false;
+  let highlightEnabled = true;
+  // ハイライト設定の世代。onChanged で新しい値が適用されるたびに進む。
+  // 読み込み中に世代が変わっていたら、取得した古い値で上書きしない。
+  let highlightSettingGeneration = 0;
   let preferJapanese = true;
   let isJapaneseOnly = true;
   let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
@@ -56,6 +61,23 @@
   let highlightToggleEl = null;
   let japaneseOnlyToggleEl = null;
   let panelOpen = false;
+
+  // ===== 検索モードの状態と DOM 参照 =====
+  let panelMode = "dict"; // "dict" | "find"
+  let findReplaceExpanded = false;
+  let findDebounceTimer = null;
+  let findLastQuery = ""; // 直近に検索を実行した検索語（Enter 時の未検索判定用）
+  let dictSectionEl = null;
+  let findSectionEl = null;
+  let modeDictBtnEl = null;
+  let modeFindBtnEl = null;
+  let findInputEl = null;
+  let findCountEl = null;
+  let findReplaceRowEl = null;
+  let findReplaceInputEl = null;
+  let findStatusEl = null;
+  let findCaseToggleEl = null;
+  let findRegexToggleEl = null;
 
   // ===== 辞書まわり（js/sidepanel.js から移植） =====
 
@@ -139,6 +161,7 @@
    * サイドパネル版と同じキーを使うため、辞書はそのまま共有される。
    */
   async function loadSettingsAndDictionary() {
+    const generationAtStart = highlightSettingGeneration;
     try {
       const result = await chrome.storage.local.get([
         "dictionary",
@@ -151,10 +174,20 @@
         localDictionary = DEFAULT_DICTIONARY;
         await chrome.storage.local.set({ dictionary: localDictionary });
       }
-      highlightEnabled =
-        typeof result.highlightEnabled === "boolean"
-          ? result.highlightEnabled
-          : false;
+      if (highlightSettingGeneration !== generationAtStart) {
+        // 読み込み中に onChanged で新しい値が適用された。
+        // 取得した古い値で上書きせず、最新の値を取り直す。
+        const latest = await chrome.storage.local.get(["highlightEnabled"]);
+        highlightEnabled =
+          typeof latest.highlightEnabled === "boolean"
+            ? latest.highlightEnabled
+            : true;
+      } else {
+        highlightEnabled =
+          typeof result.highlightEnabled === "boolean"
+            ? result.highlightEnabled
+            : true;
+      }
       preferJapanese =
         typeof result.preferJapanese === "boolean"
           ? result.preferJapanese
@@ -162,7 +195,7 @@
     } catch (error) {
       console.error("Replace-Solo: Failed to load settings/dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
-      highlightEnabled = false;
+      highlightEnabled = true;
       preferJapanese = true;
     }
     isJapaneseOnly = preferJapanese;
@@ -493,11 +526,129 @@ cursor: pointer;
 .rs-exec:hover {
 background: #e8f0fe;
 }
+.rs-modes {
+display: flex;
+gap: 4px;
+padding: 10px 14px 0;
+}
+.rs-mode {
+flex: 1;
+padding: 6px 10px;
+border-radius: 8px;
+border: 1px solid #c4c7c5;
+background: #f0f4f9;
+color: #444746;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+}
+.rs-mode.active {
+background: #0b57d0;
+border-color: #0b57d0;
+color: #ffffff;
+}
+.rs-dict-section {
+display: flex;
+flex-direction: column;
+min-height: 0;
+flex: 1;
+}
+.rs-dict-section[hidden],
+.rs-find-section[hidden] {
+display: none;
+}
+.rs-find {
+padding: 10px 14px 4px;
+}
+.rs-find-row {
+display: flex;
+align-items: center;
+gap: 6px;
+margin-bottom: 6px;
+}
+.rs-find-row[hidden] {
+display: none;
+}
+.rs-find-input,
+.rs-find-replace-input {
+flex: 1;
+min-width: 0;
+padding: 7px 10px;
+border: 1px solid #c4c7c5;
+border-radius: 8px;
+font-size: 13px;
+background: #ffffff;
+color: #1f1f1f;
+}
+.rs-find-count {
+flex: 0 0 auto;
+min-width: 52px;
+text-align: center;
+color: #444746;
+font-size: 12px;
+white-space: nowrap;
+}
+.rs-find-nav,
+.rs-find-expand {
+flex: 0 0 auto;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-width: 34px;
+min-height: 34px;
+padding: 4px 6px;
+border: 1px solid #c4c7c5;
+border-radius: 8px;
+background: #ffffff;
+color: #0b57d0;
+cursor: pointer;
+}
+.rs-find-nav svg,
+.rs-find-expand svg {
+display: block;
+}
+.rs-find-opts {
+display: flex;
+gap: 6px;
+}
+.rs-find-opt {
+padding: 4px 10px;
+border-radius: 999px;
+border: 1px solid #747775;
+background: #ffffff;
+color: #444746;
+font-size: 12px;
+font-weight: 600;
+cursor: pointer;
+}
+.rs-find-opt.active {
+background: #0b57d0;
+border-color: #0b57d0;
+color: #ffffff;
+}
+.rs-find-replace-row .rs-btn {
+flex: 0 0 auto;
+}
 `;
 
   function setStatus(message) {
     if (statusEl) statusEl.textContent = message;
   }
+
+  // ===== 検索モードのアイコン =====
+  //
+  // 文字の記号（› や ↑）は線が細く、高解像度モニタでは判別しにくい。
+  // 太いストロークの SVG で描き、大きさも確保する。
+  // 向きの約束: 検索のみ（置換欄が閉じている）ときは右向き、
+  // 置換欄を開いているときは下向き。
+  const ICON_EXPAND =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_COLLAPSE =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_PREV =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_NEXT =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ===== 設定トグル（サイドパネル版と storage キーを共有） =====
 
@@ -583,9 +734,14 @@ background: #e8f0fe;
     panelEl.hidden = !panelOpen;
     panelEl.innerHTML = `
 <div class="rs-header">
-<span class="rs-title">Replace-Solo（ページ内パネル）</span>
+<span class="rs-title">Replace-Solo</span>
 <button class="rs-close" aria-label="閉じる">×</button>
 </div>
+<div class="rs-modes">
+<button class="rs-mode rs-mode-dict active">辞書置換</button>
+<button class="rs-mode rs-mode-find">検索と置換</button>
+</div>
+<div class="rs-dict-section">
 <div class="rs-toggles">
 <button class="rs-toggle rs-toggle-highlight" aria-pressed="false" title="ハイライト">ハイライト</button>
 <button class="rs-toggle rs-toggle-jaonly" aria-pressed="true" title="日本語のみ">日本語のみ</button>
@@ -600,6 +756,28 @@ background: #e8f0fe;
 </div>
 <div class="rs-status"></div>
 <div class="rs-list"></div>
+</div>
+<div class="rs-find-section" hidden>
+<div class="rs-find">
+<div class="rs-find-row">
+<button class="rs-find-expand" title="置換を表示" aria-expanded="false">${ICON_EXPAND}</button>
+<input class="rs-find-input" type="text" placeholder="検索" aria-label="検索文字列">
+<span class="rs-find-count"></span>
+<button class="rs-find-nav rs-find-prev" title="前へ (Shift+Enter)">${ICON_PREV}</button>
+<button class="rs-find-nav rs-find-next" title="次へ (Enter)">${ICON_NEXT}</button>
+</div>
+<div class="rs-find-row rs-find-replace-row" hidden>
+<input class="rs-find-replace-input" type="text" placeholder="置換" aria-label="置換文字列">
+<button class="rs-btn rs-find-replace-one">置換</button>
+<button class="rs-btn rs-find-replace-all-btn">すべて置換</button>
+</div>
+<div class="rs-find-opts">
+<button class="rs-find-opt rs-find-case" aria-pressed="false" title="大文字と小文字を区別">Aa</button>
+<button class="rs-find-opt rs-find-regex" aria-pressed="false" title="正規表現">.*</button>
+</div>
+</div>
+<div class="rs-status rs-find-status"></div>
+</div>
 `;
     shadow.appendChild(panelEl);
 
@@ -631,6 +809,50 @@ background: #e8f0fe;
       }
     });
 
+    // 検索モードの配線
+    dictSectionEl = panelEl.querySelector(".rs-dict-section");
+    findSectionEl = panelEl.querySelector(".rs-find-section");
+    modeDictBtnEl = panelEl.querySelector(".rs-mode-dict");
+    modeFindBtnEl = panelEl.querySelector(".rs-mode-find");
+    findInputEl = panelEl.querySelector(".rs-find-input");
+    findCountEl = panelEl.querySelector(".rs-find-count");
+    findReplaceRowEl = panelEl.querySelector(".rs-find-replace-row");
+    findReplaceInputEl = panelEl.querySelector(".rs-find-replace-input");
+    findStatusEl = panelEl.querySelector(".rs-find-status");
+    findCaseToggleEl = panelEl.querySelector(".rs-find-case");
+    findRegexToggleEl = panelEl.querySelector(".rs-find-regex");
+    modeDictBtnEl.addEventListener("click", () => switchMode("dict"));
+    modeFindBtnEl.addEventListener("click", () => switchMode("find"));
+    findInputEl.addEventListener("input", handleFindInput);
+    findInputEl.addEventListener("keydown", handleFindKeydown);
+    panelEl
+      .querySelector(".rs-find-prev")
+      .addEventListener("click", () => handleFindNavigate(-1));
+    panelEl
+      .querySelector(".rs-find-next")
+      .addEventListener("click", () => handleFindNavigate(1));
+    panelEl
+      .querySelector(".rs-find-expand")
+      .addEventListener("click", handleFindExpandToggle);
+    panelEl
+      .querySelector(".rs-find-replace-one")
+      .addEventListener("click", handleFindReplaceOne);
+    panelEl
+      .querySelector(".rs-find-replace-all-btn")
+      .addEventListener("click", handleFindReplaceAll);
+    findCaseToggleEl.addEventListener("click", () =>
+      handleFindOptionToggle("case"),
+    );
+    findRegexToggleEl.addEventListener("click", () =>
+      handleFindOptionToggle("regex"),
+    );
+    findReplaceInputEl.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.isComposing) {
+        e.preventDefault();
+        handleFindReplaceOne();
+      }
+    });
+
     // パネル内のキー入力が Loop 側のショートカットに漏れないようにする
     panelEl.addEventListener("keydown", (e) => {
       e.stopPropagation();
@@ -640,6 +862,8 @@ background: #e8f0fe;
   }
 
   function removeUI() {
+    // パネルと一緒に検索ハイライトも消す（遷移先のページに残さない）
+    clearFindMatches();
     if (hostEl) {
       hostEl.remove();
     }
@@ -652,6 +876,28 @@ background: #e8f0fe;
     highlightToggleEl = null;
     japaneseOnlyToggleEl = null;
     panelOpen = false;
+    dictSectionEl = null;
+    findSectionEl = null;
+    modeDictBtnEl = null;
+    modeFindBtnEl = null;
+    findInputEl = null;
+    findCountEl = null;
+    findReplaceRowEl = null;
+    findReplaceInputEl = null;
+    findStatusEl = null;
+    findCaseToggleEl = null;
+    findRegexToggleEl = null;
+    panelMode = "dict";
+    findReplaceExpanded = false;
+    findLastQuery = "";
+    if (findDebounceTimer) {
+      clearTimeout(findDebounceTimer);
+      findDebounceTimer = null;
+    }
+    if (findStatusTimer) {
+      clearTimeout(findStatusTimer);
+      findStatusTimer = null;
+    }
     currentWords.clear();
     lastExtractedWords = [];
   }
@@ -668,6 +914,19 @@ background: #e8f0fe;
       if (currentWords.size === 0) {
         await handleExtract();
       }
+      // 検索モードで開いた場合、ページの状態に合わせて検索し直す。
+      // 読み込みを待つ間に閉じられていたら、検索は実行しない。
+      if (
+        panelOpen &&
+        panelMode === "find" &&
+        findInputEl &&
+        findInputEl.value
+      ) {
+        runFind();
+      }
+    } else {
+      // パネルを閉じたら検索ハイライトをページに残さない
+      clearFindMatches();
     }
   }
 
@@ -889,6 +1148,190 @@ background: #e8f0fe;
     manualInputEl.value = "";
   }
 
+  // ===== 検索モード =====
+  //
+  // 通常は検索のみ（入力すると一致がハイライトされ、件数が表示される）。
+  // 置換したいときだけ、展開ボタン（シェブロン）で置換欄を開く（VS Code の検索ウィジェットと同じ考え方）。
+  // 一致の収集・ハイライト・置換の実処理は content.js 側の関数が担う。
+
+  let findStatusTimer = null;
+
+  function setFindStatus(message) {
+    // 新しいメッセージで、保留中の自動消去は取り消す
+    if (findStatusTimer) {
+      clearTimeout(findStatusTimer);
+      findStatusTimer = null;
+    }
+    if (findStatusEl) findStatusEl.textContent = message;
+  }
+
+  // 完了メッセージ用。状態が変わらなくても、しばらくしたら自動で消す
+  // （「1件を置換しました。」のような過去の出来事を居座らせないため）。
+  function setFindStatusTransient(message) {
+    setFindStatus(message);
+    findStatusTimer = setTimeout(() => {
+      findStatusTimer = null;
+      if (findStatusEl && findStatusEl.textContent === message) {
+        findStatusEl.textContent = "";
+      }
+    }, 5000);
+  }
+
+  function updateFindCount(state, options) {
+    if (!findCountEl) return;
+    if (state.error) {
+      findCountEl.textContent = "";
+      setFindStatus(state.error);
+      return;
+    }
+    // 状態が新しくなったら、過去の完了メッセージは残さない。
+    // ただしドキュメント変更への追従（keepStatus）では、
+    // 置換直後の完了メッセージを消さない。
+    if (!options || !options.keepStatus) {
+      setFindStatus("");
+    }
+    if (!findInputEl || !findInputEl.value) {
+      findCountEl.textContent = "";
+      return;
+    }
+    if (state.count === 0) {
+      findCountEl.textContent = "結果なし";
+      return;
+    }
+    findCountEl.textContent =
+      `${state.currentIndex + 1} / ${state.count}` +
+      (state.truncated ? "+" : "");
+  }
+
+  function runFind() {
+    if (!findInputEl) return;
+    // 即時検索したら、同じ入力の保留タイマーは解除する
+    // （後から発火して現在位置が先頭に戻るのを防ぐ）
+    if (findDebounceTimer) {
+      clearTimeout(findDebounceTimer);
+      findDebounceTimer = null;
+    }
+    findLastQuery = findInputEl.value;
+    const state = findInPage(findInputEl.value, {
+      caseSensitive:
+        !!findCaseToggleEl && findCaseToggleEl.classList.contains("active"),
+      useRegex:
+        !!findRegexToggleEl && findRegexToggleEl.classList.contains("active"),
+    });
+    updateFindCount(state);
+  }
+
+  function handleFindInput() {
+    if (findDebounceTimer) clearTimeout(findDebounceTimer);
+    findDebounceTimer = setTimeout(() => {
+      findDebounceTimer = null;
+      // 保留中にパネルを閉じたり辞書モードへ戻っていたら検索しない
+      if (panelOpen && panelMode === "find") runFind();
+    }, 200);
+  }
+
+  function handleFindKeydown(e) {
+    if (e.key === "Enter" && !e.isComposing) {
+      e.preventDefault();
+      handleFindNavigate(e.shiftKey ? -1 : 1);
+    }
+  }
+
+  function handleFindNavigate(delta) {
+    if (!findInputEl) return;
+    // 入力したのにまだ検索が走っていない場合は、移動ではなく検索を先に行う
+    if (findInputEl.value !== findLastQuery) {
+      runFind();
+      return;
+    }
+    const state = navigateFindMatches(delta);
+    updateFindCount(state);
+  }
+
+  function handleFindExpandToggle() {
+    findReplaceExpanded = !findReplaceExpanded;
+    if (findReplaceRowEl) findReplaceRowEl.hidden = !findReplaceExpanded;
+    const btn = panelEl ? panelEl.querySelector(".rs-find-expand") : null;
+    if (btn) {
+      btn.innerHTML = findReplaceExpanded ? ICON_COLLAPSE : ICON_EXPAND;
+      btn.setAttribute("aria-expanded", findReplaceExpanded ? "true" : "false");
+      btn.title = findReplaceExpanded ? "置換を隠す" : "置換を表示";
+    }
+    if (findReplaceExpanded && findReplaceInputEl) {
+      findReplaceInputEl.focus();
+    }
+  }
+
+  function handleFindReplaceOne() {
+    if (!findReplaceInputEl) return;
+    // 検索欄が変わって再検索がまだなら、古い一致を置換せず検索を先に行う
+    if (findInputEl && findInputEl.value !== findLastQuery) {
+      runFind();
+      return;
+    }
+    const result = replaceCurrentFindMatch(findReplaceInputEl.value);
+    if (!result.replaced) {
+      setFindStatusTransient("置換できる一致がありません。");
+      return;
+    }
+    updateFindCount(result);
+    setFindStatusTransient("1件を置換しました。");
+    // 続けて置換できるよう、フォーカスを置換欄に戻す
+    findReplaceInputEl.focus();
+  }
+
+  function handleFindReplaceAll() {
+    if (!findReplaceInputEl) return;
+    // 検索欄が変わって再検索がまだなら、古い一致を置換せず検索を先に行う
+    if (findInputEl && findInputEl.value !== findLastQuery) {
+      runFind();
+      return;
+    }
+    const result = replaceAllFindMatches(findReplaceInputEl.value);
+    if (result.replacedCount === 0) {
+      setFindStatusTransient("置換できる一致がありません。");
+      return;
+    }
+    updateFindCount(result);
+    setFindStatusTransient(`${result.replacedCount} 件を置換しました。`);
+    findReplaceInputEl.focus();
+  }
+
+  function handleFindOptionToggle(kind) {
+    const el = kind === "case" ? findCaseToggleEl : findRegexToggleEl;
+    if (!el) return;
+    el.classList.toggle("active");
+    el.setAttribute(
+      "aria-pressed",
+      el.classList.contains("active") ? "true" : "false",
+    );
+    runFind();
+  }
+
+  function switchMode(mode) {
+    panelMode = mode;
+    const isFind = mode === "find";
+    if (dictSectionEl) dictSectionEl.hidden = isFind;
+    if (findSectionEl) findSectionEl.hidden = !isFind;
+    if (modeDictBtnEl) modeDictBtnEl.classList.toggle("active", !isFind);
+    if (modeFindBtnEl) modeFindBtnEl.classList.toggle("active", isFind);
+    if (isFind) {
+      // ページ側の状態が変わっている可能性があるため、検索語があれば検索し直す
+      if (findInputEl && findInputEl.value) runFind();
+      if (findInputEl) findInputEl.focus();
+    } else {
+      // 辞書モードへ戻るときは検索ハイライトを消し、保留中の検索も取り消す
+      if (findDebounceTimer) {
+        clearTimeout(findDebounceTimer);
+        findDebounceTimer = null;
+      }
+      clearFindMatches();
+      findLastQuery = "";
+      if (findCountEl) findCountEl.textContent = "";
+      setFindStatus("");
+    }
+  }
+
   // ===== SPA 対応: /p/ ページでのみ UI を有効化 =====
 
   function isTargetPage() {
@@ -911,6 +1354,35 @@ background: #e8f0fe;
 
   // 起動直後に辞書を読み込んでおく
   loadSettingsAndDictionary();
+
+  // ===== 検索状態の追従 =====
+  //
+  // 置換後の Undo や本文の手動編集でドキュメントが変わると、content.js が
+  // 再検索して CustomEvent で通知してくる。検索モード表示中は件数を追従させる。
+  window.addEventListener("replace-solo:find-state", (e) => {
+    if (panelMode === "find" && e.detail) {
+      // 置換直後の変更でも飛んでくるため、完了メッセージは消さない
+      updateFindCount(e.detail, { keepStatus: true });
+    }
+  });
+
+  // ハイライト設定はサイドパネルと共有キー。あちらで切り替えたら、
+  // ページを開いたままのこちらにも即座に反映する。
+  if (
+    typeof chrome !== "undefined" &&
+    chrome.storage &&
+    chrome.storage.onChanged
+  ) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local" || !changes.highlightEnabled) return;
+      const next = changes.highlightEnabled.newValue;
+      if (typeof next !== "boolean" || next === highlightEnabled) return;
+      highlightEnabled = next;
+      highlightSettingGeneration += 1;
+      updateToggleUI();
+      if (!highlightEnabled) clearHighlight();
+    });
+  }
 
   // ===== キーボードショートカット: Alt+Shift+R でパネルの開閉 =====
 
