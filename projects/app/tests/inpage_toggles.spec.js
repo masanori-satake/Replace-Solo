@@ -180,22 +180,22 @@ test("changing inpage toggles should save to storage immediately", async ({
 
   await clickInPanel(page, ".rs-launcher");
 
-  // Defaults: highlight OFF, 日本語のみ ON (preferJapanese default true)
+  // Defaults: highlight ON, 日本語のみ ON (both default true)
   await expect
     .poll(() => getTogglePressed(page, ".rs-toggle-highlight"))
-    .toBe("false");
+    .toBe("true");
   await expect
     .poll(() => getTogglePressed(page, ".rs-toggle-jaonly"))
     .toBe("true");
 
   await clickInPanel(page, ".rs-toggle-highlight");
-  await expect.poll(() => store.highlightEnabled).toBe(true);
+  await expect.poll(() => store.highlightEnabled).toBe(false);
   await expect
     .poll(() => getTogglePressed(page, ".rs-toggle-highlight"))
-    .toBe("true");
+    .toBe("false");
 
   await clickInPanel(page, ".rs-toggle-highlight");
-  await expect.poll(() => store.highlightEnabled).toBe(false);
+  await expect.poll(() => store.highlightEnabled).toBe(true);
 
   await clickInPanel(page, ".rs-toggle-jaonly");
   await expect.poll(() => store.preferJapanese).toBe(false);

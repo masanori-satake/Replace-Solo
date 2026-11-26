@@ -41,7 +41,7 @@
   let dictOrigins = new Set(); // キャッシュ: 全ての元単語のSet
   let dictMatchCache = new Map(); // キャッシュ: 単語ごとの置換判定結果
   let reverseDictionary = {}; // キャッシュ: {"origin": ["target1",...]}
-  let highlightEnabled = false;
+  let highlightEnabled = true;
   let preferJapanese = true;
   let isJapaneseOnly = true;
   let currentWords = new Set(); // 現在リストされている単語（重複チェック用）
@@ -173,7 +173,7 @@
       highlightEnabled =
         typeof result.highlightEnabled === "boolean"
           ? result.highlightEnabled
-          : false;
+          : true;
       preferJapanese =
         typeof result.preferJapanese === "boolean"
           ? result.preferJapanese
@@ -181,7 +181,7 @@
     } catch (error) {
       console.error("Replace-Solo: Failed to load settings/dictionary:", error);
       localDictionary = DEFAULT_DICTIONARY;
-      highlightEnabled = false;
+      highlightEnabled = true;
       preferJapanese = true;
     }
     isJapaneseOnly = preferJapanese;
@@ -1317,6 +1317,23 @@ flex: 0 0 auto;
       updateFindCount(e.detail, { keepStatus: true });
     }
   });
+
+  // ハイライト設定はサイドパネルと共有キー。あちらで切り替えたら、
+  // ページを開いたままのこちらにも即座に反映する。
+  if (
+    typeof chrome !== "undefined" &&
+    chrome.storage &&
+    chrome.storage.onChanged
+  ) {
+    chrome.storage.onChanged.addListener((changes, areaName) => {
+      if (areaName !== "local" || !changes.highlightEnabled) return;
+      const next = changes.highlightEnabled.newValue;
+      if (typeof next !== "boolean" || next === highlightEnabled) return;
+      highlightEnabled = next;
+      updateToggleUI();
+      if (!highlightEnabled) clearHighlight();
+    });
+  }
 
   // ===== キーボードショートカット: Alt+Shift+R でパネルの開閉 =====
 

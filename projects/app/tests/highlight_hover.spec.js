@@ -84,7 +84,7 @@ test("should trigger HIGHLIGHT_WORD on mouseenter and CLEAR_HIGHLIGHT on mousele
   expect(clearMsg).toBeTruthy();
 });
 
-test("should default highlight toggle to OFF and respect toggle changes", async ({
+test("should default highlight toggle to ON and respect toggle changes", async ({
   page,
 }) => {
   const filePath =
@@ -134,32 +134,35 @@ test("should default highlight toggle to OFF and respect toggle changes", async 
   await page.goto(filePath);
   await expect(page.locator("#extract-btn")).toBeVisible();
 
-  // Check default button state (OFF -> not active)
+  // Check default button state (ON -> active)
   const toggleBtn = page.locator("#highlight-toggle-btn");
-  await expect(toggleBtn).not.toHaveClass(/active/);
+  await expect(toggleBtn).toHaveClass(/active/);
 
-  // Add word & hover while OFF
+  // Add word & hover while ON
   await page.fill("#manual-word", "テスト2");
   await page.click("#add-word-btn");
 
   const row = page.locator(".word-row");
   await row.hover();
 
-  // Confirm NO HIGHLIGHT_WORD message sent when OFF
-  let sent = await page.evaluate(() => window.sentMessages);
-  expect(sent.some((m) => m.action === "HIGHLIGHT_WORD")).toBe(false);
-
-  // Click toggle button to turn ON
-  await toggleBtn.click();
-  await expect(toggleBtn).toHaveClass(/active/);
-
-  // Hover again
-  await page.hover("#extract-btn");
-  await row.hover();
-
   await page.waitForFunction(() =>
     window.sentMessages.some((m) => m.action === "HIGHLIGHT_WORD"),
   );
-  sent = await page.evaluate(() => window.sentMessages);
+  let sent = await page.evaluate(() => window.sentMessages);
   expect(sent.some((m) => m.action === "HIGHLIGHT_WORD")).toBe(true);
+
+  // Click toggle button to turn OFF
+  await toggleBtn.click();
+  await expect(toggleBtn).not.toHaveClass(/active/);
+
+  // Hover again with messages reset
+  await page.evaluate(() => {
+    window.sentMessages = [];
+  });
+  await page.hover("#extract-btn");
+  await row.hover();
+
+  // Confirm NO HIGHLIGHT_WORD message sent when OFF
+  sent = await page.evaluate(() => window.sentMessages);
+  expect(sent.some((m) => m.action === "HIGHLIGHT_WORD")).toBe(false);
 });
