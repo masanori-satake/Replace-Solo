@@ -554,9 +554,7 @@ test("replace should be skipped when the match is no longer editable", async ({
   const result = await page.evaluate(() => {
     findInPage("cat", {});
     // 検索後に編集不可へ変わった状況を再現
-    document
-      .querySelector("div")
-      .setAttribute("contenteditable", "false");
+    document.querySelector("div").setAttribute("contenteditable", "false");
     return replaceCurrentFindMatch("X");
   });
   expect(result.replaced).toBe(false);
@@ -626,10 +624,7 @@ test("navigateFindMatches should scroll the editor element itself when it is the
     () => {
       const scroller = document.getElementById("scroller");
       const s = scroller.getBoundingClientRect();
-      const walker = document.createTreeWalker(
-        scroller,
-        NodeFilter.SHOW_TEXT,
-      );
+      const walker = document.createTreeWalker(scroller, NodeFilter.SHOW_TEXT);
       let node;
       while ((node = walker.nextNode())) {
         if (node.nodeValue.includes("末尾")) {
