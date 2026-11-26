@@ -669,12 +669,19 @@ let findMatches = []; // { range, startAbs, endAbs }
 let findCurrentIndex = -1;
 let findQuery = "";
 let findOptions = { caseSensitive: false, useRegex: false };
+let findTruncated = false; // 上限で打ち切ったかどうか
+
+// 一致数の上限。ありふれた語で巨大なページを検索したときに、
+// Range とハイライトが際限なく増えてタブを固めるのを防ぐ。
+// ドキュメント変更のたびに再検索する追従処理の負荷も、この上限で抑える。
+const FIND_MAX_MATCHES = 1000;
 
 function getFindState(error = null) {
   return {
     count: findMatches.length,
     currentIndex: findCurrentIndex,
     error,
+    truncated: findTruncated,
   };
 }
 
@@ -740,6 +747,7 @@ function buildFindRegex(query, options) {
 function collectFindMatches(root, regex) {
   const { combinedText, nodeInfo } = buildTextIndex(root);
   const matches = [];
+  let truncated = false;
 
   let match;
   while ((match = regex.exec(combinedText)) !== null) {
@@ -747,6 +755,11 @@ function collectFindMatches(root, regex) {
     if (match[0].length === 0) {
       regex.lastIndex += 1;
       continue;
+    }
+    // 上限に達したら Range は作らず、打ち切りの有無だけを確認して終える
+    if (matches.length >= FIND_MAX_MATCHES) {
+      truncated = true;
+      break;
     }
     const startPos = match.index;
     const endPos = match.index + match[0].length;
@@ -769,7 +782,7 @@ function collectFindMatches(root, regex) {
       }
     }
   }
-  return matches;
+  return { matches, truncated };
 }
 
 /**
@@ -906,6 +919,7 @@ function findInPage(query, options) {
   if (!findQuery) {
     findMatches = [];
     findCurrentIndex = -1;
+    findTruncated = false;
     applyFindHighlights();
     disarmFindObserver();
     return getFindState();
@@ -917,12 +931,15 @@ function findInPage(query, options) {
   } catch (e) {
     findMatches = [];
     findCurrentIndex = -1;
+    findTruncated = false;
     applyFindHighlights();
     return getFindState("正規表現が正しくありません。");
   }
 
   const root = getTargetRoot();
-  findMatches = collectFindMatches(root, regex);
+  const collected = collectFindMatches(root, regex);
+  findMatches = collected.matches;
+  findTruncated = collected.truncated;
   findCurrentIndex = findMatches.length > 0 ? 0 : -1;
   applyFindHighlights();
   // Undo や手動編集で一致が変わっても追従できるよう、監視を開始する
@@ -954,7 +971,9 @@ function refreshFindMatches(preferredIndex) {
     return getFindState("正規表現が正しくありません。");
   }
   const root = getTargetRoot();
-  findMatches = collectFindMatches(root, regex);
+  const collected = collectFindMatches(root, regex);
+  findMatches = collected.matches;
+  findTruncated = collected.truncated;
   if (findMatches.length === 0) {
     findCurrentIndex = -1;
   } else if (preferredIndex >= 0 && preferredIndex < findMatches.length) {
@@ -1011,6 +1030,7 @@ function clearFindMatches() {
   findMatches = [];
   findCurrentIndex = -1;
   findQuery = "";
+  findTruncated = false;
   disarmFindObserver();
   applyFindHighlights();
 }

@@ -1176,7 +1176,9 @@ flex: 0 0 auto;
       findCountEl.textContent = "結果なし";
       return;
     }
-    findCountEl.textContent = `${state.currentIndex + 1} / ${state.count}`;
+    findCountEl.textContent =
+      `${state.currentIndex + 1} / ${state.count}` +
+      (state.truncated ? "+" : "");
   }
 
   function runFind() {

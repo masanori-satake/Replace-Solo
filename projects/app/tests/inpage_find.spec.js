@@ -370,3 +370,27 @@ test("clearFindMatches should remove highlights and reset the state", async ({
   );
   expect(after).toBe(false);
 });
+
+test("findInPage should cap the number of matches and report truncation", async ({
+  page,
+}) => {
+  const paragraphs = Array.from(
+    { length: 1100 },
+    () => `<p class="scriptor-paragraph">ab</p>`,
+  ).join("");
+  await setupPage(page, `<div contenteditable="true">${paragraphs}</div>`);
+
+  const state = await page.evaluate(() => findInPage("ab", {}));
+  expect(state.count).toBe(1000);
+  expect(state.truncated).toBe(true);
+
+  // 上限未満では打ち切りにならない
+  const small = Array.from(
+    { length: 10 },
+    () => `<p class="scriptor-paragraph">ab</p>`,
+  ).join("");
+  await setupPage(page, `<div contenteditable="true">${small}</div>`);
+  const state2 = await page.evaluate(() => findInPage("ab", {}));
+  expect(state2.count).toBe(10);
+  expect(state2.truncated).toBe(false);
+});
