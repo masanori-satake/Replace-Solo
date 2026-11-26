@@ -577,14 +577,21 @@ white-space: nowrap;
 .rs-find-nav,
 .rs-find-expand {
 flex: 0 0 auto;
-padding: 4px 8px;
+display: inline-flex;
+align-items: center;
+justify-content: center;
+min-width: 34px;
+min-height: 34px;
+padding: 4px 6px;
 border: 1px solid #c4c7c5;
 border-radius: 8px;
 background: #ffffff;
 color: #0b57d0;
-font-size: 13px;
-font-weight: 600;
 cursor: pointer;
+}
+.rs-find-nav svg,
+.rs-find-expand svg {
+display: block;
 }
 .rs-find-opts {
 display: flex;
@@ -613,6 +620,19 @@ flex: 0 0 auto;
   function setStatus(message) {
     if (statusEl) statusEl.textContent = message;
   }
+
+  // ===== 検索モードのアイコン =====
+  //
+  // 文字の記号（› や ↑）は線が細く、高解像度モニタでは判別しにくい。
+  // 太いストロークの SVG で描き、大きさも確保する。
+  const ICON_EXPAND =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 9l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_COLLAPSE =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M5 15l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_PREV =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 19V5M5 12l7-7 7 7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  const ICON_NEXT =
+    '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 5v14M5 12l7 7 7-7" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
   // ===== 設定トグル（サイドパネル版と storage キーを共有） =====
 
@@ -724,11 +744,11 @@ flex: 0 0 auto;
 <div class="rs-find-section" hidden>
 <div class="rs-find">
 <div class="rs-find-row">
-<button class="rs-find-expand" title="置換を表示" aria-expanded="false">›</button>
+<button class="rs-find-expand" title="置換を表示" aria-expanded="false">${ICON_EXPAND}</button>
 <input class="rs-find-input" type="text" placeholder="検索" aria-label="検索文字列">
 <span class="rs-find-count"></span>
-<button class="rs-find-nav rs-find-prev" title="前へ (Shift+Enter)">↑</button>
-<button class="rs-find-nav rs-find-next" title="次へ (Enter)">↓</button>
+<button class="rs-find-nav rs-find-prev" title="前へ (Shift+Enter)">${ICON_PREV}</button>
+<button class="rs-find-nav rs-find-next" title="次へ (Enter)">${ICON_NEXT}</button>
 </div>
 <div class="rs-find-row rs-find-replace-row" hidden>
 <input class="rs-find-replace-input" type="text" placeholder="置換" aria-label="置換文字列">
@@ -855,6 +875,10 @@ flex: 0 0 auto;
     if (findDebounceTimer) {
       clearTimeout(findDebounceTimer);
       findDebounceTimer = null;
+    }
+    if (findStatusTimer) {
+      clearTimeout(findStatusTimer);
+      findStatusTimer = null;
     }
     currentWords.clear();
     lastExtractedWords = [];
@@ -1103,19 +1127,44 @@ flex: 0 0 auto;
   // ===== 検索モード =====
   //
   // 通常は検索のみ（入力すると一致がハイライトされ、件数が表示される）。
-  // 置換したいときだけ、展開ボタン（›）で置換欄を開く（VS Code の検索ウィジェットと同じ考え方）。
+  // 置換したいときだけ、展開ボタン（シェブロン）で置換欄を開く（VS Code の検索ウィジェットと同じ考え方）。
   // 一致の収集・ハイライト・置換の実処理は content.js 側の関数が担う。
 
+  let findStatusTimer = null;
+
   function setFindStatus(message) {
+    // 新しいメッセージで、保留中の自動消去は取り消す
+    if (findStatusTimer) {
+      clearTimeout(findStatusTimer);
+      findStatusTimer = null;
+    }
     if (findStatusEl) findStatusEl.textContent = message;
   }
 
-  function updateFindCount(state) {
+  // 完了メッセージ用。状態が変わらなくても、しばらくしたら自動で消す
+  // （「1件を置換しました。」のような過去の出来事を居座らせないため）。
+  function setFindStatusTransient(message) {
+    setFindStatus(message);
+    findStatusTimer = setTimeout(() => {
+      findStatusTimer = null;
+      if (findStatusEl && findStatusEl.textContent === message) {
+        findStatusEl.textContent = "";
+      }
+    }, 5000);
+  }
+
+  function updateFindCount(state, options) {
     if (!findCountEl) return;
     if (state.error) {
       findCountEl.textContent = "";
       setFindStatus(state.error);
       return;
+    }
+    // 状態が新しくなったら、過去の完了メッセージは残さない。
+    // ただしドキュメント変更への追従（keepStatus）では、
+    // 置換直後の完了メッセージを消さない。
+    if (!options || !options.keepStatus) {
+      setFindStatus("");
     }
     if (!findInputEl || !findInputEl.value) {
       findCountEl.textContent = "";
@@ -1137,7 +1186,6 @@ flex: 0 0 auto;
       useRegex:
         !!findRegexToggleEl && findRegexToggleEl.classList.contains("active"),
     });
-    setFindStatus("");
     updateFindCount(state);
   }
 
@@ -1169,7 +1217,7 @@ flex: 0 0 auto;
     if (findReplaceRowEl) findReplaceRowEl.hidden = !findReplaceExpanded;
     const btn = panelEl ? panelEl.querySelector(".rs-find-expand") : null;
     if (btn) {
-      btn.textContent = findReplaceExpanded ? "‹" : "›";
+      btn.innerHTML = findReplaceExpanded ? ICON_COLLAPSE : ICON_EXPAND;
       btn.setAttribute("aria-expanded", findReplaceExpanded ? "true" : "false");
       btn.title = findReplaceExpanded ? "置換を隠す" : "置換を表示";
     }
@@ -1182,11 +1230,11 @@ flex: 0 0 auto;
     if (!findReplaceInputEl) return;
     const result = replaceCurrentFindMatch(findReplaceInputEl.value);
     if (!result.replaced) {
-      setFindStatus("置換できる一致がありません。");
+      setFindStatusTransient("置換できる一致がありません。");
       return;
     }
     updateFindCount(result);
-    setFindStatus("1件を置換しました。");
+    setFindStatusTransient("1件を置換しました。");
     // 続けて置換できるよう、フォーカスを置換欄に戻す
     findReplaceInputEl.focus();
   }
@@ -1195,11 +1243,11 @@ flex: 0 0 auto;
     if (!findReplaceInputEl) return;
     const result = replaceAllFindMatches(findReplaceInputEl.value);
     if (result.replacedCount === 0) {
-      setFindStatus("置換できる一致がありません。");
+      setFindStatusTransient("置換できる一致がありません。");
       return;
     }
     updateFindCount(result);
-    setFindStatus(`${result.replacedCount} 件を置換しました。`);
+    setFindStatusTransient(`${result.replacedCount} 件を置換しました。`);
     findReplaceInputEl.focus();
   }
 
@@ -1263,7 +1311,8 @@ flex: 0 0 auto;
   // 再検索して CustomEvent で通知してくる。検索モード表示中は件数を追従させる。
   window.addEventListener("replace-solo:find-state", (e) => {
     if (panelMode === "find" && e.detail) {
-      updateFindCount(e.detail);
+      // 置換直後の変更でも飛んでくるため、完了メッセージは消さない
+      updateFindCount(e.detail, { keepStatus: true });
     }
   });
 
