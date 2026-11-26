@@ -240,6 +240,77 @@ test("extraction should also exclude invisible text (shared node filter)", async
   expect(text).not.toContain("隠れた文章です。");
 });
 
+test("find state should follow external document changes such as undo", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">テスト文章です。テストは大事です。</p></div>`,
+  );
+
+  await page.evaluate(() => findInPage("テスト", {}));
+  const replaced = await page.evaluate(() => replaceAllFindMatches("検証"));
+  expect(replaced.count).toBe(0);
+
+  // Undo で本文が戻るのと同じことを、DOM の直接変更で再現する。
+  // 置換自体による変更でもイベントが飛ぶため、件数が戻ったイベントを待つ。
+  const state = await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("no find-state event")),
+          5000,
+        );
+        window.addEventListener("replace-solo:find-state", (e) => {
+          if (e.detail.count === 2) {
+            clearTimeout(timer);
+            resolve(e.detail);
+          }
+        });
+        document.querySelector("p").textContent =
+          "テスト文章です。テストは大事です。";
+      }),
+  );
+  expect(state.count).toBe(2);
+
+  const findSize = await page.evaluate(
+    () => CSS.highlights.get("replace-solo-find")?.size ?? 0,
+  );
+  expect(findSize).toBe(2);
+});
+
+test("find state should follow manual edits that add matches", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">テストは1件だけです。</p></div>`,
+  );
+
+  const initial = await page.evaluate(() => findInPage("テスト", {}));
+  expect(initial.count).toBe(1);
+
+  const state = await page.evaluate(
+    () =>
+      new Promise((resolve, reject) => {
+        const timer = setTimeout(
+          () => reject(new Error("no find-state event")),
+          5000,
+        );
+        window.addEventListener("replace-solo:find-state", (e) => {
+          if (e.detail.count === 2) {
+            clearTimeout(timer);
+            resolve(e.detail);
+          }
+        });
+        document.querySelector("p").firstChild.nodeValue =
+          "テストとテストで2件です。";
+      }),
+  );
+  expect(state.count).toBe(2);
+  expect(state.currentIndex).toBe(0);
+});
+
 test("clearFindMatches should remove highlights and reset the state", async ({
   page,
 }) => {

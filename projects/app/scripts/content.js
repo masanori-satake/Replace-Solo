@@ -678,6 +678,51 @@ function getFindState(error = null) {
   };
 }
 
+// ===== ドキュメント変更への追従 =====
+//
+// 置換後にユーザーが Undo したり本文を手で編集したりすると、
+// 検索の一致はページ側の都合で変わる。検索語がある間は対象ルートを
+// MutationObserver で監視し、変更が落ち着いたら再検索して
+// 件数とハイライトを実態に合わせる。再検索の結果は CustomEvent で
+// パネル（inpage.js）へ通知する。
+let findObserver = null;
+let findRefreshTimer = null;
+
+function armFindObserver() {
+  disarmFindObserver();
+  if (typeof MutationObserver === "undefined") return;
+  const root = getTargetRoot();
+  if (!root) return;
+  findObserver = new MutationObserver(() => {
+    if (!findQuery) return;
+    if (findRefreshTimer) clearTimeout(findRefreshTimer);
+    findRefreshTimer = setTimeout(() => {
+      findRefreshTimer = null;
+      if (!findQuery) return;
+      const state = refreshFindMatches(findCurrentIndex);
+      window.dispatchEvent(
+        new CustomEvent("replace-solo:find-state", { detail: state }),
+      );
+    }, 300);
+  });
+  findObserver.observe(root, {
+    subtree: true,
+    childList: true,
+    characterData: true,
+  });
+}
+
+function disarmFindObserver() {
+  if (findObserver) {
+    findObserver.disconnect();
+    findObserver = null;
+  }
+  if (findRefreshTimer) {
+    clearTimeout(findRefreshTimer);
+    findRefreshTimer = null;
+  }
+}
+
 /**
  * 検索条件から RegExp を作る。通常検索では正規表現メタ文字をエスケープする。
  * 正規表現が不正な場合は例外を投げる（呼び出し側でエラー表示に変える）。
@@ -786,6 +831,7 @@ function findInPage(query, options) {
     findMatches = [];
     findCurrentIndex = -1;
     applyFindHighlights();
+    disarmFindObserver();
     return getFindState();
   }
 
@@ -803,6 +849,8 @@ function findInPage(query, options) {
   findMatches = collectFindMatches(root, regex);
   findCurrentIndex = findMatches.length > 0 ? 0 : -1;
   applyFindHighlights();
+  // Undo や手動編集で一致が変わっても追従できるよう、監視を開始する
+  armFindObserver();
   return getFindState();
 }
 
@@ -887,5 +935,6 @@ function clearFindMatches() {
   findMatches = [];
   findCurrentIndex = -1;
   findQuery = "";
+  disarmFindObserver();
   applyFindHighlights();
 }

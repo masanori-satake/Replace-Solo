@@ -1257,6 +1257,16 @@ flex: 0 0 auto;
   // 起動直後に辞書を読み込んでおく
   loadSettingsAndDictionary();
 
+  // ===== 検索状態の追従 =====
+  //
+  // 置換後の Undo や本文の手動編集でドキュメントが変わると、content.js が
+  // 再検索して CustomEvent で通知してくる。検索モード表示中は件数を追従させる。
+  window.addEventListener("replace-solo:find-state", (e) => {
+    if (panelMode === "find" && e.detail) {
+      updateFindCount(e.detail);
+    }
+  });
+
   // ===== キーボードショートカット: Alt+Shift+R でパネルの開閉 =====
 
   document.addEventListener(
