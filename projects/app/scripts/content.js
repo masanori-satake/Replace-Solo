@@ -70,6 +70,14 @@ function ensureHighlightStyle() {
       background-color: #ccff90;
       color: #000000;
     }
+    ::highlight(replace-solo-find) {
+      background-color: #fff176;
+      color: #000000;
+    }
+    ::highlight(replace-solo-find-current) {
+      background-color: #ff9100;
+      color: #000000;
+    }
   `;
   (document.head || document.documentElement).appendChild(style);
 }
@@ -307,9 +315,11 @@ function isLoopUIElement(el) {
 }
 
 /**
- * 複数のテキストノードに跨る可能性がある文字列を検索し、Rangeのリストを返す
+ * 対象ルート内の安全なテキストノードを走査し、
+ * 結合テキストとノード位置の索引（nodeInfo）を構築する。
+ * コンテナ（段落・リストアイテム等）が変わる境界にはセパレータ "\n" を入れる。
  */
-function findRangesAcrossNodes(root, replacements) {
+function buildTextIndex(root) {
   const walker = document.createTreeWalker(
     root,
     NodeFilter.SHOW_TEXT,
@@ -364,6 +374,43 @@ function findRangesAcrossNodes(root, replacements) {
     combinedText += text;
   }
 
+  return { combinedText, nodeInfo };
+}
+
+/**
+ * 結合テキスト上の位置 pos に対応するノード情報をバイナリサーチで特定する。
+ * 開始位置(isEnd=false)の場合、そのノードの範囲内に pos が含まれる必要がある [start, end)
+ * 終了位置(isEnd=true)の場合、そのノードの範囲内に pos が含まれる必要がある (start, end]
+ * これにより、ノード境界（あるノードの末尾かつ次のノードの先頭）で正しいノードが選択される。
+ */
+function findNodeDataForPosition(nodeInfo, pos, isEnd) {
+  let low = 0,
+    high = nodeInfo.length - 1;
+  while (low <= high) {
+    const mid = (low + high) >> 1;
+    const info = nodeInfo[mid];
+    if (isEnd) {
+      if (pos > info.start && pos <= info.end) {
+        return info;
+      }
+    } else {
+      if (pos >= info.start && pos < info.end) {
+        return info;
+      }
+    }
+
+    if (pos <= info.start) high = mid - 1;
+    else low = mid + 1;
+  }
+  return null;
+}
+
+/**
+ * 複数のテキストノードに跨る可能性がある文字列を検索し、Rangeのリストを返す
+ */
+function findRangesAcrossNodes(root, replacements) {
+  const { combinedText, nodeInfo } = buildTextIndex(root);
+
   const allReplacementRanges = [];
 
   replacements.forEach(({ origin, target }) => {
@@ -386,34 +433,8 @@ function findRangesAcrossNodes(root, replacements) {
       const endPos = match.index + match[0].length;
 
       // 開始位置と終了位置に対応するノードをバイナリサーチで特定
-      const findNodeData = (pos, isEnd) => {
-        let low = 0,
-          high = nodeInfo.length - 1;
-        while (low <= high) {
-          const mid = (low + high) >> 1;
-          const info = nodeInfo[mid];
-          // 境界条件の厳密化
-          // 開始位置(isEnd=false)の場合、そのノードの範囲内に pos が含まれる必要がある [start, end)
-          // 終了位置(isEnd=true)の場合、そのノードの範囲内に pos が含まれる必要がある (start, end]
-          // これにより、ノード境界（あるノードの末尾かつ次のノードの先頭）で正しいノードが選択される。
-          if (isEnd) {
-            if (pos > info.start && pos <= info.end) {
-              return info;
-            }
-          } else {
-            if (pos >= info.start && pos < info.end) {
-              return info;
-            }
-          }
-
-          if (pos <= info.start) high = mid - 1;
-          else low = mid + 1;
-        }
-        return null;
-      };
-
-      const startNodeData = findNodeData(startPos, false);
-      const endNodeData = findNodeData(endPos, true);
+      const startNodeData = findNodeDataForPosition(nodeInfo, startPos, false);
+      const endNodeData = findNodeDataForPosition(nodeInfo, endPos, true);
 
       // コンテナ（リストアイテム等）を跨いだ置換は、エディタの構造を破壊（アイテムの結合など）する恐れがあるため制限する
       if (
@@ -454,6 +475,97 @@ function findRangesAcrossNodes(root, replacements) {
 }
 
 /**
+ * 1件の Range を入力エミュレーションで置換する。
+ * 置換したコンテナは affectedContainers に集められ、呼び出し側が
+ * まとめて change イベントを発行する。
+ */
+function replaceRangeByEmulation(range, target, affectedContainers) {
+  if (typeof target !== "string") return;
+
+  // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
+  if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
+    return;
+  }
+
+  const selection = window.getSelection();
+
+  // 置換対象を含む contenteditable 要素を探してフォーカスを当てる
+  const startNode =
+    range.startContainer.nodeType === Node.ELEMENT_NODE
+      ? range.startContainer
+      : range.startContainer.parentNode;
+
+  if (!startNode) return;
+  const container = startNode.closest(
+    '[contenteditable="true"], [role="textbox"]',
+  );
+
+  if (container) {
+    // 明示的にコンテナにフォーカスを当て、かつブラウザウィンドウ自体にもフォーカスを要求する
+    // UXを考慮し、不要なスクロールを防ぐため preventScroll: true を指定する
+    container.focus({ preventScroll: true });
+    affectedContainers.add(container);
+  }
+
+  try {
+    selection.removeAllRanges();
+    selection.addRange(range);
+
+    // 選択が正しく行われたか確認するためのログ（デバッグ用）
+    if (selection.rangeCount === 0) {
+      console.warn("Replace-Solo: Failed to add range to selection");
+    }
+
+    // beforeinput イベントを発行 (Frameworkへの通知)
+    // composed: true, isComposing: false を明示
+    const beforeInputParams = {
+      bubbles: true,
+      cancelable: true,
+      inputType: "insertText",
+      data: target,
+      composed: true,
+      isComposing: false,
+    };
+    const beforeInputEvent = new InputEvent("beforeinput", beforeInputParams);
+    container?.dispatchEvent(beforeInputEvent);
+
+    // リッチエディタのUndoスタックを維持するため execCommand を使用
+    // 成功した場合はブラウザが自動的に input イベントを発行する場合があるが、
+    // 明示的に発行することで確実に内部状態を更新させる。
+    const success = document.execCommand("insertText", false, target);
+
+    if (!success) {
+      console.warn(
+        "Replace-Solo: execCommand failed for range. Falling back to manual DOM update.",
+      );
+      // フォールバック: nodeValueを直接書き換え
+      if (range.startContainer.nodeType === Node.TEXT_NODE) {
+        const node = range.startContainer;
+        const text = node.nodeValue;
+        const start = range.startOffset;
+        const end = range.endOffset;
+        node.nodeValue =
+          text.substring(0, start) + target + text.substring(end);
+      }
+    }
+
+    // input イベントを即座に発行 (各置換ごとに行うことで確実性を高める)
+    const inputParams = {
+      bubbles: true,
+      cancelable: true,
+      inputType: "insertText",
+      data: target,
+      composed: true,
+      isComposing: false,
+    };
+    const inputEvent = new InputEvent("input", inputParams);
+    container?.dispatchEvent(inputEvent);
+  } catch (e) {
+    console.warn("Replace-Solo: Exception during replacement for range", e);
+  }
+}
+
+/**
  * 入力エミュレーションによる一括置換
  * 全テキストノードを1回走査し、すべての置換箇所の Range を収集してから一括実行する。
  */
@@ -485,99 +597,7 @@ function replaceByEmulationBatch(replacements) {
   // 原則として後ろから実行する。
   for (let i = allReplacementRanges.length - 1; i >= 0; i--) {
     const { range, target } = allReplacementRanges[i];
-
-    if (typeof target !== "string") continue;
-
-    // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
-    if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
-      continue;
-    }
-
-    const selection = window.getSelection();
-
-    // 置換対象を含む contenteditable 要素を探してフォーカスを当てる
-    const startNode =
-      range.startContainer.nodeType === Node.ELEMENT_NODE
-        ? range.startContainer
-        : range.startContainer.parentNode;
-
-    if (!startNode) continue;
-    const container = startNode.closest(
-      '[contenteditable="true"], [role="textbox"]',
-    );
-
-    if (container) {
-      // 明示的にコンテナにフォーカスを当て、かつブラウザウィンドウ自体にもフォーカスを要求する
-      // UXを考慮し、不要なスクロールを防ぐため preventScroll: true を指定する
-      container.focus({ preventScroll: true });
-      affectedContainers.add(container);
-    }
-
-    try {
-      selection.removeAllRanges();
-      selection.addRange(range);
-
-      // 選択が正しく行われたか確認するためのログ（デバッグ用）
-      if (selection.rangeCount === 0) {
-        console.warn(
-          "Replace-Solo: Failed to add range to selection at index",
-          i,
-        );
-      }
-
-      // beforeinput イベントを発行 (Frameworkへの通知)
-      // composed: true, isComposing: false を明示
-      const beforeInputParams = {
-        bubbles: true,
-        cancelable: true,
-        inputType: "insertText",
-        data: target,
-        composed: true,
-        isComposing: false,
-      };
-      const beforeInputEvent = new InputEvent("beforeinput", beforeInputParams);
-      container?.dispatchEvent(beforeInputEvent);
-
-      // リッチエディタのUndoスタックを維持するため execCommand を使用
-      // 成功した場合はブラウザが自動的に input イベントを発行する場合があるが、
-      // 明示的に発行することで確実に内部状態を更新させる。
-      const success = document.execCommand("insertText", false, target);
-
-      if (!success) {
-        console.warn(
-          "Replace-Solo: execCommand failed for range",
-          i,
-          ". Falling back to manual DOM update.",
-        );
-        // フォールバック: nodeValueを直接書き換え
-        if (range.startContainer.nodeType === Node.TEXT_NODE) {
-          const node = range.startContainer;
-          const text = node.nodeValue;
-          const start = range.startOffset;
-          const end = range.endOffset;
-          node.nodeValue =
-            text.substring(0, start) + target + text.substring(end);
-        }
-      }
-
-      // input イベントを即座に発行 (各置換ごとに行うことで確実性を高める)
-      const inputParams = {
-        bubbles: true,
-        cancelable: true,
-        inputType: "insertText",
-        data: target,
-        composed: true,
-        isComposing: false,
-      };
-      const inputEvent = new InputEvent("input", inputParams);
-      container?.dispatchEvent(inputEvent);
-    } catch (e) {
-      console.warn(
-        "Replace-Solo: Exception during replacement for range",
-        i,
-        e,
-      );
-    }
+    replaceRangeByEmulation(range, target, affectedContainers);
   }
 
   // 全体の変更完了を通知
@@ -599,4 +619,236 @@ function replaceByEmulationBatch(replacements) {
   console.debug(
     `Replace-Solo: Finished batch replacement of ${allReplacementRanges.length} occurrences.`,
   );
+}
+
+// ===== 検索モード（ページ内パネルの「検索と置換」用） =====
+//
+// VS Code の検索ウィジェットに相当する機能をページ側で提供する。
+// 一致の収集・ハイライト・現在位置の管理はここで行い、
+// パネル（inpage.js）は状態を受け取って表示するだけにする。
+// 置換は辞書置換と同じ入力エミュレーション（replaceRangeByEmulation）を使うため、
+// エディタの Undo スタックが維持される。
+// 置換可能な一致は、辞書置換と同じく「同一コンテナ内に収まる一致」に限る。
+
+let findMatches = []; // { range, startAbs, endAbs }
+let findCurrentIndex = -1;
+let findQuery = "";
+let findOptions = { caseSensitive: false, useRegex: false };
+
+function getFindState(error = null) {
+  return {
+    count: findMatches.length,
+    currentIndex: findCurrentIndex,
+    error,
+  };
+}
+
+/**
+ * 検索条件から RegExp を作る。通常検索では正規表現メタ文字をエスケープする。
+ * 正規表現が不正な場合は例外を投げる（呼び出し側でエラー表示に変える）。
+ */
+function buildFindRegex(query, options) {
+  const source = options.useRegex
+    ? query
+    : query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return new RegExp(source, options.caseSensitive ? "g" : "gi");
+}
+
+/**
+ * 結合テキストに対して検索し、同一コンテナ内に収まる一致の Range を集める。
+ */
+function collectFindMatches(root, regex) {
+  const { combinedText, nodeInfo } = buildTextIndex(root);
+  const matches = [];
+
+  let match;
+  while ((match = regex.exec(combinedText)) !== null) {
+    // 空一致（例: "a*" の空ヒット）は対象にせず、無限ループを避けて1文字進める
+    if (match[0].length === 0) {
+      regex.lastIndex += 1;
+      continue;
+    }
+    const startPos = match.index;
+    const endPos = match.index + match[0].length;
+    const startNodeData = findNodeDataForPosition(nodeInfo, startPos, false);
+    const endNodeData = findNodeDataForPosition(nodeInfo, endPos, true);
+
+    // コンテナを跨ぐ一致は構造を壊す恐れがあるため、辞書置換と同じく対象外
+    if (
+      startNodeData &&
+      endNodeData &&
+      startNodeData.container === endNodeData.container
+    ) {
+      try {
+        const range = document.createRange();
+        range.setStart(startNodeData.node, startPos - startNodeData.start);
+        range.setEnd(endNodeData.node, endPos - endNodeData.start);
+        matches.push({ range, startAbs: startPos, endAbs: endPos });
+      } catch (e) {
+        console.error("Replace-Solo: Failed to set find range", e);
+      }
+    }
+  }
+  return matches;
+}
+
+/**
+ * 検索のハイライト（全一致＋現在位置）を CSS Custom Highlight API で描く。
+ */
+function applyFindHighlights() {
+  if (typeof CSS === "undefined" || !CSS.highlights) return;
+  if (findMatches.length === 0) {
+    CSS.highlights.delete("replace-solo-find");
+    CSS.highlights.delete("replace-solo-find-current");
+    return;
+  }
+  ensureHighlightStyle();
+  const validRanges = findMatches
+    .map((m) => m.range)
+    .filter((r) => r.startContainer.isConnected && r.endContainer.isConnected);
+  if (validRanges.length > 0) {
+    CSS.highlights.set("replace-solo-find", new Highlight(...validRanges));
+  } else {
+    CSS.highlights.delete("replace-solo-find");
+  }
+  const current = findMatches[findCurrentIndex];
+  if (current && current.range.startContainer.isConnected) {
+    CSS.highlights.set("replace-solo-find-current", new Highlight(current.range));
+  } else {
+    CSS.highlights.delete("replace-solo-find-current");
+  }
+}
+
+/**
+ * 現在の一致が見える位置までスクロールする。
+ */
+function scrollFindCurrentIntoView() {
+  const current = findMatches[findCurrentIndex];
+  if (!current) return;
+  const node = current.range.startContainer;
+  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
+  if (el && typeof el.scrollIntoView === "function") {
+    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  }
+}
+
+/**
+ * 検索を実行し、一致と現在位置（先頭）を更新する。
+ * 入力中の検索を想定し、スクロールはしない。
+ * @returns {{count: number, currentIndex: number, error: string|null}}
+ */
+function findInPage(query, options) {
+  findQuery = typeof query === "string" ? query : "";
+  findOptions = {
+    caseSensitive: !!(options && options.caseSensitive),
+    useRegex: !!(options && options.useRegex),
+  };
+
+  if (!findQuery) {
+    findMatches = [];
+    findCurrentIndex = -1;
+    applyFindHighlights();
+    return getFindState();
+  }
+
+  let regex;
+  try {
+    regex = buildFindRegex(findQuery, findOptions);
+  } catch (e) {
+    findMatches = [];
+    findCurrentIndex = -1;
+    applyFindHighlights();
+    return getFindState("正規表現が正しくありません。");
+  }
+
+  const root = getTargetRoot();
+  findMatches = collectFindMatches(root, regex);
+  findCurrentIndex = findMatches.length > 0 ? 0 : -1;
+  applyFindHighlights();
+  return getFindState();
+}
+
+/**
+ * 現在位置を前後に移動する（末尾と先頭で循環）。移動先へスクロールする。
+ */
+function navigateFindMatches(delta) {
+  if (findMatches.length === 0) return getFindState();
+  const count = findMatches.length;
+  findCurrentIndex = (((findCurrentIndex + delta) % count) + count) % count;
+  applyFindHighlights();
+  scrollFindCurrentIntoView();
+  return getFindState();
+}
+
+/**
+ * 置換後に同じ条件で再検索し、現在位置をできるだけ保つ。
+ */
+function refreshFindMatches(preferredIndex) {
+  if (!findQuery) return getFindState();
+  let regex;
+  try {
+    regex = buildFindRegex(findQuery, findOptions);
+  } catch (e) {
+    return getFindState("正規表現が正しくありません。");
+  }
+  const root = getTargetRoot();
+  findMatches = collectFindMatches(root, regex);
+  if (findMatches.length === 0) {
+    findCurrentIndex = -1;
+  } else if (preferredIndex >= 0 && preferredIndex < findMatches.length) {
+    findCurrentIndex = preferredIndex;
+  } else {
+    findCurrentIndex = findMatches.length - 1;
+  }
+  applyFindHighlights();
+  return getFindState();
+}
+
+/**
+ * 現在の一致を1件だけ置換する。置換後は次の一致が同じ位置に繰り上がる。
+ */
+function replaceCurrentFindMatch(replacement) {
+  const current = findMatches[findCurrentIndex];
+  if (!current) return { replaced: false, ...getFindState() };
+
+  window.focus();
+  const affectedContainers = new Set();
+  replaceRangeByEmulation(current.range, replacement, affectedContainers);
+  affectedContainers.forEach((container) => {
+    container.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  const state = refreshFindMatches(findCurrentIndex);
+  return { replaced: true, ...state };
+}
+
+/**
+ * 表示中の全一致を置換する（後ろから実行し、位置ズレを防ぐ）。
+ */
+function replaceAllFindMatches(replacement) {
+  if (findMatches.length === 0)
+    return { replacedCount: 0, ...getFindState() };
+
+  window.focus();
+  const affectedContainers = new Set();
+  const targets = [...findMatches].reverse();
+  targets.forEach((item) => {
+    replaceRangeByEmulation(item.range, replacement, affectedContainers);
+  });
+  affectedContainers.forEach((container) => {
+    container.dispatchEvent(new Event("change", { bubbles: true }));
+  });
+
+  const state = refreshFindMatches(0);
+  return { replacedCount: targets.length, ...state };
+}
+
+/**
+ * 検索状態とハイライトを消去する。
+ */
+function clearFindMatches() {
+  findMatches = [];
+  findCurrentIndex = -1;
+  findQuery = "";
+  applyFindHighlights();
 }
