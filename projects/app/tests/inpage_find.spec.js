@@ -311,6 +311,40 @@ test("find state should follow manual edits that add matches", async ({
   expect(state.currentIndex).toBe(0);
 });
 
+test("navigateFindMatches should scroll the current match into the visible area", async ({
+  page,
+}) => {
+  const filler = Array.from(
+    { length: 40 },
+    (_, i) => `<p class="scriptor-paragraph">フィラー行${i}です。</p>`,
+  ).join("");
+  await setupPage(
+    page,
+    `<div id="scroller" contenteditable="true" style="height: 200px; overflow-y: auto;">
+       <p class="scriptor-paragraph" id="first-hit">テスト（先頭）です。</p>
+       ${filler}
+       <p class="scriptor-paragraph" id="last-hit">テスト（末尾）です。</p>
+     </div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(2);
+
+  const isInsideScroller = (id) => {
+    const s = document.getElementById("scroller").getBoundingClientRect();
+    const r = document.getElementById(id).getBoundingClientRect();
+    return r.top >= s.top && r.bottom <= s.bottom;
+  };
+
+  // 次へ: 末尾の一致がスクロール領域内に見えること
+  await page.evaluate(() => navigateFindMatches(1));
+  await page.waitForFunction(isInsideScroller, "last-hit", { timeout: 3000 });
+
+  // 前へ: 先頭の一致も同様に見えること（スクロール不足で外れる不具合のケース）
+  await page.evaluate(() => navigateFindMatches(-1));
+  await page.waitForFunction(isInsideScroller, "first-hit", { timeout: 3000 });
+});
+
 test("clearFindMatches should remove highlights and reset the state", async ({
   page,
 }) => {

@@ -803,16 +803,92 @@ function applyFindHighlights() {
 }
 
 /**
+ * 要素を内包する、実際にスクロール可能な最も近い祖先を探す。
+ * 見つからなければドキュメントのスクローラを返す。
+ */
+function findScrollableAncestor(el) {
+  let current = el ? el.parentElement : null;
+  while (current && current !== document.body) {
+    const style = window.getComputedStyle(current);
+    if (
+      (style.overflowY === "auto" ||
+        style.overflowY === "scroll" ||
+        style.overflowY === "overlay") &&
+      current.scrollHeight > current.clientHeight
+    ) {
+      return current;
+    }
+    current = current.parentElement;
+  }
+  return document.scrollingElement || document.documentElement;
+}
+
+/**
  * 現在の一致が見える位置までスクロールする。
+ *
+ * 段落要素を対象に scrollIntoView すると、段落が長い場合に一致箇所と
+ * ずれたり、エディタ側のスクロール管理と競合して途中で止まったりする。
+ * そのため、一致箇所（Range）自体の矩形を基準にスクロール量を決め、
+ * スクロール後に可視領域へ入ったかを確認して、外れていれば補正する。
  */
 function scrollFindCurrentIntoView() {
   const current = findMatches[findCurrentIndex];
   if (!current) return;
-  const node = current.range.startContainer;
-  const el = node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement;
-  if (el && typeof el.scrollIntoView === "function") {
-    el.scrollIntoView({ block: "center", behavior: "smooth" });
+  const range = current.range;
+  if (!range.startContainer.isConnected) return;
+
+  const startNode = range.startContainer;
+  const el =
+    startNode.nodeType === Node.ELEMENT_NODE
+      ? startNode
+      : startNode.parentElement;
+
+  const rect = range.getBoundingClientRect();
+  if (!rect || (rect.width === 0 && rect.height === 0)) {
+    // 矩形が取れない場合は要素単位のスクロールにフォールバック
+    if (el && typeof el.scrollIntoView === "function") {
+      el.scrollIntoView({ block: "center" });
+    }
+    return;
   }
+
+  const scroller = findScrollableAncestor(el);
+  const isDocumentScroller =
+    !scroller ||
+    scroller === document.scrollingElement ||
+    scroller === document.documentElement;
+
+  // 一致箇所の中心がスクロール領域の中心に来るよう、スクロール位置を動かす
+  const centerMatch = () => {
+    const r = range.getBoundingClientRect();
+    if (isDocumentScroller) {
+      window.scrollBy(0, r.top + r.height / 2 - window.innerHeight / 2);
+    } else {
+      const sRect = scroller.getBoundingClientRect();
+      scroller.scrollTop +=
+        r.top + r.height / 2 - (sRect.top + scroller.clientHeight / 2);
+    }
+  };
+
+  centerMatch();
+
+  // エディタ側の再描画などで位置がずれ、可視領域の外に出る場合があるため、
+  // 次の描画フレームで確認し、外れていれば一度だけ補正する
+  requestAnimationFrame(() => {
+    if (!range.startContainer.isConnected) return;
+    const r = range.getBoundingClientRect();
+    let visibleTop = 0;
+    let visibleBottom = window.innerHeight;
+    if (!isDocumentScroller) {
+      const sRect = scroller.getBoundingClientRect();
+      visibleTop = Math.max(0, sRect.top);
+      visibleBottom = Math.min(window.innerHeight, sRect.bottom);
+    }
+    const margin = 48;
+    if (r.bottom < visibleTop + margin || r.top > visibleBottom - margin) {
+      centerMatch();
+    }
+  });
 }
 
 /**
