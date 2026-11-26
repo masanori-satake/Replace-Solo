@@ -11,9 +11,9 @@ on:
           - chrome
           - both
           - edge
-        # Edge の初回提出（Partner Center）が済むまでは chrome を既定にし、
-        # 誤って Edge へ投げる事故を防ぐ。初回提出後は both へ変更してよい。
-        default: 'chrome'
+        # Edge の初回提出（Partner Center、2026-11-22）と初回審査後の再提出
+        # （2026-11-27）が済んだため、既定は both（両ストアへ提出）。
+        default: 'both'
 
 # 提出の直列化は base 側（ストア別ジョブの concurrency）で行うため、
 # 呼び出し側に concurrency は置かない（実行中の提出をキャンセルしない）。
