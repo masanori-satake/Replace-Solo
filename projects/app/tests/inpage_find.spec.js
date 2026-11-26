@@ -394,3 +394,151 @@ test("findInPage should cap the number of matches and report truncation", async 
   expect(state2.count).toBe(10);
   expect(state2.truncated).toBe(false);
 });
+
+test("findInPage should not match across a non-editable element inside a paragraph", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">a<span contenteditable="false">担当者</span>b</p></div>`,
+  );
+
+  // 編集不可の要素を挟む "ab" は、要素ごと置換してしまうため一致にしない
+  const state = await page.evaluate(() => findInPage("ab", {}));
+  expect(state.count).toBe(0);
+});
+
+test("findInPage should match across editable inline elements", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">a<b>b</b>c</p></div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("abc", {}));
+  expect(state.count).toBe(1);
+});
+
+test("regex matches should not be hidden by a discarded cross-paragraph match", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true">
+       <p class="scriptor-paragraph">foo</p>
+       <p class="scriptor-paragraph">bar</p>
+     </div>`,
+  );
+
+  // 段落を跨ぐ "foo\s+bar" に先に一致して "foo" 単独を取りこぼさないこと
+  const state = await page.evaluate(() =>
+    findInPage("foo\\s+bar|foo", { useRegex: true }),
+  );
+  expect(state.count).toBe(1);
+});
+
+test("findInPage should ignore text under a hidden ancestor above the editor root", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div style="display:none"><div contenteditable="true"><p class="scriptor-paragraph">テスト文章です。</p></div></div>`,
+  );
+
+  const state = await page.evaluate(() => findInPage("テスト", {}));
+  expect(state.count).toBe(0);
+});
+
+test("find should follow when a hidden paragraph becomes visible", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph" style="display:none">テスト文章です。</p></div>`,
+  );
+
+  await page.evaluate(() => {
+    window.__findStates = [];
+    window.addEventListener("replace-solo:find-state", (e) => {
+      window.__findStates.push(e.detail);
+    });
+    findInPage("テスト", {});
+  });
+
+  await page.evaluate(() => {
+    document.querySelector("p").style.display = "";
+  });
+
+  // 属性変更を監視しているため、表示への切り替えで再検索される
+  await page.waitForFunction(
+    () => window.__findStates.some((s) => s.count === 1),
+    null,
+    { timeout: 5000 },
+  );
+});
+
+test("fallback replacement should update only the target span in a single text node", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">cat cat</p></div>`,
+  );
+
+  const result = await page.evaluate(() => {
+    document.execCommand = () => false;
+    findInPage("cat", {});
+    return replaceAllFindMatches("X");
+  });
+  expect(result.replacedCount).toBe(2);
+
+  const text = await page.evaluate(
+    () => document.querySelector("p").textContent,
+  );
+  expect(text).toBe("X X");
+});
+
+test("fallback replacement should not rewrite a range spanning multiple text nodes", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">ab<b>cd</b></p></div>`,
+  );
+
+  const result = await page.evaluate(() => {
+    document.execCommand = () => false;
+    findInPage("bc", {});
+    return replaceCurrentFindMatch("X");
+  });
+  expect(result.replaced).toBe(false);
+
+  const text = await page.evaluate(
+    () => document.querySelector("p").textContent,
+  );
+  expect(text).toBe("abcd");
+});
+
+test("replace should be skipped when the matched text changed after the search", async ({
+  page,
+}) => {
+  await setupPage(
+    page,
+    `<div contenteditable="true"><p class="scriptor-paragraph">cat cat</p></div>`,
+  );
+
+  const result = await page.evaluate(() => {
+    findInPage("cat", {});
+    // 検索後にページ側が先頭の cat を cut へ書き換えた状況を再現
+    const p = document.querySelector("p");
+    p.firstChild.nodeValue = "cut cat";
+    return replaceCurrentFindMatch("X");
+  });
+  expect(result.replaced).toBe(false);
+
+  const text = await page.evaluate(
+    () => document.querySelector("p").textContent,
+  );
+  expect(text).toBe("cut cat");
+});

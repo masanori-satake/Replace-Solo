@@ -195,14 +195,15 @@ function isTextNodeVisible(node, editorRoot) {
     return false;
   }
 
+  // 検索ルートの外側（body / documentElement まで含む）も確認する。
+  // ルート自体が display:none のラッパーの中にある場合を取りこぼさないため。
   let current = parent;
-  while (current && current !== document.body) {
+  while (current) {
     const style =
       current === parent ? parentStyle : window.getComputedStyle(current);
     if (style.display === "none" || style.contentVisibility === "hidden") {
       return false;
     }
-    if (current === editorRoot) break;
     current = current.parentElement;
   }
   return true;
@@ -355,36 +356,35 @@ function isLoopUIElement(el) {
  * コンテナ（段落・リストアイテム等）が変わる境界にはセパレータ "\n" を入れる。
  */
 function buildTextIndex(root) {
-  const walker = document.createTreeWalker(
-    root,
-    NodeFilter.SHOW_TEXT,
-    {
-      acceptNode: (node) => {
-        if (isNodeEditable(node) && isSafeTextNode(node, root)) {
-          return NodeFilter.FILTER_ACCEPT;
-        }
-        return NodeFilter.FILTER_REJECT;
-      },
-    },
-    false,
-  );
+  // 除外されるテキストノードも走査対象に含める（採用判定はループ内で行う）。
+  // 除外された文字列が間にあることを検出し、検索時のセグメント分割に使うため。
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, null, false);
 
   let combinedText = "";
-  const nodeInfo = []; // { start: number, end: number, node: TextNode, container: Element }
+  const nodeInfo = []; // { start: number, end: number, node: TextNode, container: Element, segment: number }
 
   let node;
   let lastParent = null;
   let lastContainer = null;
+  let segmentId = 0;
+  // 除外された文字列が最後の採用ノードとの間にあったかどうか
+  let gapPending = false;
 
   while ((node = walker.nextNode())) {
     const text = node.nodeValue;
     if (text.length === 0) continue;
+
+    if (!(isNodeEditable(node) && isSafeTextNode(node, root))) {
+      gapPending = true;
+      continue;
+    }
 
     // 編集可能なコンテナが変わった場合（例: 別のリストアイテムや段落に移動した場合）、
     // インデックスの整合性を保ち、意図しない跨ぎ一致を防ぐためにセパレータを入れる。
     // 親要素が変わったときだけ closest を呼び出すことで、ドキュメント走査時のパフォーマンスを改善する。
     const parent = node.parentElement;
     let currentContainer = lastContainer;
+    let containerChanged = false;
     if (parent !== lastParent) {
       currentContainer = parent?.closest(
         '.scriptor-paragraph, .scriptor-pageBody > div, [contenteditable="true"], [role="textbox"]',
@@ -395,16 +395,25 @@ function buildTextIndex(root) {
         currentContainer !== lastContainer
       ) {
         combinedText += "\n";
+        containerChanged = true;
       }
       lastParent = parent;
       lastContainer = currentContainer;
     }
+
+    // コンテナが変わった箇所と、除外された文字列を挟んだ箇所では、
+    // 検索のセグメントを分ける（一致がそこを跨がないようにする）。
+    if (nodeInfo.length > 0 && (containerChanged || gapPending)) {
+      segmentId += 1;
+    }
+    gapPending = false;
 
     nodeInfo.push({
       start: combinedText.length,
       end: combinedText.length + text.length,
       node: node,
       container: currentContainer,
+      segment: segmentId,
     });
     combinedText += text;
   }
@@ -514,12 +523,16 @@ function findRangesAcrossNodes(root, replacements) {
  * 置換したコンテナは affectedContainers に集められ、呼び出し側が
  * まとめて change イベントを発行する。
  */
+/**
+ * 1件の Range を入力エミュレーションで置換する。
+ * 実際に置換できた場合のみ true を返す（件数表示を実態に合わせるため）。
+ */
 function replaceRangeByEmulation(range, target, affectedContainers) {
-  if (typeof target !== "string") return;
+  if (typeof target !== "string") return false;
 
   // ノードがまだ接続されているか確認（途中の置換でDOMが壊れた場合への対策）
   if (!range.startContainer.isConnected || !range.endContainer.isConnected) {
-    return;
+    return false;
   }
 
   const selection = window.getSelection();
@@ -530,7 +543,7 @@ function replaceRangeByEmulation(range, target, affectedContainers) {
       ? range.startContainer
       : range.startContainer.parentNode;
 
-  if (!startNode) return;
+  if (!startNode) return false;
   const container = startNode.closest(
     '[contenteditable="true"], [role="textbox"]',
   );
@@ -568,35 +581,47 @@ function replaceRangeByEmulation(range, target, affectedContainers) {
     // 成功した場合はブラウザが自動的に input イベントを発行する場合があるが、
     // 明示的に発行することで確実に内部状態を更新させる。
     const success = document.execCommand("insertText", false, target);
+    let replaced = success;
 
     if (!success) {
       console.warn(
         "Replace-Solo: execCommand failed for range. Falling back to manual DOM update.",
       );
-      // フォールバック: nodeValueを直接書き換え
-      if (range.startContainer.nodeType === Node.TEXT_NODE) {
+      // フォールバック: 同一 Text ノード内に収まる範囲だけを対象にする。
+      // replaceData で対象区間だけを更新し、同じノード内の他のライブ Range を
+      // 壊さない。別ノードに跨る範囲は、オフセットの意味がノードごとに異なる
+      // ため書き換えず、失敗として返す（誤った文字列を作らない）。
+      if (
+        range.startContainer === range.endContainer &&
+        range.startContainer.nodeType === Node.TEXT_NODE
+      ) {
         const node = range.startContainer;
-        const text = node.nodeValue;
-        const start = range.startOffset;
-        const end = range.endOffset;
-        node.nodeValue =
-          text.substring(0, start) + target + text.substring(end);
+        node.replaceData(
+          range.startOffset,
+          range.endOffset - range.startOffset,
+          target,
+        );
+        replaced = true;
       }
     }
 
-    // input イベントを即座に発行 (各置換ごとに行うことで確実性を高める)
-    const inputParams = {
-      bubbles: true,
-      cancelable: true,
-      inputType: "insertText",
-      data: target,
-      composed: true,
-      isComposing: false,
-    };
-    const inputEvent = new InputEvent("input", inputParams);
-    container?.dispatchEvent(inputEvent);
+    if (replaced) {
+      // input イベントを即座に発行 (各置換ごとに行うことで確実性を高める)
+      const inputParams = {
+        bubbles: true,
+        cancelable: true,
+        inputType: "insertText",
+        data: target,
+        composed: true,
+        isComposing: false,
+      };
+      const inputEvent = new InputEvent("input", inputParams);
+      container?.dispatchEvent(inputEvent);
+    }
+    return replaced;
   } catch (e) {
     console.warn("Replace-Solo: Exception during replacement for range", e);
+    return false;
   }
 }
 
@@ -716,6 +741,9 @@ function armFindObserver() {
     subtree: true,
     childList: true,
     characterData: true,
+    // 表示・非表示を切り替える属性の変更でも再検索する
+    attributes: true,
+    attributeFilter: ["style", "class", "hidden"],
   });
 }
 
@@ -742,43 +770,71 @@ function buildFindRegex(query, options) {
 }
 
 /**
- * 結合テキストに対して検索し、同一コンテナ内に収まる一致の Range を集める。
+ * セグメント（コンテナの切れ目と、除外された文字列の前後で分割した連続区間）
+ * ごとに検索し、同一コンテナ内に収まる一致の Range を集める。
+ * セグメントを跨ぐ一致は作らないため、跨ぎ一致に隠れて有効な一致が
+ * 取りこぼされることも、編集不可の要素を含む一致が生まれることもない。
  */
 function collectFindMatches(root, regex) {
   const { combinedText, nodeInfo } = buildTextIndex(root);
   const matches = [];
   let truncated = false;
 
-  let match;
-  while ((match = regex.exec(combinedText)) !== null) {
-    // 空一致（例: "a*" の空ヒット）は対象にせず、無限ループを避けて1文字進める
-    if (match[0].length === 0) {
-      regex.lastIndex += 1;
-      continue;
+  // nodeInfo をセグメントごとに分ける
+  const segments = [];
+  for (const info of nodeInfo) {
+    const last = segments[segments.length - 1];
+    if (last && last.segment === info.segment) {
+      last.entries.push(info);
+    } else {
+      segments.push({ segment: info.segment, entries: [info] });
     }
-    // 上限に達したら Range は作らず、打ち切りの有無だけを確認して終える
-    if (matches.length >= FIND_MAX_MATCHES) {
-      truncated = true;
-      break;
-    }
-    const startPos = match.index;
-    const endPos = match.index + match[0].length;
-    const startNodeData = findNodeDataForPosition(nodeInfo, startPos, false);
-    const endNodeData = findNodeDataForPosition(nodeInfo, endPos, true);
+  }
 
-    // コンテナを跨ぐ一致は構造を壊す恐れがあるため、辞書置換と同じく対象外
-    if (
-      startNodeData &&
-      endNodeData &&
-      startNodeData.container === endNodeData.container
-    ) {
-      try {
-        const range = document.createRange();
-        range.setStart(startNodeData.node, startPos - startNodeData.start);
-        range.setEnd(endNodeData.node, endPos - endNodeData.start);
-        matches.push({ range, startAbs: startPos, endAbs: endPos });
-      } catch (e) {
-        console.error("Replace-Solo: Failed to set find range", e);
+  for (const seg of segments) {
+    if (truncated) break;
+    const segStart = seg.entries[0].start;
+    const segEnd = seg.entries[seg.entries.length - 1].end;
+    const segText = combinedText.slice(segStart, segEnd);
+    // セグメントごとに新しい RegExp で照合する（lastIndex を共有しない）
+    const segRegex = new RegExp(regex.source, regex.flags);
+
+    let match;
+    while ((match = segRegex.exec(segText)) !== null) {
+      // 空一致（例: "a*" の空ヒット）は対象にせず、無限ループを避けて1文字進める
+      if (match[0].length === 0) {
+        segRegex.lastIndex += 1;
+        continue;
+      }
+      // 上限に達したら Range は作らず、打ち切りの有無だけを確認して終える
+      if (matches.length >= FIND_MAX_MATCHES) {
+        truncated = true;
+        break;
+      }
+      const startPos = segStart + match.index;
+      const endPos = startPos + match[0].length;
+      const startNodeData = findNodeDataForPosition(seg.entries, startPos, false);
+      const endNodeData = findNodeDataForPosition(seg.entries, endPos, true);
+
+      // コンテナを跨ぐ一致は構造を壊す恐れがあるため、辞書置換と同じく対象外
+      if (
+        startNodeData &&
+        endNodeData &&
+        startNodeData.container === endNodeData.container
+      ) {
+        try {
+          const range = document.createRange();
+          range.setStart(startNodeData.node, startPos - startNodeData.start);
+          range.setEnd(endNodeData.node, endPos - endNodeData.start);
+          matches.push({
+            range,
+            startAbs: startPos,
+            endAbs: endPos,
+            text: match[0],
+          });
+        } catch (e) {
+          console.error("Replace-Solo: Failed to set find range", e);
+        }
       }
     }
   }
@@ -992,15 +1048,26 @@ function replaceCurrentFindMatch(replacement) {
   const current = findMatches[findCurrentIndex];
   if (!current) return { replaced: false, ...getFindState() };
 
+  // ページ側の変更でライブ Range が別の文字列を指すようになっていたら、
+  // その文字列を置換してしまわないよう、置換せずに再検索して返す。
+  if (current.range.toString() !== current.text) {
+    const state = refreshFindMatches(findCurrentIndex);
+    return { replaced: false, ...state };
+  }
+
   window.focus();
   const affectedContainers = new Set();
-  replaceRangeByEmulation(current.range, replacement, affectedContainers);
+  const replaced = replaceRangeByEmulation(
+    current.range,
+    replacement,
+    affectedContainers,
+  );
   affectedContainers.forEach((container) => {
     container.dispatchEvent(new Event("change", { bubbles: true }));
   });
 
   const state = refreshFindMatches(findCurrentIndex);
-  return { replaced: true, ...state };
+  return { replaced, ...state };
 }
 
 /**
@@ -1012,15 +1079,22 @@ function replaceAllFindMatches(replacement) {
   window.focus();
   const affectedContainers = new Set();
   const targets = [...findMatches].reverse();
+  let replacedCount = 0;
   targets.forEach((item) => {
-    replaceRangeByEmulation(item.range, replacement, affectedContainers);
+    // 収集時と違う文字列を指すようになった Range は置換しない
+    if (item.range.toString() !== item.text) return;
+    if (
+      replaceRangeByEmulation(item.range, replacement, affectedContainers)
+    ) {
+      replacedCount += 1;
+    }
   });
   affectedContainers.forEach((container) => {
     container.dispatchEvent(new Event("change", { bubbles: true }));
   });
 
   const state = refreshFindMatches(0);
-  return { replacedCount: targets.length, ...state };
+  return { replacedCount, ...state };
 }
 
 /**

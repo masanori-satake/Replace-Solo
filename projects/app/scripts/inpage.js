@@ -720,7 +720,7 @@ flex: 0 0 auto;
     panelEl.hidden = !panelOpen;
     panelEl.innerHTML = `
 <div class="rs-header">
-<span class="rs-title">Replace-Solo（ページ内パネル）</span>
+<span class="rs-title">Replace-Solo</span>
 <button class="rs-close" aria-label="閉じる">×</button>
 </div>
 <div class="rs-modes">
@@ -848,6 +848,8 @@ flex: 0 0 auto;
   }
 
   function removeUI() {
+    // パネルと一緒に検索ハイライトも消す（遷移先のページに残さない）
+    clearFindMatches();
     if (hostEl) {
       hostEl.remove();
     }
@@ -898,8 +900,14 @@ flex: 0 0 auto;
       if (currentWords.size === 0) {
         await handleExtract();
       }
-      // 検索モードで開いた場合、ページの状態に合わせて検索し直す
-      if (panelMode === "find" && findInputEl && findInputEl.value) {
+      // 検索モードで開いた場合、ページの状態に合わせて検索し直す。
+      // 読み込みを待つ間に閉じられていたら、検索は実行しない。
+      if (
+        panelOpen &&
+        panelMode === "find" &&
+        findInputEl &&
+        findInputEl.value
+      ) {
         runFind();
       }
     } else {
@@ -1183,6 +1191,12 @@ flex: 0 0 auto;
 
   function runFind() {
     if (!findInputEl) return;
+    // 即時検索したら、同じ入力の保留タイマーは解除する
+    // （後から発火して現在位置が先頭に戻るのを防ぐ）
+    if (findDebounceTimer) {
+      clearTimeout(findDebounceTimer);
+      findDebounceTimer = null;
+    }
     findLastQuery = findInputEl.value;
     const state = findInPage(findInputEl.value, {
       caseSensitive:
@@ -1195,7 +1209,11 @@ flex: 0 0 auto;
 
   function handleFindInput() {
     if (findDebounceTimer) clearTimeout(findDebounceTimer);
-    findDebounceTimer = setTimeout(runFind, 200);
+    findDebounceTimer = setTimeout(() => {
+      findDebounceTimer = null;
+      // 保留中にパネルを閉じたり辞書モードへ戻っていたら検索しない
+      if (panelOpen && panelMode === "find") runFind();
+    }, 200);
   }
 
   function handleFindKeydown(e) {
@@ -1232,6 +1250,11 @@ flex: 0 0 auto;
 
   function handleFindReplaceOne() {
     if (!findReplaceInputEl) return;
+    // 検索欄が変わって再検索がまだなら、古い一致を置換せず検索を先に行う
+    if (findInputEl && findInputEl.value !== findLastQuery) {
+      runFind();
+      return;
+    }
     const result = replaceCurrentFindMatch(findReplaceInputEl.value);
     if (!result.replaced) {
       setFindStatusTransient("置換できる一致がありません。");
@@ -1245,6 +1268,11 @@ flex: 0 0 auto;
 
   function handleFindReplaceAll() {
     if (!findReplaceInputEl) return;
+    // 検索欄が変わって再検索がまだなら、古い一致を置換せず検索を先に行う
+    if (findInputEl && findInputEl.value !== findLastQuery) {
+      runFind();
+      return;
+    }
     const result = replaceAllFindMatches(findReplaceInputEl.value);
     if (result.replacedCount === 0) {
       setFindStatusTransient("置換できる一致がありません。");
@@ -1278,7 +1306,11 @@ flex: 0 0 auto;
       if (findInputEl && findInputEl.value) runFind();
       if (findInputEl) findInputEl.focus();
     } else {
-      // 辞書モードへ戻るときは検索ハイライトを消す
+      // 辞書モードへ戻るときは検索ハイライトを消し、保留中の検索も取り消す
+      if (findDebounceTimer) {
+        clearTimeout(findDebounceTimer);
+        findDebounceTimer = null;
+      }
       clearFindMatches();
       findLastQuery = "";
       if (findCountEl) findCountEl.textContent = "";
