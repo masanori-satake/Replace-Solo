@@ -3,6 +3,6 @@
     "message": "Replace-Solo - Bulk-fix Microsoft Loop minutes & meeting notes"
   },
   "appDesc": {
-    "message": "Bulk find & replace in Loop minutes, even in the app window. Dictionary fixes for Copilot errors and name variants. Fully local."
+    "message": "Bulk find & replace in Loop minutes and Copilot Pages. Dictionary fixes for Copilot errors and name variants. Fully local."
   }
 }
