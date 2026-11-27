@@ -57,8 +57,7 @@ function isSupportedCopilotPage(urlStr) {
 async function updateTabState(tabId, url) {
   if (!tabId) return;
 
-  const isSupported =
-    isSupportedLoopPage(url) || isSupportedCopilotPage(url);
+  const isSupported = isSupportedLoopPage(url) || isSupportedCopilotPage(url);
 
   try {
     // サイドパネルの有効/無効を設定
