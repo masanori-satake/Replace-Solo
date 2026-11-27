@@ -3,6 +3,6 @@
     "message": "Replace-Solo - Microsoft Loop議事録・会議メモ一括修正"
   },
   "appDesc": {
-    "message": "Microsoft Loop議事録の一括検索・置換。Copilot文字起こしの誤変換や人名・製品名の表記揺れを辞書で一括修正。アプリウィンドウでも使えます。完全ローカル処理。"
+    "message": "Microsoft Loop議事録とCopilot Pagesの一括検索・置換。Copilot文字起こしの誤変換や人名・製品名の表記揺れを辞書で一括修正。完全ローカル処理。"
   }
 }
