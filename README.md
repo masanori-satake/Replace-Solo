@@ -1,7 +1,7 @@
 # Replace-Solo - Microsoft Loop対応 テキスト一括検索・置換
 
 [![Chrome Web Store](https://img.shields.io/chrome-web-store/v/iblfnonogpkajjfjfljngdaclhdinlfb?logo=google-chrome&logoColor=white&label=Chrome%20Web%20Store)](https://chromewebstore.google.com/detail/replace-solo/iblfnonogpkajjfjfljngdaclhdinlfb)
-[![version](https://img.shields.io/badge/version-1.14.1-blue)](projects/app/manifest.json)
+[![version](https://img.shields.io/badge/version-1.15.0-blue)](projects/app/manifest.json)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Privacy: 100% Local](https://img.shields.io/badge/Privacy-100%25%20Local-brightgreen)](#-privacy--security)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-orange)](projects/app/manifest.json)
@@ -18,6 +18,7 @@ Replace-Solo は、Microsoft Loop（`microsoft-loop`）上でテキストの一�
 ## 主な機能 (Key Features)
 
 - **Microsoft Loop（`microsoft-loop`）専用設計**: 標準機能でテキスト置換が提供されていない Microsoft Loop に完全対応し、ワンクリックで一括置換（`text-replace`）を行います。
+- **Copilot Pages にも対応**: Microsoft Copilot の Pages（実体は Loop ページ）でも、同じ一括置換が使えます。
 - **完全ローカル処理で安全**: 形態素解析を含め、すべてのテキスト処理をブラウザ内で完結。外部サーバーへデータが送信される心配がありません。
 - **軽量かつ高精度な置換**: キー入力エミュレーション技術により、Microsoft Loop エディタの内部状態や取り消し履歴を壊さずに安全に文字を置き換えます。
 - **柔軟な辞書・単語管理**: カスタム置換辞書をローカルに保持し、JSON 形式でのインポート/エクスポートに対応。
@@ -42,7 +43,7 @@ Replace-Solo は、企業の機密情報や個人情報を扱う業務ドキュ�
 
 ## 使い方
 
-1. 置換を行いたい Microsoft Loop ページ（`/p/` パス等）を開きます。
+1. 置換を行いたい Microsoft Loop ページ（`/p/` パス等）または Copilot Pages を開きます。
 2. 拡張機能アイコンをクリックしてサイドパネルを開きます。
 3. 「対象抽出」ボタンを押すと、ページ内の単語が抽出されます。
 4. 置換文字列を入力し、「選択」にチェックを入れて「選択項目を一括置換」または行ごとの「置換」ボタンを押します。

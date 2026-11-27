@@ -1332,10 +1332,13 @@ flex: 0 0 auto;
     }
   }
 
-  // ===== SPA 対応: /p/ ページでのみ UI を有効化 =====
+  // ===== SPA 対応: /p/ ページと Copilot Pages でのみ UI を有効化 =====
 
   function isTargetPage() {
-    return location.pathname.startsWith("/p/");
+    return (
+      location.pathname.startsWith("/p/") ||
+      location.pathname.startsWith("/chat/pages/")
+    );
   }
 
   function syncUI() {

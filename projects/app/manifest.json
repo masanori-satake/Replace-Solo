@@ -3,7 +3,7 @@
   "default_locale": "en",
   "name": "__MSG_appName__",
   "short_name": "Replace-Solo",
-  "version": "1.14.1",
+  "version": "1.15.0",
   "description": "__MSG_appDesc__",
   "icons": {
     "16": "assets/icons/icon16.png",
@@ -14,7 +14,9 @@
   "permissions": ["sidePanel", "storage", "scripting", "activeTab", "tabs"],
   "host_permissions": [
     "https://loop.microsoft.com/*",
-    "https://loop.cloud.microsoft/*"
+    "https://loop.cloud.microsoft/*",
+    "https://copilot.cloud.microsoft/*",
+    "https://m365.cloud.microsoft/*"
   ],
   "background": {
     "service_worker": "js/background.js"
@@ -35,7 +37,9 @@
     {
       "matches": [
         "https://loop.microsoft.com/*",
-        "https://loop.cloud.microsoft/*"
+        "https://loop.cloud.microsoft/*",
+        "https://copilot.cloud.microsoft/chat/pages/*",
+        "https://m365.cloud.microsoft/chat/pages/*"
       ],
       "js": [
         "lib/kuromoji/kuromoji.js",
@@ -50,7 +54,9 @@
       "resources": ["lib/kuromoji/*"],
       "matches": [
         "https://loop.microsoft.com/*",
-        "https://loop.cloud.microsoft/*"
+        "https://loop.cloud.microsoft/*",
+        "https://copilot.cloud.microsoft/*",
+        "https://m365.cloud.microsoft/*"
       ]
     }
   ]
