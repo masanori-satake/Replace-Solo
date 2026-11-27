@@ -139,9 +139,12 @@ function clearHighlight() {
 function getTargetRoot() {
   const hostname = window.location.hostname;
   // サブドメインの変動に備え endsWith で判定
+  // Copilot Pages も Loop ページのため、同じキャンバス探索を行う
   const isLoop =
     hostname.endsWith("loop.microsoft.com") ||
-    hostname.endsWith("loop.cloud.microsoft");
+    hostname.endsWith("loop.cloud.microsoft") ||
+    hostname.endsWith("copilot.cloud.microsoft") ||
+    hostname.endsWith("m365.cloud.microsoft");
 
   if (isLoop) {
     // Loopのメインコンテンツ（タイトルと本文）を包む要素を優先的に探す

@@ -28,12 +28,37 @@ function isSupportedLoopPage(urlStr) {
 }
 
 /**
+ * Microsoft Copilot の Pages（Loop ページ）が置換をサポートしているか判定する
+ */
+function isSupportedCopilotPage(urlStr) {
+  if (!urlStr) return false;
+  try {
+    const url = new URL(urlStr);
+    const hostname = url.hostname;
+    // Copilotのドメイン判定（m365.cloud.microsoft は copilot.cloud.microsoft への移行期の旧ホスト）
+    const isCopilot =
+      hostname === "copilot.cloud.microsoft" ||
+      hostname.endsWith(".copilot.cloud.microsoft") ||
+      hostname === "m365.cloud.microsoft" ||
+      hostname.endsWith(".m365.cloud.microsoft");
+
+    if (!isCopilot) return false;
+
+    // Copilotの場合、/chat/pages/（Pages 表示）から始まるURLのみサポート
+    return url.pathname.startsWith("/chat/pages/");
+  } catch (e) {
+    return false;
+  }
+}
+
+/**
  * タブの状態（サイドパネルの有効化とアクションボタンの状態）を更新する
  */
 async function updateTabState(tabId, url) {
   if (!tabId) return;
 
-  const isSupported = isSupportedLoopPage(url);
+  const isSupported =
+    isSupportedLoopPage(url) || isSupportedCopilotPage(url);
 
   try {
     // サイドパネルの有効/無効を設定

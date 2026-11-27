@@ -72,3 +72,5 @@
 
 - `loop.microsoft.com`
 - `loop.cloud.microsoft`
+- `copilot.cloud.microsoft`（Copilot Pages のみ: `/chat/pages/` から始まるURL）
+- `m365.cloud.microsoft`（同上。`copilot.cloud.microsoft` への移行期の旧ホスト）
